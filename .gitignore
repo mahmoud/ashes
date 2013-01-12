@@ -1,0 +1,10 @@
+clastic/
+*.pyc*
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+*~
+._*
+.\#*
+\#*\#
+log*
