@@ -33,6 +33,7 @@ import re
 import urllib
 from cStringIO import StringIO
 
+
 class Context(object):
     def __init__(self, attrs=None, parent=None, value=None):
         self.attrs = {}
@@ -49,7 +50,6 @@ class Context(object):
     def set(self, name, value):
         self.attrs[name] = value
     def update(self, other):
-        import pdb;pdb.set_trace()
         if other:
             if isinstance(other, dict):
                 self.attrs.update(other)
@@ -58,7 +58,11 @@ class Context(object):
             elif type(other) in [str, list, tuple, set, int, float, long, bool, complex, unicode, bytearray, buffer, xrange, frozenset]:
                 self.value = other
             elif isinstance(other, object):
-                self.attrs.update(other.__dict__)
+                if hasattr(other, 'attrs'):
+                    self.attrs.update(other.attrs)
+                else:
+                    self.attrs.update(other.__dict__)
+
 
 class ContextResolver(object):
     def __init__(self, path):
@@ -103,6 +107,7 @@ class ContextResolver(object):
             copy = None
         return copy
 
+
 class RenderChain(object):
     def __init__(self, head, tail):
         self.tail = tail
@@ -117,6 +122,7 @@ class RenderChain(object):
             return None
     def __str__(self):
         return '[[%s] [%s]]' % (self.tail, str(self.head))
+
 
 class Node(object):
     def __init__(self, blocks=None):
@@ -136,6 +142,7 @@ class Node(object):
         return name in self.blocks
     def as_block(self):
         return self
+
 
 class NodeList(Node):
     def __init__(self, blocks=None, nodes=None):
@@ -169,6 +176,7 @@ class NodeList(Node):
     def __str__(self):
         return ''.join([str(n) for n in self.nodes])
 
+
 class TextNode(Node):
     def __init__(self, blocks=None, value=''):
         super(TextNode, self).__init__(blocks=blocks)
@@ -189,6 +197,7 @@ class TextNode(Node):
     def __str__(self):
         self.close()
         return self.value
+
 
 class VariableNode(Node):
     def __init__(self, path, blocks=None, filters=None):
@@ -218,12 +227,13 @@ class VariableNode(Node):
                     if flag in dust.filters:
                         dust.filters[flag](result)
             else:
-                result = dust.escape_html(result)
+                result = escape_html(result)
         return result
 
 class LogicNode(Node):
     operator = '#'
     allow_iter = True
+
     def __init__(self, path, scope, params, blocks=None, bodies=None):
         super(LogicNode, self).__init__(blocks=blocks)
         self.bodies = {}
@@ -236,6 +246,7 @@ class LogicNode(Node):
             self.params.update(params)
         self.context = ContextResolver(path) if path else None
         self.scope = ContextResolver(scope) if scope else None
+
     def __str__(self):
         result = '{%s%s' % (self.operator, str(self.context))
         if self.scope:
@@ -260,12 +271,15 @@ class LogicNode(Node):
                 result += '{:%s}%s' % (name, str(self.bodies[name]))
         result += '{/%s}' % str(self.context)
         return result
+
     def start_body(self, name):
         body = NodeList()
         self.current_body = self.bodies[name] = body
         return body
+
     def end_body(self):
         self.current_body = None
+
     def prepare_model(self, chain, context, model):
         result = Context(attrs=model, parent=context)
         if self.params:
@@ -273,6 +287,7 @@ class LogicNode(Node):
                 result.set(param, self.params[param].render(chain, context, context))
         result.update(model)
         return result
+
     def render_body(self, name, chain, context, model):
         sb = StringIO()
         body = self.bodies.get(name)
@@ -298,13 +313,16 @@ class LogicNode(Node):
         out = sb.getvalue()
         sb.close()
         return out
+
     def choose_body_name(self, context, model):
         return 'block' if self.context.resolve(context, model) else 'else'
+
     def render(self, chain, context, model):
         chain = RenderChain(chain, self)
         context = Context(attrs=self.params, parent=context)
         body_name = self.choose_body_name(context, model)
         return self.render_body(body_name, chain, context, model)
+
 
 class ExistsNode(LogicNode):
     operator = '?'
@@ -314,20 +332,25 @@ class ExistsNode(LogicNode):
         result.update(self.params)
         return result
 
+
 class NotExistsNode(ExistsNode):
     def choose_body_name(self, context, model):
         return 'else' if self.context.resolve(context, model) else 'block'
 
+
 class HelperNode(LogicNode):
     allow_iter = False
+
     def __init__(self, name, scope, params, blocks=None, bodies=None):
         super(HelperNode, self).__init__(None, scope, params, blocks=blocks, bodies=bodies)
         self.context = name
+
     def render(self, chain, context, model):
         chain = RenderChain(chain, self)
         context = Context(attrs=self.params, parent=context)
         helper = dust.helpers[self.context]
         return helper(chain, context, model)
+
 
 class IndexNode(NodeList):
     def prepare_model(self, chain, context, model):
@@ -338,6 +361,7 @@ class IndexNode(NodeList):
     def __str__(self):
         return '{@idx}%s{/idx}' % super(IndexNode, self).__str__()
 
+
 class SepNode(NodeList):
     def prepare_model(self, chain, context, model):
         if model.get('@sep'):
@@ -347,6 +371,7 @@ class SepNode(NodeList):
     def __str__(self):
         return '{@sep}%s{/sep}' % super(SepNode, self).__str__()
 
+
 class EscapedCharacterNode(Node):
     characters = {
         'n': '\n',
@@ -355,25 +380,31 @@ class EscapedCharacterNode(Node):
         'lb': '{',
         'rb': '}'
         }
+
     def __init__(self, code, blocks=None):
         super(EscapedCharacterNode, self).__init__(blocks=blocks)
         self.code = code
         self.character = self.characters[code]
+
     def __str__(self):
         return '{~%s}' % self.code
+
     def render(self, chain, context, model):
         return self.character
+
 
 class PartialNode(Node):
     def __init__(self, include, scope, blocks=None):
         super(PartialNode, self).__init__(blocks=blocks)
         self.include = include
         self.scope = ContextResolver(scope) if scope else None
+
     def __str__(self):
         result = '{>%s' % self.include
         if self.scope:
             result += ':%s' % str(self.scope)
         return '%s/}' % result
+
     def render(self, chain, context, model):
         if self.scope:
             model = self.scope.resolve(context, model)
@@ -383,6 +414,7 @@ class PartialNode(Node):
             name = self.include.render(chain, context, model)
         template = dust.load(name)
         return template.render(chain, context, model)
+
 
 class BlockNode(NodeList):
     def __init__(self, name, blocks=None, nodes=None):
@@ -397,6 +429,7 @@ class BlockNode(NodeList):
         else:
             return super(BlockNode, self).render(chain, context, model)
 
+
 class InlinePartialNode(NodeList):
     def __init__(self, name, blocks=None, nodes=None):
         super(InlinePartialNode, self).__init__(blocks=blocks, nodes=nodes)
@@ -409,6 +442,7 @@ class InlinePartialNode(NodeList):
         return result
     def render(self, chain, context, model):
         return ''
+
 
 class NodeListParser(object):
     def __init__(self):
@@ -514,42 +548,56 @@ class NodeListParser(object):
             nodes[depth].add(TextNode(value=tail))
         return nodes[0]
 
+
 class Template(object):
     def __init__(self, name, root_node, src_file=None):
         self.name = name
         self.root_node = root_node
         self.src_file = src_file
+
     def render(self, model, chain=None, context=None):
         return self.root_node.render(chain, context, model)
 
+
+def escape_html(string):
+    string = str(string)
+    if not re.match(r'[&<>\"]', string):
+        return string
+    else:
+        return string.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;').replace("'", '&squot;')
+
+
+def escape_js(string):
+    string = str(string)
+    return string.replace('\\', '\\\\').replace('"', '\\"').replace("'", "\\'").replace('\r', '\\r').replace('\u2028', '\\u2028').replace('\u2029', '\\u2029').replace('\n', '\\n').replace('\f', '\\f').replace('\t', '\\t')
+
+
+def escape_uri(string):
+    return urllib.quote(string)
+
+
+def escape_uri_component(string):
+    return escape_uri(string).replace('/', '%2F').replace('?', '%3F').replace('=', '%3D').replace('&', '%26')
+
+
 class Dust(object):
+    default_filters = {
+        'h': escape_html,
+        'j': escape_js,
+        'u': escape_uri,
+        'uc': escape_uri_component}
+
     def __init__(self):
         self.parser = NodeListParser()
         self.templates = {}
         self.helpers = {}
-        self.filters = {
-            'h': self.escape_html,
-            'j': self.escape_js,
-            'u': self.escape_uri,
-            'uc': self.escape_uri_component
-            }
-    def escape_html(self, string):
-        string = str(string)
-        if not re.match(r'[&<>\"]', string):
-            return string
-        else:
-            return string.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;').replace("'", '&squot;')
-    def escape_js(self, string):
-        string = str(string)
-        return string.replace('\\', '\\\\').replace('"', '\\"').replace("'", "\\'").replace('\r', '\\r').replace('\u2028', '\\u2028').replace('\u2029', '\\u2029').replace('\n', '\\n').replace('\f', '\\f').replace('\t', '\\t')
-    def escape_uri(self, string):
-        return urllib.quote(string)
-    def escape_uri_component(self, string):
-        return self.escape_uri(string).replace('/', '%2F').replace('?', '%3F').replace('=', '%3D').replace('&', '%26')
+        self.filters = dict(self.default_filters)
+
     def compile(self, string, name, src_file=None):
         root_node = self.parser.parse(string)
         self.templates[name] = Template(name, root_node, src_file=src_file)
         return root_node
+
     def load(self, src_file, name=None):
         if name == None:
             name = src_file
@@ -560,6 +608,7 @@ class Dust(object):
             code = f.read()
             f.close()
             return self.compile(code, name, src_file=src_file)
+
     def render(self, name, model, callback):
         template = self.templates[name]
         out = None
