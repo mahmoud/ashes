@@ -40,6 +40,7 @@ class Context(object):
         self.parent = parent
         self.value = value
         self.update(attrs)
+
     def get(self, name):
         if name in self.attrs:
             return self.attrs[name]
@@ -47,21 +48,29 @@ class Context(object):
             return self.parent.get(name)
         else:
             return None
+
     def set(self, name, value):
         self.attrs[name] = value
+
     def update(self, other):
-        if other:
-            if isinstance(other, dict):
-                self.attrs.update(other)
-            elif isinstance(other, Node):
-                self.value = other
-            elif type(other) in [str, list, tuple, set, int, float, long, bool, complex, unicode, bytearray, buffer, xrange, frozenset]:
-                self.value = other
-            elif isinstance(other, object):
-                if hasattr(other, 'attrs'):
-                    self.attrs.update(other.attrs)
-                else:
-                    self.attrs.update(other.__dict__)
+        if not other:
+            return
+
+        if isinstance(other, dict):
+            self.attrs.update(other)
+        elif isinstance(other, Node):
+            self.value = other
+        elif type(other) in (str, list, tuple, set,
+                             int, float, long, bool,
+                             complex, unicode, bytearray,
+                             buffer, xrange, frozenset):
+            # ^ what the heck is this
+            self.value = other
+        elif isinstance(other, object):
+            if hasattr(other, 'attrs'):
+                self.attrs.update(other.attrs)
+            else:
+                self.attrs.update(other.__dict__)
 
 
 class ContextResolver(object):
@@ -72,12 +81,14 @@ class ContextResolver(object):
             self.path += path[1:].split('.')
         else:
             self.path = path.split('.')
+
     def __str__(self):
         path = []
         path.extend(self.path)
         if path[0] == '.':
             path[0] = ''
         return str('.'.join(path))
+
     def resolve(self, context, model):
         copy = Context(attrs=model, parent=context)
         if model:
@@ -110,8 +121,9 @@ class ContextResolver(object):
 
 class RenderChain(object):
     def __init__(self, head, tail):
-        self.tail = tail
         self.head = head
+        self.tail = tail
+
     def get_block(self, name):
         block = self.tail.get_block(name)
         if block:
@@ -120,6 +132,7 @@ class RenderChain(object):
             return self.head.get_block(name)
         else:
             return None
+
     def __str__(self):
         return '[[%s] [%s]]' % (self.tail, str(self.head))
 
@@ -127,19 +140,25 @@ class RenderChain(object):
 class Node(object):
     def __init__(self, blocks=None):
         self.blocks = blocks if blocks else {}
+
     def render(self, chain, context, model):
         raise Exception('Abstract')
+
     def __str__(self):
         return '<Node>'
+
     def get_block(self, name):
         if self.has_block(name):
             return self.blocks[name].as_block()
         else:
             return None
+
     def set_block(self, name, value):
         self.blocks[name] = value
+
     def has_block(self, name):
         return name in self.blocks
+
     def as_block(self):
         return self
 
@@ -150,29 +169,35 @@ class NodeList(Node):
         self.nodes = []
         if nodes:
             self.nodes.extend(nodes)
+
     def __iter__(self):
         return iter(self.nodes)
+
     def add(self, node):
         self.nodes.append(node)
         return node
+
     def last(self):
         count = len(self.nodes)
         if count > 0:
             return self.nodes[count - 1]
         else:
             return None
+
     def prepare_model(self, chain, context, model):
         return Context(attrs=model, parent=context)
+
     def render(self, chain, context, model):
         chain = RenderChain(chain, self)
         model = self.prepare_model(chain, context, model)
         sb = StringIO()
-        if model != None:
+        if model is not None:
             for node in self.nodes:
                 sb.write(node.render(chain, context, model))
         out = sb.getvalue()
         sb.close()
         return out
+
     def __str__(self):
         return ''.join([str(n) for n in self.nodes])
 
@@ -183,17 +208,20 @@ class TextNode(Node):
         self.buffer = []
         self.buffer.append(value)
         self.value = value
+
     def write(self, value):
-        if self.buffer != None:
-            self.buffer.append(value)
-        else:
+        if self.buffer is None:
             raise Exception('TextNode buffer is closed')
+        self.buffer.append(value)
+
     def close(self):
         if self.buffer:
             self.value = ''.join(self.buffer)
             self.buffer = None
+
     def render(self, chain, context, model):
         return str(self)
+
     def __str__(self):
         self.close()
         return self.value
@@ -206,8 +234,10 @@ class VariableNode(Node):
         self.filters = []
         if filters:
             self.filters.extend(filters)
+
     def __str__(self):
         return '{%s%s}' % (str(self.context), '|' + '|'.join(self.filters) if self.filters else '')
+
     def render(self, chain, context, model):
         chain = RenderChain(chain, self)
         orig_model = model
@@ -229,6 +259,7 @@ class VariableNode(Node):
             else:
                 result = escape_html(result)
         return result
+
 
 class LogicNode(Node):
     operator = '#'
@@ -304,8 +335,7 @@ class LogicNode(Node):
                     iter_model = self.prepare_model(chain, context, model[i])
                     iter_model.update({
                         '@idx': i,
-                        '@sep': i != length - 1
-                        })
+                        '@sep': i != length - 1})
                     sb.write(body.render(chain, context, iter_model))
             else:
                 iter_model = self.prepare_model(chain, context, model)
@@ -354,7 +384,7 @@ class HelperNode(LogicNode):
 
 class IndexNode(NodeList):
     def prepare_model(self, chain, context, model):
-        if model.get('@idx') != None:
+        if model.get('@idx') is not None:
             return str(model.get('@idx'))
         else:
             return None
@@ -420,8 +450,10 @@ class BlockNode(NodeList):
     def __init__(self, name, blocks=None, nodes=None):
         super(BlockNode, self).__init__(blocks=blocks, nodes=nodes)
         self.name = name
+
     def __str__(self):
         return '{+%s}%s{/%s}' % (self.name, super(BlockNode, self).__str__(), self.name)
+
     def render(self, chain, context, model):
         block = chain.get_block(self.name)
         if block:
@@ -434,12 +466,15 @@ class InlinePartialNode(NodeList):
     def __init__(self, name, blocks=None, nodes=None):
         super(InlinePartialNode, self).__init__(blocks=blocks, nodes=nodes)
         self.name = name
+
     def __str__(self):
         return '{<%s}%s{/%s}' % (self.name, super(InlinePartialNode, self).__str__(), self.name)
+
     def as_block(self):
         result = NodeList()
         result.nodes.extend(self.nodes)
         return result
+
     def render(self, chain, context, model):
         return ''
 
@@ -447,6 +482,7 @@ class InlinePartialNode(NodeList):
 class NodeListParser(object):
     def __init__(self):
         self.last_end = 0
+
     def parse(self, string):
         string = re.sub(r'\{!.+?!\}', '', string, flags=re.DOTALL).strip()
         nodes = [NodeList()]
@@ -559,25 +595,25 @@ class Template(object):
         return self.root_node.render(chain, context, model)
 
 
-def escape_html(string):
-    string = str(string)
-    if not re.match(r'[&<>\"]', string):
-        return string
+def escape_html(text):
+    text = str(text)
+    if not re.match(r'[&<>\"]', text):
+        return text
     else:
-        return string.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;').replace("'", '&squot;')
+        return text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;').replace("'", '&squot;')
 
 
-def escape_js(string):
-    string = str(string)
+def escape_js(text):
+    text = str(text)
     return string.replace('\\', '\\\\').replace('"', '\\"').replace("'", "\\'").replace('\r', '\\r').replace('\u2028', '\\u2028').replace('\u2029', '\\u2029').replace('\n', '\\n').replace('\f', '\\f').replace('\t', '\\t')
 
 
-def escape_uri(string):
-    return urllib.quote(string)
+def escape_uri(text):
+    return urllib.quote(text)
 
 
-def escape_uri_component(string):
-    return escape_uri(string).replace('/', '%2F').replace('?', '%3F').replace('=', '%3D').replace('&', '%26')
+def escape_uri_component(text):
+    return escape_uri(text).replace('/', '%2F').replace('?', '%3F').replace('=', '%3D').replace('&', '%26')
 
 
 class Dust(object):
@@ -599,14 +635,13 @@ class Dust(object):
         return root_node
 
     def load(self, src_file, name=None):
-        if name == None:
+        if name is None:
             name = src_file
         if src_file in self.templates:
             return self.templates[name].root_node
         else:
-            f = open(src_file, 'r')
-            code = f.read()
-            f.close()
+            with open(src_file, 'r') as f:
+                code = f.read()
             return self.compile(code, name, src_file=src_file)
 
     def render(self, name, model, callback):
