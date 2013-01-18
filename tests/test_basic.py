@@ -1,5 +1,5 @@
 from nose.tools import eq_
-from dust import dust
+from dust import dust, DustEnv
 
 BASIC_TMPLS = {
     'plain':       'Hello World!',
@@ -28,16 +28,20 @@ INPUTS = {
     'empty_array': [],
     }
 
-TMP_OUTPUT = None
-def test_basic():
-    def callback(exception, content):
-        global TMP_OUTPUT
-        if exception:
-            raise Exception(exception)
-        TMP_OUTPUT = content
-        return
 
+def the_basics(dust_env):
     for name, tmpl in BASIC_TMPLS.items():
-        dust.compile(tmpl, name)
-        dust.render(name, INPUTS, callback)
-        yield eq_, TMP_OUTPUT, BASIC_OUTPUTS[name]
+        dust_env.compile(tmpl, name)
+        output = dust_env.render(name, INPUTS)
+        yield eq_, output, BASIC_OUTPUTS[name]
+
+
+def test_default_env():
+    for t in the_basics(dust):
+        yield t
+
+
+def test_manual_env():
+    dust = DustEnv()
+    for t in the_basics(dust):
+        yield t

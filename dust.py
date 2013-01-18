@@ -141,7 +141,7 @@ class Node(object):
     def __init__(self, blocks=None):
         self.blocks = blocks if blocks else {}
 
-    def render(self, chain, context, model):
+    def render(self, chain, context, model, env=None):
         raise Exception('Abstract')
 
     def __str__(self):
@@ -187,13 +187,13 @@ class NodeList(Node):
     def prepare_model(self, chain, context, model):
         return Context(attrs=model, parent=context)
 
-    def render(self, chain, context, model):
+    def render(self, chain, context, model, env=None):
         chain = RenderChain(chain, self)
         model = self.prepare_model(chain, context, model)
         sb = StringIO()
         if model is not None:
             for node in self.nodes:
-                sb.write(node.render(chain, context, model))
+                sb.write(node.render(chain, context, model, env=env))
         out = sb.getvalue()
         sb.close()
         return out
@@ -219,7 +219,7 @@ class TextNode(Node):
             self.value = ''.join(self.buffer)
             self.buffer = None
 
-    def render(self, chain, context, model):
+    def render(self, chain, context, model, env=None):
         return str(self)
 
     def __str__(self):
@@ -238,14 +238,16 @@ class VariableNode(Node):
     def __str__(self):
         return '{%s%s}' % (str(self.context), '|' + '|'.join(self.filters) if self.filters else '')
 
-    def render(self, chain, context, model):
+    def render(self, chain, context, model, env=None):
+        if env is None:
+            env = default_env
         chain = RenderChain(chain, self)
         orig_model = model
         model = self.context.resolve(context, model)
         result = ''
         if model != None:
             if isinstance(model, Node):
-                result = model.render(chain, context, orig_model)
+                result = model.render(chain, context, orig_model, env=env)
             elif isinstance(model, ContextResolver):
                 result = model.resolve(context, orig_model)
             elif isinstance(model, Context):
@@ -254,8 +256,8 @@ class VariableNode(Node):
                 result = str(model)
             if self.filters:
                 for flag in self.filters:
-                    if flag in dust.filters:
-                        dust.filters[flag](result)
+                    if flag in env.filters:
+                        env.filters[flag](result)
             else:
                 result = escape_html(result)
         return result
@@ -319,7 +321,7 @@ class LogicNode(Node):
         result.update(model)
         return result
 
-    def render_body(self, name, chain, context, model):
+    def render_body(self, name, chain, context, model, env=None):
         sb = StringIO()
         body = self.bodies.get(name)
         context = model
@@ -347,11 +349,11 @@ class LogicNode(Node):
     def choose_body_name(self, context, model):
         return 'block' if self.context.resolve(context, model) else 'else'
 
-    def render(self, chain, context, model):
+    def render(self, chain, context, model, env=None):
         chain = RenderChain(chain, self)
         context = Context(attrs=self.params, parent=context)
         body_name = self.choose_body_name(context, model)
-        return self.render_body(body_name, chain, context, model)
+        return self.render_body(body_name, chain, context, model, env=env)
 
 
 class ExistsNode(LogicNode):
@@ -364,8 +366,9 @@ class ExistsNode(LogicNode):
 
 
 class NotExistsNode(ExistsNode):
+    operator = '^'
     def choose_body_name(self, context, model):
-        return 'else' if self.context.resolve(context, model) else 'block'
+        return 'block' if self.context.resolve(context, model) else 'else'
 
 
 class HelperNode(LogicNode):
@@ -375,10 +378,12 @@ class HelperNode(LogicNode):
         super(HelperNode, self).__init__(None, scope, params, blocks=blocks, bodies=bodies)
         self.context = name
 
-    def render(self, chain, context, model):
+    def render(self, chain, context, model, env=None):
+        if env is None:
+            env = default_env
         chain = RenderChain(chain, self)
         context = Context(attrs=self.params, parent=context)
-        helper = dust.helpers[self.context]
+        helper = env.helpers[self.context]
         return helper(chain, context, model)
 
 
@@ -419,7 +424,7 @@ class EscapedCharacterNode(Node):
     def __str__(self):
         return '{~%s}' % self.code
 
-    def render(self, chain, context, model):
+    def render(self, chain, context, model, env=None):
         return self.character
 
 
@@ -435,15 +440,17 @@ class PartialNode(Node):
             result += ':%s' % str(self.scope)
         return '%s/}' % result
 
-    def render(self, chain, context, model):
+    def render(self, chain, context, model, env=None):
+        if env is None:
+            env = default_env
         if self.scope:
             model = self.scope.resolve(context, model)
         chain = RenderChain(chain, self)
         name = self.include
         if isinstance(self.include, NodeList):
-            name = self.include.render(chain, context, model)
-        template = dust.load(name)
-        return template.render(chain, context, model)
+            name = self.include.render(chain, context, model, env=env)
+        template = env.load(name)
+        return template.render(chain, context, model, env=env)
 
 
 class BlockNode(NodeList):
@@ -454,7 +461,9 @@ class BlockNode(NodeList):
     def __str__(self):
         return '{+%s}%s{/%s}' % (self.name, super(BlockNode, self).__str__(), self.name)
 
-    def render(self, chain, context, model):
+    def render(self, chain, context, model, env=None):
+        if env is None:
+            env = dust
         block = chain.get_block(self.name)
         if block:
             return block.render(chain, context, model)
@@ -475,7 +484,7 @@ class InlinePartialNode(NodeList):
         result.nodes.extend(self.nodes)
         return result
 
-    def render(self, chain, context, model):
+    def render(self, chain, context, model, env=None):
         return ''
 
 
@@ -483,7 +492,10 @@ class NodeListParser(object):
     def __init__(self):
         self.last_end = 0
 
-    def parse(self, string):
+    def parse(self, string, env=None):
+        if env is None:
+            env = default_env
+        # removing comments
         string = re.sub(r'\{!.+?!\}', '', string, flags=re.DOTALL).strip()
         nodes = [NodeList()]
         depth = 0
@@ -518,12 +530,14 @@ class NodeListParser(object):
                 if operator == '~':
                     node = EscapedCharacterNode(tag_name)
                 elif operator == '#':
-                    if tag_name in dust.helpers:
+                    if tag_name in env.helpers:
                         node = HelperNode(tag_name, scope, params)
                     else:
                         node = LogicNode(tag_name, scope, params)
                 elif operator == '?':
                     node = ExistsNode(tag_name, scope, params)
+                elif operator == '^':
+                    node = NotExistsNode(tag_name, scope, params)
                 elif operator == '@':
                     name = tag[0][1:]
                     if name == 'idx':
@@ -542,7 +556,7 @@ class NodeListParser(object):
                 else:
                     node = TextNode(value='UNDEFINED:' + ' '.join(tag))
                 if not self_closed:
-                    if operator in ['#', '?', '@', ':', '+', '<']:
+                    if operator in ['#', '?', '^', '@', ':', '+', '<']:
                         depth_change = True
                         for param in tag[1:]:
                             param = param.split('=')
@@ -591,8 +605,8 @@ class Template(object):
         self.root_node = root_node
         self.src_file = src_file
 
-    def render(self, model, chain=None, context=None):
-        return self.root_node.render(chain, context, model)
+    def render(self, model, chain=None, context=None, env=None):
+        return self.root_node.render(chain, context, model, env=env)
 
 
 def escape_html(text):
@@ -616,7 +630,7 @@ def escape_uri_component(text):
     return escape_uri(text).replace('/', '%2F').replace('?', '%3F').replace('=', '%3D').replace('&', '%26')
 
 
-class Dust(object):
+class DustEnv(object):
     default_filters = {
         'h': escape_html,
         'j': escape_js,
@@ -644,14 +658,12 @@ class Dust(object):
                 code = f.read()
             return self.compile(code, name, src_file=src_file)
 
-    def render(self, name, model, callback):
-        template = self.templates[name]
-        out = None
-        err = None
+    def render(self, name, model):
         try:
-            out = template.render(model)
-        except Exception as exc:
-            err = exc
-        callback(err, out)
+            template = self.templates[name]
+        except KeyError as ke:
+            raise ValueError('No template named "%s"' % name)
+        return template.render(model, env=self)
 
-dust = Dust()
+
+dust = default_env = DustEnv()
