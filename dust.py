@@ -74,6 +74,7 @@ class Context(object):
 
 
 class ContextResolver(object):
+    # TODO: this needs a rework pretty bad. too many hasattr hazards in the mix
     def __init__(self, path):
         self.path = []
         if path.startswith('.'):
@@ -104,12 +105,13 @@ class ContextResolver(object):
                                 break
                             else:
                                 copy.parent = None
-                        elif copy.get(segment):
-                            copy = Context(attrs=copy.get(segment), parent=copy)
-                            if copy.value != None:
-                                copy = copy.value
+                        elif hasattr(copy, 'get') and copy.get(segment):
+                            print copy
+                            attrs = copy.get(segment)
+                            copy = Context(attrs=attrs, parent=copy)
+                        elif hasattr(copy, 'value'):
+                            copy = copy.value
                         else:
-                            copy = None
                             break
                     else:
                         copy = copy.value
@@ -317,6 +319,7 @@ class LogicNode(Node):
         result = Context(attrs=model, parent=context)
         if self.params:
             for param in self.params:
+                # BIG TODO: does prepare_model need env=env, too?
                 result.set(param, self.params[param].render(chain, context, context))
         result.update(model)
         return result
@@ -338,10 +341,10 @@ class LogicNode(Node):
                     iter_model.update({
                         '@idx': i,
                         '@sep': i != length - 1})
-                    sb.write(body.render(chain, context, iter_model))
+                    sb.write(body.render(chain, context, iter_model, env=env))
             else:
                 iter_model = self.prepare_model(chain, context, model)
-                sb.write(body.render(chain, context, iter_model))
+                sb.write(body.render(chain, context, iter_model, env=env))
         out = sb.getvalue()
         sb.close()
         return out
@@ -359,6 +362,7 @@ class LogicNode(Node):
 class ExistsNode(LogicNode):
     operator = '?'
     allow_iter = False
+
     def prepare_model(self, chain, context, model):
         result = Context(attrs=context, parent=context)
         result.update(self.params)
@@ -367,8 +371,9 @@ class ExistsNode(LogicNode):
 
 class NotExistsNode(ExistsNode):
     operator = '^'
+
     def choose_body_name(self, context, model):
-        return 'block' if self.context.resolve(context, model) else 'else'
+        return 'else' if self.context.resolve(context, model) else 'block'
 
 
 class HelperNode(LogicNode):
@@ -466,9 +471,9 @@ class BlockNode(NodeList):
             env = dust
         block = chain.get_block(self.name)
         if block:
-            return block.render(chain, context, model)
+            return block.render(chain, context, model, env=env)
         else:
-            return super(BlockNode, self).render(chain, context, model)
+            return super(BlockNode, self).render(chain, context, model, env=env)
 
 
 class InlinePartialNode(NodeList):
@@ -661,8 +666,9 @@ class DustEnv(object):
     def render(self, name, model):
         try:
             template = self.templates[name]
-        except KeyError as ke:
+        except KeyError:
             raise ValueError('No template named "%s"' % name)
+
         return template.render(model, env=self)
 
 
