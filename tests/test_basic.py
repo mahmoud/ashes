@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from nose.tools import eq_
 from dust import dust, DustEnv
 
@@ -30,7 +31,7 @@ INPUTS = {
 
 
 def the_basics(dust_env):
-    for name, tmpl in BASIC_TMPLS.items():
+    for name, tmpl in BASIC_TMPLS.iteritems():
         dust_env.compile(tmpl, name)
         output = dust_env.render(name, INPUTS)
         yield eq_, output, BASIC_OUTPUTS[name]
