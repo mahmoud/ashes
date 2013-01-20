@@ -1,7 +1,8 @@
 dust.py
 =======
 
-[Dust](http://akdubya.github.com/dustjs/) templating for Python, originally forked from [dust-py](http://code.google.com/p/dust-py/).
+[Dust](http://akdubya.github.com/dustjs/) templating for Python, originally
+forked from [dust-py](http://code.google.com/p/dust-py/).
 
 A quick example:
 
