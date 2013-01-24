@@ -49,8 +49,9 @@ def main_t():
 
 def t_and_p(text):
     p = Parser()
+    tokens = tokenize(text)
     try:
-        tree = p.parse(tokenize(text))
+        tree = p.parse(tokens)
     except p.ParseErrors, e:
         for token,expected in e.errors:
             if token[0] == p.EOF:
@@ -70,7 +71,10 @@ def t_and_p(text):
     return tree
 
 def main_p():
-    pprint(t_and_p(parse_tests['array']))
+    pprint(t_and_p(parse_tests['replace']))
 
 if __name__ == '__main__':
-    main_p()
+    try:
+        main_p()
+    except Exception as e:
+        import pdb;pdb.post_mortem()

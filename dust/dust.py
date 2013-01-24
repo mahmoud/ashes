@@ -5,10 +5,10 @@ import cgi
 import urllib
 
 
-# don't ask, because who even knows, okay?
-node_re = re.compile(r'(\{[\~\#\?\@\:\<\>\+\/\^]?'
-                     r'([a-zA-Z0-9_\$\.]+|"[^"]+")'
-                     r'(\:[a-zA-Z0-9\$\.]+)?(\|[a-z]+)*?'
+node_re = re.compile(r'({(?P<symbol>[\~\#\?\@\:\<\>\+\/\^])?'
+                     r'(?P<refpath>[a-zA-Z0-9_\$\.]+|"[^"]+")'
+                     r'(?:\:(?P<contpath>[a-zA-Z0-9\$\.]+))?'
+                     r'(?P<filters>\|[a-z]+)*?'
                      r'( \w+\=(("[^"]*?")|([\w\.]+)))*?\/?\})',
                      flags=re.MULTILINE)
 
@@ -17,11 +17,24 @@ node_re = re.compile(r'(\{[\~\#\?\@\:\<\>\+\/\^]?'
 def strip_comments(text):
     return re.sub(r'\{!.+?!\}', '', text, flags=re.DOTALL).strip()
 
+
+def decompose_tag(match):
+    ret = ['{']
+    symbol = match.group('symbol')
+    if symbol:
+        ret.append(symbol)
+    refpath = match.group('refpath')
+    if refpath:
+        ret.append(('path', refpath))
+    ret.append('}')
+    return ret
+
+
 _BUFFER = 'buffer'
 _TAG = 'TAG'
 def tokenize(source):
     # removing comments
-    #source = strip_comments(source)
+    source = strip_comments(source)
     tokens = []
     prev_end = 0
     start = None
@@ -31,7 +44,7 @@ def tokenize(source):
         if prev_end < start:
             tokens.append((_BUFFER, source[prev_end:start]))
         prev_end = end
-        tokens.append((_TAG, match.group(1)))
+        tokens.extend(decompose_tag(match))
     tail = source[prev_end:]
     if tail:
         tokens.append((_BUFFER, tail))

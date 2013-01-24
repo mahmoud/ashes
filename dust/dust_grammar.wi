@@ -1,3 +1,5 @@
-body: part* ;
+body: _part* ;
 
-part: buffer | TAG ;
+_part: buffer | reference ;
+
+reference: "{" path "}" ;
