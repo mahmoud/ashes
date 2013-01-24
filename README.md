@@ -1,9 +1,12 @@
 dust.py
 =======
 
-[Dust](http://akdubya.github.com/dustjs/) templating for Python, originally forked from [dust-py](http://code.google.com/p/dust-py/).
+[Dust](http://akdubya.github.com/dustjs/) templating for Python, originally
+based on [dust-py](http://code.google.com/p/dust-py/), but now in the process
+of being rewritten, since dust-py was incomplete, buggy, and didn't compile
+to python.
 
-A quick example:
+A quick example (which will work again soon):
 
 ```python
 >>> from dust import dust
