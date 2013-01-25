@@ -6,11 +6,17 @@ from sys import stderr
 from dust import tokenize
 from parser import Parser
 
+DEFAULT_TMPL_NAME = 'p_and_r'
 
 parse_tests = {
     'plain': 'Hello World!',
     'replace': 'Hello {name}! You have {count} new messages.',
     'array': '{#names}{title} {name}{~n}{/names}',
+    'path': '{foo.bar}',
+    'context': '{#list:projects}{name}{:else}No Projects!{/list}',
+    'params': '{#helper foo="bar"/}',
+    'easy_nest': '{#names}hi{/names}',
+    'p_and_r': '{foo.bar} {name}',
     'implicit': '{#names}{.}{~n}{/names}'}
 
 parse_ref_json = {
@@ -23,6 +29,16 @@ parse_ref_json = {
                 ["reference",["key","title"],["filters"]],
                 ["buffer"," "],["reference",["key","name"],
                 ["filters"]],["special","n"]]]]]]''',
+    'path': '["body",["reference",["path",false,["foo","bar"]],["filters"]]]',
+    'p_and_r': '''["body",["reference",["path",false,["foo","bar"]],
+                  ["filters"]],["buffer"," "],["reference",
+                  ["key","name"],["filters"]]]''',
+    'context': '''["body",["#",["key","list"],["context",["key","projects"]],
+                  ["params"],["bodies",["param",["literal","else"],["body",
+                  ["buffer","No Projects!"]]],["param",["literal","block"],
+                  ["body",["reference",["key","name"],["filters"]]]]]]]''',
+    'params': '''["body",["#",["key","helper"],["context"],["params",["param",
+                 ["literal","foo"],["literal","bar"]]],["bodies"]]]''',
     'implicit': '''["body",["#",["key","names"],["context"],["params"],
                    ["bodies",["param",["literal","block"],
                    ["body",["reference",["path",true,[]],
@@ -70,8 +86,15 @@ def t_and_p(text):
         raise
     return tree
 
-def main_p():
-    pprint(t_and_p(parse_tests['replace']))
+def main_p(tmpl_name=DEFAULT_TMPL_NAME):
+    try:
+        pprint(parse_ref[tmpl_name])
+    except KeyError:
+        print '(no reference)'
+    print
+    pprint(tokenize(parse_tests[tmpl_name]))
+    print
+    pprint(t_and_p(parse_tests[tmpl_name]))
 
 if __name__ == '__main__':
     try:

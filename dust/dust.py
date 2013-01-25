@@ -4,29 +4,97 @@ import re
 import cgi
 import urllib
 
+node_re_o = re.compile(r'({(?P<symbol>[\~\#\?\@\:\<\>\+\/\^])?'
+                       r'(?P<refpath>[a-zA-Z0-9_\$\.]+|"[^"]+")'
+                       r'(?:\:(?P<contpath>[a-zA-Z0-9\$\.]+))?'
+                       r'(?P<filters>\|[a-z]+)*?'
+                       r'( \w+\=(("[^"]*?")|([\w\.]+)))*?\/?\})',
+                       flags=re.MULTILINE)
 
-node_re = re.compile(r'({(?P<symbol>[\~\#\?\@\:\<\>\+\/\^])?'
+# need to add group for literals
+# switch to using word boundary for params section
+node_re = re.compile(r'({'
+                     r'(?P<closing>\/)?'
+                     r'(?P<symbol>[\~\#\?\@\:\<\>\+\^])?'
                      r'(?P<refpath>[a-zA-Z0-9_\$\.]+|"[^"]+")'
                      r'(?:\:(?P<contpath>[a-zA-Z0-9\$\.]+))?'
                      r'(?P<filters>\|[a-z]+)*?'
-                     r'( \w+\=(("[^"]*?")|([\w\.]+)))*?\/?\})',
+                     r'(?P<params> \w+\=(("[^"]*?")|([\w\.]+)))*?'
+                     r'(?P<selfclosing>\/)?'
+                     r'\})',
                      flags=re.MULTILINE)
 
+key_re_str = '[a-zA-Z_$][0-9a-zA-Z_$]*'
+key_re = re.compile(key_re_str)
+path_re = re.compile(key_re_str+'?(\.'+key_re_str+')+')
 
 #comment_re = ''  # TODO
 def strip_comments(text):
     return re.sub(r'\{!.+?!\}', '', text, flags=re.DOTALL).strip()
 
 
+def get_path_or_key(pork):
+    if path_re.match(pork):
+        f_local = pork.startswith('.')
+        pk = ('path', f_local, pork.split('.'))
+    elif key_re.match(pork):
+        pk = ('key', pork)
+    else:
+        raise ValueError('expected a path or key, not %r' % pork)
+    return pk
+
+
+def params_to_kv(params_str):
+    ret = []
+    new_k, v = None, None
+    k, _, tail = params_str.partition('=')
+    while tail:
+        tmp, _, tail = tail.partition('=')
+        if not tail:
+            v = tmp
+        else:
+            v, new_k = tmp.split()
+        ret.append((k.strip(), v.strip()))
+        k = new_k
+    return ret
+
+
+def wrap_params(param_kv):
+    ret = []
+    for k, v in param_kv:
+        # i know this isn't right, it's just for a second
+        ret.append(('param', ('literal', k), ('literal', v)))
+    return ret
+
+
 def decompose_tag(match):
-    ret = ['{']
+    ret = []
+    is_closing = match.group('closing') is not None
+    is_selfclosing = match.group('selfclosing') is not None
     symbol = match.group('symbol')
-    if symbol:
-        ret.append(symbol)
     refpath = match.group('refpath')
     if refpath:
-        ret.append(('path', refpath))
-    ret.append('}')
+        pk = get_path_or_key(refpath)
+    contpath = match.group('contpath')
+    if contpath:
+        cont_pk = get_path_or_key(contpath)
+    params_str = match.group('params')
+    if params_str:
+        params_kv = params_to_kv(params_str)
+        params = wrap_params(params_kv)
+
+    if is_closing:
+        ret.append('/')
+    if symbol:
+        ret.append(symbol)  # context, params
+    if refpath:
+        ret.append(pk)
+    if contpath:
+        ret.extend((':', cont_pk))
+    if params_str:
+        ret.append(['params'] + params)
+    if is_selfclosing:
+        ret.append('/')
     return ret
 
 
@@ -44,7 +112,8 @@ def tokenize(source):
         if prev_end < start:
             tokens.append((_BUFFER, source[prev_end:start]))
         prev_end = end
-        tokens.extend(decompose_tag(match))
+        d_tag = decompose_tag(match)
+        tokens.extend(d_tag)
     tail = source[prev_end:]
     if tail:
         tokens.append((_BUFFER, tail))

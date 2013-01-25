@@ -1,5 +1,18 @@
 body: _part* ;
 
-_part: buffer | reference ;
+_part: section | partial | special | reference | buffer ;
 
-reference: "{" path "}" ;
+section: start_tag body bodies end_tag ;
+
+start_tag: ("#"|"?"|"^"|"<"|"+"|"@"|"%") _identifier context params ;
+end_tag: "/" _identifier ;
+context: (":" _identifier)? ;
+special: "~" key ;
+#params: (param)* ;
+bodies: (":" key body )* ;
+
+reference: _identifier filters ;
+
+filters: ("|" key)* ;
+
+_identifier: key | path;
