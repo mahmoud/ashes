@@ -2,11 +2,10 @@ import json
 from pprint import pprint
 from sys import stderr
 
-
 from dust import tokenize
 from parser import Parser
 
-DEFAULT_TMPL_NAME = 'p_and_r'
+DEFAULT_TMPL_NAME = 'context'
 
 parse_tests = {
     'plain': 'Hello World!',

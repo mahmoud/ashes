@@ -4,13 +4,6 @@ import re
 import cgi
 import urllib
 
-node_re_o = re.compile(r'({(?P<symbol>[\~\#\?\@\:\<\>\+\/\^])?'
-                       r'(?P<refpath>[a-zA-Z0-9_\$\.]+|"[^"]+")'
-                       r'(?:\:(?P<contpath>[a-zA-Z0-9\$\.]+))?'
-                       r'(?P<filters>\|[a-z]+)*?'
-                       r'( \w+\=(("[^"]*?")|([\w\.]+)))*?\/?\})',
-                       flags=re.MULTILINE)
-
 # need to add group for literals
 # switch to using word boundary for params section
 node_re = re.compile(r'({'
@@ -65,6 +58,15 @@ def wrap_params(param_kv):
         # i know this isn't right, it's just for a second
         ret.append(('param', ('literal', k), ('literal', v)))
     return ret
+
+
+class Tag(object):
+    pass
+
+class BlockTag(Tag):
+    @classmethod
+    def from_match(cls, match):
+        pass
 
 
 def decompose_tag(match):
