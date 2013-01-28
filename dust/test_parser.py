@@ -95,8 +95,10 @@ def main_p(tmpl_name=DEFAULT_TMPL_NAME):
     print
     pprint(t_and_p(parse_tests[tmpl_name]))
 
+
 if __name__ == '__main__':
     try:
-        main_p()
+        main_t()
     except Exception as e:
         import pdb;pdb.post_mortem()
+        raise

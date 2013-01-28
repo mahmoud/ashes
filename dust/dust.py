@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import re
 import cgi
 import urllib
-
+from pprint import pprint
 # need to add group for literals
 # switch to using word boundary for params section
 node_re = re.compile(r'({'
@@ -19,7 +19,7 @@ node_re = re.compile(r'({'
 
 key_re_str = '[a-zA-Z_$][0-9a-zA-Z_$]*'
 key_re = re.compile(key_re_str)
-path_re = re.compile(key_re_str+'?(\.'+key_re_str+')+')
+path_re = re.compile(key_re_str + '?(\.' + key_re_str + ')+')
 
 #comment_re = ''  # TODO
 def strip_comments(text):
@@ -27,7 +27,9 @@ def strip_comments(text):
 
 
 def get_path_or_key(pork):
-    if path_re.match(pork):
+    if pork == '.':
+        pk = ('path', True, [])
+    elif path_re.match(pork):
         f_local = pork.startswith('.')
         pk = ('path', f_local, pork.split('.'))
     elif key_re.match(pork):
@@ -60,13 +62,116 @@ def wrap_params(param_kv):
     return ret
 
 
-class Tag(object):
-    pass
+ALL_ATTRS = ('closing', 'symbol', 'refpath', 'contpath',
+             'filters', 'params', 'selfclosing')
 
-class BlockTag(Tag):
+
+class Tag(object):
+    req_attrs = ()
+    ill_attrs = ()
+
+    def __init__(self, **kw):
+        self.match_str = kw.pop('match_str')
+        self.__dict__.update(kw)
+        if callable(getattr(self, 'check', None)):
+            self.check()
+
+    def check(self, raise_exc=True):  # todo: necessary?
+        cn = self.__class__.__name__
+        all_attrs = getattr(self, 'all_attrs', ())
+        if all_attrs:
+            req_attrs = [a for a in ALL_ATTRS if a in all_attrs]
+            ill_attrs = [a for a in ALL_ATTRS if a not in all_attrs]
+        else:
+            req_attrs = getattr(self, 'req_attrs', ())
+            ill_attrs = getattr(self, 'ill_attrs', ())
+
+        opt_attrs = getattr(self, 'opt_attrs', ())
+        if opt_attrs:
+            ill_attrs = [a for a in ill_attrs if a not in opt_attrs]
+        for attr in req_attrs:
+            if getattr(self, attr, None) is None:
+                raise ValueError('%s expected %s' % (cn, attr))
+        for attr in ill_attrs:
+            if getattr(self, attr, None) is not None:
+                raise ValueError('%s does not take %s' % (cn, attr))
+        return True
+
+    def __repr__(self):
+        cn = self.__class__.__name__
+        return '%s(%r)' % (cn, self.match_str)
+
     @classmethod
     def from_match(cls, match):
-        pass
+        groups = match.groupdict()
+        kw = dict([(k, v) for k, v in groups.items()
+                   if v is not None])
+        kw['match_str'] = match.group(0)
+        obj = cls(**kw)
+        obj.orig_match = match
+        return obj
+
+
+class BlockTag(Tag):
+    all_attrs = ('contpath',)
+
+
+class ReferenceTag(Tag):
+    all_attrs = ('refpath',)
+    opt_attrs = ('filters',)
+
+
+class SectionTag(Tag):
+    ill_attrs = ('closing')
+
+
+class ClosingTag(Tag):
+    all_attrs = ('closing', 'refpath')
+
+
+class SpecialTag(Tag):
+    all_attrs = ('symbol', 'refpath')
+
+
+class BlockTag(Tag):
+    all_attrs = ('symbol', 'refpath')
+
+
+class PartialTag(Tag):
+    req_attrs = ('symbol', 'refpath', 'selfclosing')
+
+
+def get_tag(match):
+    groups = match.groupdict()
+    symbol = groups['symbol']
+    closing = groups['closing']
+    refpath = groups['refpath']
+    if closing:
+        tag_type = ClosingTag
+    elif symbol is None and refpath is not None:
+        tag_type = ReferenceTag
+    elif symbol in '#?^<+@%':
+        tag_type = SectionTag
+    elif symbol == '~':
+        tag_type = SpecialTag
+    elif symbol == ':':
+        tag_type = BlockTag
+    elif symbol == '>':
+        tag_type = PartialTag
+    else:
+        raise ValueError('invalid tag')
+    return tag_type.from_match(match)
+
+
+class BufferToken(object):
+    def __init__(self, text=''):
+        self.text = text
+
+    def __repr__(self):
+        disp = self.text
+        if len(self.text) > 30:
+            disp = disp[:30] + '...'
+        return u'BufferToken(%r)' % disp
 
 
 def decompose_tag(match):
@@ -100,8 +205,6 @@ def decompose_tag(match):
     return ret
 
 
-_BUFFER = 'buffer'
-_TAG = 'TAG'
 def tokenize(source):
     # removing comments
     source = strip_comments(source)
@@ -112,13 +215,14 @@ def tokenize(source):
     for match in node_re.finditer(source):
         start, end = match.start(1), match.end(1)
         if prev_end < start:
-            tokens.append((_BUFFER, source[prev_end:start]))
+            tokens.append(BufferToken(source[prev_end:start]))
         prev_end = end
-        d_tag = decompose_tag(match)
-        tokens.extend(d_tag)
+        tag = get_tag(match)
+        tokens.append(tag)
+
     tail = source[prev_end:]
     if tail:
-        tokens.append((_BUFFER, tail))
+        tokens.append(BufferToken(tail))
     return tokens
 
 
