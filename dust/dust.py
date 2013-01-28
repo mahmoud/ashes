@@ -76,6 +76,10 @@ class Tag(object):
         if callable(getattr(self, 'check', None)):
             self.check()
 
+    @property
+    def is_selfclosing(self):
+        return getattr(self, 'selfclosing', False)
+
     def check(self, raise_exc=True):  # todo: necessary?
         cn = self.__class__.__name__
         all_attrs = getattr(self, 'all_attrs', ())
@@ -174,6 +178,32 @@ class BufferToken(object):
         return u'BufferToken(%r)' % disp
 
 
+def tokenize(source):
+    # TODO: line/column numbers
+    # removing comments
+    source = strip_comments(source)
+    tokens = []
+    prev_end = 0
+    start = None
+    end = None
+    for match in node_re.finditer(source):
+        start, end = match.start(1), match.end(1)
+        if prev_end < start:
+            tokens.append(BufferToken(source[prev_end:start]))
+        prev_end = end
+        tag = get_tag(match)
+        tokens.append(tag)
+    tail = source[prev_end:]
+    if tail:
+        tokens.append(BufferToken(tail))
+    return tokens
+
+
+#########
+# PARSING
+#########
+
+
 def decompose_tag(match):
     ret = []
     is_closing = match.group('closing') is not None
@@ -204,28 +234,77 @@ def decompose_tag(match):
         ret.append('/')
     return ret
 
+class Section(object):
+    def __init__(self, start_tag=None, blocks=None):
+        if start_tag is None:
+            name = '<root>'
+        else:
+            name = start_tag.refpath
+        self.name = name
+        self.start_tag = start_tag
+        if blocks is None:
+            blocks = [Block()]
+        self.blocks = blocks
 
-def tokenize(source):
-    # removing comments
-    source = strip_comments(source)
-    tokens = []
-    prev_end = 0
-    start = None
-    end = None
-    for match in node_re.finditer(source):
-        start, end = match.start(1), match.end(1)
-        if prev_end < start:
-            tokens.append(BufferToken(source[prev_end:start]))
-        prev_end = end
-        tag = get_tag(match)
-        tokens.append(tag)
+    def add(self, obj):
+        if type(obj) == Block:
+            self.blocks.append(obj)
+        else:
+            self.blocks[-1].add(obj)
 
-    tail = source[prev_end:]
-    if tail:
-        tokens.append(BufferToken(tail))
-    return tokens
+    def to_dict(self):
+        ret = {self.name: dict([(b.name, b.to_list()) for b in self.blocks])}
+        return ret
 
 
+class Block(object):
+    def __init__(self, name='block'):
+        if not name:
+            raise ValueError('blocks need a name, not: %r' % name)
+        self.name = name
+        self.items = []
+
+    def add(self, item):
+        self.items.append(item)
+
+    def to_list(self):
+        ret = []
+        for i in self.items:
+            try:
+                ret.append(i.to_dict())
+            except AttributeError:
+                ret.append(i)
+        return ret
+
+
+def parse_to_ast(tokens):
+    root_sect = Section()
+    ss = [root_sect]  # section stack
+    for token in tokens:
+        if type(token) == SectionTag:
+            new_s = Section(token)
+            ss[-1].add(new_s)
+            if not token.is_selfclosing:
+                ss.append(new_s)
+        elif type(token) == ClosingTag:
+            if len(ss) <= 1:
+                raise ValueError('closing tag before opening tag: %r' % token)
+            if token.refpath != ss[-1].start_tag.refpath:
+                raise ValueError('nesting error')
+            ss.pop()
+        elif type(token) == BlockTag:
+            if len(ss) <= 1:
+                raise ValueError('cannot start blocks outside of a section')
+            new_b = Block(name=token.refpath)
+            ss[-1].add(new_b)
+        else:
+            ss[-1].add(token)
+    return root_sect.blocks[0]
+
+
+#########
+# Runtime
+#########
 def escape_html(text):
     text = unicode(text)
     return cgi.escape(text, True).replace("'", '&squot;')

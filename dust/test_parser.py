@@ -1,11 +1,9 @@
 import json
 from pprint import pprint
-from sys import stderr
 
-from dust import tokenize
-from parser import Parser
+from dust import tokenize, parse_to_ast
 
-DEFAULT_TMPL_NAME = 'context'
+DEFAULT_TMPL_NAME = 'conditional'
 
 parse_tests = {
     'plain': 'Hello World!',
@@ -16,7 +14,27 @@ parse_tests = {
     'params': '{#helper foo="bar"/}',
     'easy_nest': '{#names}hi{/names}',
     'p_and_r': '{foo.bar} {name}',
-    'implicit': '{#names}{.}{~n}{/names}'}
+    'implicit': '{#names}{.}{~n}{/names}',
+    'conditional': '''
+{?tags}
+  <ul>{~n}
+    {#tags}
+      {~s} <li>{.}</li>{~n}
+    {/tags}
+  </ul>
+{:else}
+  No Tags!
+{/tags}
+{~n}
+{^likes}
+  No Likes!
+{:else}
+  <ul>{~n}
+    {#likes}
+      {~s} <li>{.}</li>{~n}
+    {/likes}
+  </ul>
+{/likes}'''}
 
 parse_ref_json = {
     'plain': '["body",["buffer","Hello World!"]]',
@@ -41,7 +59,34 @@ parse_ref_json = {
     'implicit': '''["body",["#",["key","names"],["context"],["params"],
                    ["bodies",["param",["literal","block"],
                    ["body",["reference",["path",true,[]],
-                   ["filters"]],["special","n"]]]]]]'''
+                   ["filters"]],["special","n"]]]]]]''',
+    'conditional': '''["body",["?",["key","tags"],["context"],["params"],
+                      ["bodies",["param",["literal","else"],["body",["format",
+                      "\\n"," "], ["buffer","No Tags!"],["format",
+                      "\\n",""]]],["param",["literal","block"],["body",
+                      ["format","\\n"," "],["buffer","<ul>"],
+                      ["special","n"],["format","\\n"," "],["#",["key",
+                      "tags"],["context"],
+                      ["params"],["bodies",["param",["literal","block"],
+                      ["body",["format","\\n"," "],["special","s"],
+                      ["buffer","<li>"],["reference",["path",true,[]],
+                      ["filters"]],["buffer","</li>"],["special","n"],
+                      ["format","\\n"," "]]]]],["format","\\n"," "],
+                      ["buffer","</ul>"],["format","\\n",""]]]]],["format",
+                      "\\n", ""],
+                      ["special","n"],["format","\\n",""],["^",["key","likes"],
+                      ["context"],
+                      ["params"],["bodies",["param",["literal","else"],["body",
+                      ["format","\\n",""],["buffer","<ul>"],["special","n"],
+                      ["format","\\n"," "],["#",["key","likes"],["context"],
+                      ["params"],["bodies",["param",["literal","block"],
+                      ["body",["format","\\n",""],["special","s"],["buffer",
+                      "<li>"],["reference",["path",true,[]],["filters"]],
+                      ["buffer","</li>"],["special","n"],["format","\\n",
+                      ""]] ]]],["format","\\n",
+                      ""],["buffer","</ul>"],["format","\\n",""]]],
+                      ["param",["literal","block"],["body",["format","\\n",
+                      ""], ["buffer","No Likes!"],["format","\\n",""]]]]]]'''
     }
 
 parse_ref = dict([(k, json.loads(v)) for k, v
@@ -62,43 +107,27 @@ def main_t():
         pprint(v)
     return
 
-def t_and_p(text):
-    p = Parser()
-    tokens = tokenize(text)
-    try:
-        tree = p.parse(tokens)
-    except p.ParseErrors, e:
-        for token,expected in e.errors:
-            if token[0] == p.EOF:
-                print >>stderr, "unexpected end of file"
-                continue
 
-            found = repr(token[0])
-            if len(expected) == 1:
-                msg = "missing %s (found %s)"%(repr(expected[0]), found)
-            else:
-                msg1 = "parse error before %s, "%found
-                l = sorted([ repr(s) for s in expected ])
-                msg2 = "expected one of "+", ".join(l)
-                msg = msg1+msg2
-            print >>stderr, msg
-        raise
-    return tree
+def t_and_p(text):
+    tokens = tokenize(text)
+    ast = parse_to_ast(tokens)
+    return ast.to_list()
+
 
 def main_p(tmpl_name=DEFAULT_TMPL_NAME):
     try:
-        pprint(parse_ref[tmpl_name])
+        pass  # pprint(parse_ref[tmpl_name])
     except KeyError:
         print '(no reference)'
     print
-    pprint(tokenize(parse_tests[tmpl_name]))
-    print
+    #pprint(tokenize(parse_tests[tmpl_name]))
+    #print
     pprint(t_and_p(parse_tests[tmpl_name]))
 
 
 if __name__ == '__main__':
     try:
-        main_t()
+        main_p()
     except Exception as e:
         import pdb;pdb.post_mortem()
         raise
