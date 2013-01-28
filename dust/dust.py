@@ -57,8 +57,12 @@ def params_to_kv(params_str):
 def wrap_params(param_kv):
     ret = []
     for k, v in param_kv:
-        # i know this isn't right, it's just for a second
-        ret.append(('param', ('literal', k), ('literal', v)))
+        if v.startswith('"') and v.endswith('"'):
+            v = v[1:-1]
+            v_tuple = ('literal', v)
+        else:
+            v_tuple = get_key_or_path(v)
+        ret.append(('param', ('literal', k), v_tuple))
     return ret
 
 
@@ -79,6 +83,17 @@ class Tag(object):
     @property
     def is_selfclosing(self):
         return getattr(self, 'selfclosing', False)
+
+    @property
+    def param_list(self):
+        try:
+            return params_to_kv(self.params)
+        except AttributeError:
+            return []
+
+    @property
+    def context(self):
+        return getattr(self, 'contpath', '')
 
     def check(self, raise_exc=True):  # todo: necessary?
         cn = self.__class__.__name__
@@ -124,6 +139,10 @@ class ReferenceTag(Tag):
     all_attrs = ('refpath',)
     opt_attrs = ('filters',)
 
+    def to_dust_ast(self):
+        pork = get_path_or_key(self.refpath)
+        return [['reference', pork, ['filters']]]
+
 
 class SectionTag(Tag):
     ill_attrs = ('closing')
@@ -135,6 +154,9 @@ class ClosingTag(Tag):
 
 class SpecialTag(Tag):
     all_attrs = ('symbol', 'refpath')
+
+    def to_dust_ast(self):
+        return [['special', self.refpath]]
 
 
 class BlockTag(Tag):
@@ -177,6 +199,21 @@ class BufferToken(object):
             disp = disp[:30] + '...'
         return u'BufferToken(%r)' % disp
 
+    def to_dust_ast(self):
+        ret = []
+        first = True
+        for line in self.text.splitlines():
+            len_line = len(line)
+            leading_stripped = line.lstrip()
+            len_ls_line = len(leading_stripped)
+            leading_ws = line[:len_line - len_ls_line]
+            if not first:
+                ret.append(('format', '\n', leading_ws))
+            first = False
+            if leading_stripped:
+                ret.append(('buffer', leading_stripped))
+        return ret
+
 
 def tokenize(source):
     # TODO: line/column numbers
@@ -203,37 +240,6 @@ def tokenize(source):
 # PARSING
 #########
 
-
-def decompose_tag(match):
-    ret = []
-    is_closing = match.group('closing') is not None
-    is_selfclosing = match.group('selfclosing') is not None
-    symbol = match.group('symbol')
-    refpath = match.group('refpath')
-    if refpath:
-        pk = get_path_or_key(refpath)
-    contpath = match.group('contpath')
-    if contpath:
-        cont_pk = get_path_or_key(contpath)
-    params_str = match.group('params')
-    if params_str:
-        params_kv = params_to_kv(params_str)
-        params = wrap_params(params_kv)
-
-    if is_closing:
-        ret.append('/')
-    if symbol:
-        ret.append(symbol)  # context, params
-    if refpath:
-        ret.append(pk)
-    if contpath:
-        ret.extend((':', cont_pk))
-    if params_str:
-        ret.append(['params'] + params)
-    if is_selfclosing:
-        ret.append('/')
-    return ret
-
 class Section(object):
     def __init__(self, start_tag=None, blocks=None):
         if start_tag is None:
@@ -256,6 +262,33 @@ class Section(object):
         ret = {self.name: dict([(b.name, b.to_list()) for b in self.blocks])}
         return ret
 
+    def to_dust_ast(self):
+        symbol = self.start_tag.symbol
+        key = self.start_tag.refpath
+
+        context = ['context']
+        contpath = self.start_tag.context
+        if contpath:
+            context.append(get_path_or_key(contpath))
+
+        params = ['params']
+        param_list = self.start_tag.param_list
+        if param_list:
+            params.append(wrap_params(param_list))
+
+        bodies = ['bodies']
+        if self.blocks:
+            #body_list = []
+            for b in self.blocks:
+                bodies.extend(b.to_dust_ast())
+            #bodies.append(body_list)
+
+        return [[symbol,
+                [u'key', key],
+                context,
+                params,
+                bodies]]
+
 
 class Block(object):
     def __init__(self, name='block'):
@@ -276,31 +309,62 @@ class Block(object):
                 ret.append(i)
         return ret
 
+    def _get_dust_body(self):
+        # for usage by root block in ParseTree
+        ret = []
+        for i in self.items:
+            ret.extend(i.to_dust_ast())
+        return ret
 
-def parse_to_ast(tokens):
-    root_sect = Section()
-    ss = [root_sect]  # section stack
-    for token in tokens:
-        if type(token) == SectionTag:
-            new_s = Section(token)
-            ss[-1].add(new_s)
-            if not token.is_selfclosing:
-                ss.append(new_s)
-        elif type(token) == ClosingTag:
-            if len(ss) <= 1:
-                raise ValueError('closing tag before opening tag: %r' % token)
-            if token.refpath != ss[-1].start_tag.refpath:
-                raise ValueError('nesting error')
-            ss.pop()
-        elif type(token) == BlockTag:
-            if len(ss) <= 1:
-                raise ValueError('cannot start blocks outside of a section')
-            new_b = Block(name=token.refpath)
-            ss[-1].add(new_b)
-        else:
-            ss[-1].add(token)
-    return root_sect.blocks[0]
+    def to_dust_ast(self):
+        name = self.name
+        body = ['body']
+        dust_body = self._get_dust_body()
+        if dust_body:
+            body.append(dust_body)
+        return [['param',
+                ['literal', name],
+                body]]
 
+
+class ParseTree(object):
+    def __init__(self, root_block):
+        self.root_block = root_block
+
+    def to_dust_ast(self):
+        ret = ['body']
+        ret.extend(self.root_block._get_dust_body())
+        return ret
+
+    @classmethod
+    def from_tokens(cls, tokens):
+        root_sect = Section()
+        ss = [root_sect]  # section stack
+        for token in tokens:
+            if type(token) == SectionTag:
+                new_s = Section(token)
+                ss[-1].add(new_s)
+                if not token.is_selfclosing:
+                    ss.append(new_s)
+            elif type(token) == ClosingTag:
+                if len(ss) <= 1:
+                    raise ValueError('closing tag before opening tag: %r' % token)
+                if token.refpath != ss[-1].start_tag.refpath:
+                    raise ValueError('nesting error')
+                ss.pop()
+            elif type(token) == BlockTag:
+                if len(ss) <= 1:
+                    raise ValueError('cannot start blocks outside of a section')
+                new_b = Block(name=token.refpath)
+                ss[-1].add(new_b)
+            else:
+                ss[-1].add(token)
+        return cls(root_sect.blocks[0])
+
+    @classmethod
+    def from_source(cls, src):
+        tokens = tokenize(src)
+        return cls.from_tokens(tokens)
 
 #########
 # Runtime

@@ -1,7 +1,7 @@
 import json
 from pprint import pprint
 
-from dust import tokenize, parse_to_ast
+from dust import tokenize, ParseTree
 
 DEFAULT_TMPL_NAME = 'conditional'
 
@@ -96,22 +96,30 @@ parse_ref = dict([(k, json.loads(v)) for k, v
 def main_t():
     #pprint(parse_ref['plain'])
     #pprint(tokenize(parse_tests['implicit']))
-
     print
-
     for k, v in parse_ref.items():
         print
         print k
         pprint(tokenize(parse_tests[k]))
         print
         pprint(v)
-    return
 
 
 def t_and_p(text):
-    tokens = tokenize(text)
-    ast = parse_to_ast(tokens)
-    return ast.to_list()
+    return ParseTree.from_source(text)
+
+
+def see_ref_asts():
+    for k, v in parse_ref.items():
+        print
+        print k
+        if k in parse_tests:
+            print parse_tests[k]
+            print
+        pprint(v)
+        print
+        print '------------'
+    return
 
 
 def main_p(tmpl_name=DEFAULT_TMPL_NAME):
@@ -122,12 +130,16 @@ def main_p(tmpl_name=DEFAULT_TMPL_NAME):
     print
     #pprint(tokenize(parse_tests[tmpl_name]))
     #print
-    pprint(t_and_p(parse_tests[tmpl_name]))
+    parse_tree = t_and_p(parse_tests[tmpl_name])
+    pprint(parse_tree.root_block.to_list())
+    print '\n----------\n'
+    pprint(parse_tree.to_dust_ast())
 
 
 if __name__ == '__main__':
     try:
         main_p()
+        #see_ref_asts()
     except Exception as e:
         import pdb;pdb.post_mortem()
         raise
