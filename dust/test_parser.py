@@ -5,7 +5,7 @@ from dust import tokenize, ParseTree
 from tests.ref_templates import ref_templates
 from tests.ref_asts import ref_asts
 
-DEFAULT_TMPL_NAME = 'recursion'
+DEFAULT_TMPL_NAME = 'escaped'
 
 
 def main_t():
@@ -84,7 +84,7 @@ def main_p(tmpl_name=DEFAULT_TMPL_NAME):
 
 if __name__ == '__main__':
     try:
-        #main_p()
+        #main_p('conditional')
         see_passing_asts()
     except Exception as e:
         import pdb;pdb.post_mortem()

@@ -76,13 +76,8 @@ class Tag(object):
 
     def __init__(self, **kw):
         self.match_str = kw.pop('match_str')
-        self.__dict__.update(kw)
-        if callable(getattr(self, 'check', None)):
-            self.check()
-
-    @property
-    def is_selfclosing(self):
-        return getattr(self, 'selfclosing', False)
+        self._attr_dict = kw
+        self.set_attrs(kw)
 
     @property
     def param_list(self):
@@ -91,11 +86,7 @@ class Tag(object):
         except AttributeError:
             return []
 
-    @property
-    def context(self):
-        return getattr(self, 'contpath', '')
-
-    def check(self, raise_exc=True):  # todo: necessary?
+    def set_attrs(self, attr_dict, raise_exc=True):
         cn = self.__class__.__name__
         all_attrs = getattr(self, 'all_attrs', ())
         if all_attrs:
@@ -109,11 +100,15 @@ class Tag(object):
         if opt_attrs:
             ill_attrs = [a for a in ill_attrs if a not in opt_attrs]
         for attr in req_attrs:
-            if getattr(self, attr, None) is None:
+            if attr_dict.get(attr, None) is None:
                 raise ValueError('%s expected %s' % (cn, attr))
         for attr in ill_attrs:
-            if getattr(self, attr, None) is not None:
+            if attr_dict.get(attr, None) is not None:
                 raise ValueError('%s does not take %s' % (cn, attr))
+
+        avail_attrs = [a for a in ALL_ATTRS if a not in ill_attrs]
+        for attr in avail_attrs:
+            setattr(self, attr, attr_dict.get(attr, ''))
         return True
 
     def __repr__(self):
@@ -122,9 +117,8 @@ class Tag(object):
 
     @classmethod
     def from_match(cls, match):
-        groups = match.groupdict()
-        kw = dict([(k, v) for k, v in groups.items()
-                   if v is not None])
+        kw = dict([(k, v) for k, v in match.groupdict().items()
+                  if v is not None])
         kw['match_str'] = match.group(0)
         obj = cls(**kw)
         obj.orig_match = match
@@ -141,7 +135,12 @@ class ReferenceTag(Tag):
 
     def to_dust_ast(self):
         pork = get_path_or_key(self.refpath)
-        return [['reference', pork, ['filters']]]
+        filters = ['filters']
+        if self.filters:
+            f_list = self.filters.split('|')[1:]
+            for f in f_list:
+                filters.append(f)
+        return [['reference', pork, filters]]
 
 
 class SectionTag(Tag):
@@ -168,7 +167,7 @@ class PartialTag(Tag):
 
     def to_dust_ast(self):
         context = ['context']
-        contpath = self.context
+        contpath = self.contpath
         if contpath:
             context.append(get_path_or_key(contpath))
         return [['partial',
@@ -302,7 +301,7 @@ class Section(object):
         key = self.start_tag.refpath
 
         context = ['context']
-        contpath = self.start_tag.context
+        contpath = self.start_tag.contpath
         if contpath:
             context.append(get_path_or_key(contpath))
 
@@ -379,7 +378,7 @@ class ParseTree(object):
             if type(token) == SectionTag:
                 new_s = Section(token)
                 ss[-1].add(new_s)
-                if not token.is_selfclosing:
+                if not token.selfclosing:
                     ss.append(new_s)
             elif type(token) == ClosingTag:
                 if len(ss) <= 1:
