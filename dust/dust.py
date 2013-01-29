@@ -19,7 +19,7 @@ node_re = re.compile(r'({'
 
 key_re_str = '[a-zA-Z_$][0-9a-zA-Z_$]*'
 key_re = re.compile(key_re_str)
-path_re = re.compile(key_re_str + '?(\.' + key_re_str + ')+')
+path_re = re.compile('(' + key_re_str + ')?(\.' + key_re_str + ')+')
 
 #comment_re = ''  # TODO
 def strip_comments(text):
@@ -31,6 +31,8 @@ def get_path_or_key(pork):
         pk = ('path', True, [])
     elif path_re.match(pork):
         f_local = pork.startswith('.')
+        if f_local:
+            pork = pork[1:]
         pk = ('path', f_local, pork.split('.'))
     elif key_re.match(pork):
         pk = ('key', pork)
@@ -61,7 +63,7 @@ def wrap_params(param_kv):
             v = v[1:-1]
             v_tuple = ('literal', v)
         else:
-            v_tuple = get_key_or_path(v)
+            v_tuple = get_path_or_key(v)
         ret.append(('param', ('literal', k), v_tuple))
     return ret
 

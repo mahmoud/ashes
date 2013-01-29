@@ -84,7 +84,7 @@ def main_p(tmpl_name=DEFAULT_TMPL_NAME):
 
 if __name__ == '__main__':
     try:
-        #main_p('params')
+        #main_p('force_current')
         see_passing_asts()
     except Exception as e:
         import pdb;pdb.post_mortem()
