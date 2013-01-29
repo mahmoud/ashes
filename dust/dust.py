@@ -282,14 +282,14 @@ class Section(object):
             name = start_tag.refpath
         self.name = name
         self.start_tag = start_tag
-        if blocks is None:
-            blocks = [Block()]
-        self.blocks = blocks
+        self.blocks = blocks or []
 
     def add(self, obj):
         if type(obj) == Block:
             self.blocks.append(obj)
         else:
+            if not self.blocks:
+                self.blocks = [Block()]
             self.blocks[-1].add(obj)
 
     def to_dict(self):
@@ -308,7 +308,7 @@ class Section(object):
         params = ['params']
         param_list = self.start_tag.param_list
         if param_list:
-            params.append(wrap_params(param_list))
+            params.extend(wrap_params(param_list))
 
         bodies = ['bodies']
         if self.blocks:
