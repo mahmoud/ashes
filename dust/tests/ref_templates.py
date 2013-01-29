@@ -25,16 +25,25 @@ r'''{#foo}
 {/bar}'''
 
 CONDITIONAL = \
-r'''{#foo}
-  foo,{~s}
+r'''{?tags}
+  <ul>{~n}
+    {#tags}
+      {~s} <li>{.}</li>{~n}
+    {/tags}
+  </ul>
 {:else}
-  not foo,{~s}
-{/foo}
-{#bar}
-  bar!
+  No Tags!
+{/tags}
+{~n}
+{^likes}
+  No Likes!
 {:else}
-  not bar!
-{/bar}'''
+  <ul>{~n}
+    {#likes}
+      {~s} <li>{.}</li>{~n}
+    {/likes}
+  </ul>
+{/likes}'''
 
 SYNC_KEY = r'''Hello {type} World!'''
 ASYNC_KEY = r'''Hello {type} World!'''

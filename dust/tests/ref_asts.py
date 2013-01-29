@@ -57,16 +57,10 @@ RECURSION = r'''["body",["reference",["key","name"],["filters"]],["special","n"]
 COMMENTS = r'''["body",["comment","\n  Multiline\n  {#foo}{bar}{/foo}\n"],["format","\n",""],["comment","before"],["buffer","Hello"],["comment","after"]]'''
 
 ref_asts = {}
-_globals = globals()
-try:
-    for name, json_source in _globals.items():
-        if not name.isupper() or name.startswith('_'):
-            continue
-        json_escaped = json_source.replace('\\', '\\\\')
-        ref_asts[name.lower()] = json.loads(json_escaped)
-        _globals[name] = json_escaped
-finally:
-    del _globals
+for name, json_source in globals().items():
+    if not name.isupper() or name.startswith('_'):
+        continue
+    ref_asts[name.lower()] = json.loads(json_source)
 
 
 if __name__ == '__main__':

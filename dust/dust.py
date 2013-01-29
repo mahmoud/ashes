@@ -189,29 +189,48 @@ def get_tag(match):
     return tag_type.from_match(match)
 
 
+class WhitespaceToken(object):
+    def __init__(self, ws=''):
+        self.ws = ws
+
+    def __repr__(self):
+        disp = self.ws
+        if len(disp) > 13:
+            disp = disp[:10] + '...'
+        return u'WhitespaceToken(%r)' % disp
+
+
 class BufferToken(object):
     def __init__(self, text=''):
         self.text = text
+        #if 'not bar!' in self.text:
+        #    import pdb;pdb.set_trace()
 
     def __repr__(self):
         disp = self.text
         if len(self.text) > 30:
-            disp = disp[:30] + '...'
+            disp = disp[:27] + '...'
         return u'BufferToken(%r)' % disp
 
     def to_dust_ast(self):
+        # dammit brain, feels like i haven't written code
+        # this sad since college. need to write a PEG parser
+        # generator.
         ret = []
+        leading_ws = ''
         first = True
-        for line in self.text.splitlines():
-            len_line = len(line)
+        lines = self.text.splitlines()
+        for line in lines:
             leading_stripped = line.lstrip()
-            len_ls_line = len(leading_stripped)
-            leading_ws = line[:len_line - len_ls_line]
-            if not first:
+            if leading_ws or (first and not leading_stripped):
                 ret.append(('format', '\n', leading_ws))
-            first = False
             if leading_stripped:
                 ret.append(('buffer', leading_stripped))
+            first = False
+            leading_ws = line[:len(line) - len(leading_stripped)]
+        if self.text and self.text[-1] in ('\n', '\r'):
+            if not ret or ret[-1] != ('format', '\n', ''):
+                ret.append(('format', '\n', ''))
         return ret
 
 
@@ -279,7 +298,7 @@ class Section(object):
         bodies = ['bodies']
         if self.blocks:
             #body_list = []
-            for b in self.blocks:
+            for b in reversed(self.blocks):
                 bodies.extend(b.to_dust_ast())
             #bodies.append(body_list)
 
@@ -321,7 +340,7 @@ class Block(object):
         body = ['body']
         dust_body = self._get_dust_body()
         if dust_body:
-            body.append(dust_body)
+            body.extend(dust_body)
         return [['param',
                 ['literal', name],
                 body]]

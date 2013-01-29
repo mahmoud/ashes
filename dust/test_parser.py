@@ -5,7 +5,7 @@ from dust import tokenize, ParseTree
 from tests.ref_templates import ref_templates
 from tests.ref_asts import ref_asts
 
-DEFAULT_TMPL_NAME = 'conditional'
+DEFAULT_TMPL_NAME = 'else_block'
 
 
 def main_t():
@@ -37,18 +37,21 @@ def see_ref_asts():
     return
 
 
+def json_roundtrip(obj):
+    import json
+    return json.loads(json.dumps(obj))
+
+
 def main_p(tmpl_name=DEFAULT_TMPL_NAME):
     try:
-        pass  # pprint(ref_asts[tmpl_name])
+        pprint(ref_asts[tmpl_name])
     except KeyError:
         print '(no reference)'
     print
-    #pprint(tokenize(ref_templates[tmpl_name]))
-    #print
     parse_tree = t_and_p(ref_templates[tmpl_name])
-    pprint(parse_tree.root_block.to_list())
+    #pprint(parse_tree.root_block.to_list())
     print '\n----------\n'
-    pprint(parse_tree.to_dust_ast())
+    pprint(json_roundtrip(parse_tree.to_dust_ast()))
 
 
 if __name__ == '__main__':
