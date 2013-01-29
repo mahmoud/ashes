@@ -200,6 +200,12 @@ class WhitespaceToken(object):
         return u'WhitespaceToken(%r)' % disp
 
 
+def split_leading(text):
+    leading_stripped = text.lstrip()
+    leading_ws = text[:len(text) - len(leading_stripped)]
+    return leading_ws, leading_stripped
+
+
 class BufferToken(object):
     def __init__(self, text=''):
         self.text = text
@@ -216,21 +222,27 @@ class BufferToken(object):
         # dammit brain, feels like i haven't written code
         # this sad since college. need to write a PEG parser
         # generator.
+        if not self.text:
+            return []
         ret = []
-        leading_ws = ''
-        first = True
         lines = self.text.splitlines()
-        for line in lines:
-            leading_stripped = line.lstrip()
-            if leading_ws or (first and not leading_stripped):
+        iter_lines = iter(lines)
+        leading_ws, lstripped = split_leading(next(iter_lines))
+        if not lstripped:
+            ret.append(('format', '\n', ''))
+        for line in iter_lines:
+            if lstripped:
+                ret.append(('buffer', lstripped))
+            if leading_ws:
                 ret.append(('format', '\n', leading_ws))
-            if leading_stripped:
-                ret.append(('buffer', leading_stripped))
-            first = False
-            leading_ws = line[:len(line) - len(leading_stripped)]
+            leading_ws, lstripped = split_leading(line)
+        if lstripped:
+            ret.append(('buffer', lstripped))
         if self.text and self.text[-1] in ('\n', '\r'):
-            if not ret or ret[-1] != ('format', '\n', ''):
-                ret.append(('format', '\n', ''))
+            if not ret or not ret[-1][:2] == ('format', '\n'):
+                leading_ws, lstripped = split_leading(lines[-1])
+                ret.append(('format', '\n', leading_ws))
+
         return ret
 
 

@@ -5,7 +5,7 @@ from dust import tokenize, ParseTree
 from tests.ref_templates import ref_templates
 from tests.ref_asts import ref_asts
 
-DEFAULT_TMPL_NAME = 'else_block'
+DEFAULT_TMPL_NAME = 'conditional'
 
 
 def main_t():
