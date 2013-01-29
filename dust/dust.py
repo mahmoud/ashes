@@ -166,6 +166,14 @@ class BlockTag(Tag):
 class PartialTag(Tag):
     req_attrs = ('symbol', 'refpath', 'selfclosing')
 
+    def to_dust_ast(self):
+        context = ['context']
+        contpath = self.context
+        if contpath:
+            context.append(get_path_or_key(contpath))
+        return [['partial',
+                 ['literal', self.refpath],
+                 context]]
 
 def get_tag(match):
     groups = match.groupdict()

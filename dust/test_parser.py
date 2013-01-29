@@ -5,7 +5,7 @@ from dust import tokenize, ParseTree
 from tests.ref_templates import ref_templates
 from tests.ref_asts import ref_asts
 
-DEFAULT_TMPL_NAME = 'conditional'
+DEFAULT_TMPL_NAME = 'recursion'
 
 
 def main_t():
@@ -47,8 +47,11 @@ def see_passing_asts():
             my_ast = json_roundtrip(parse_tree.to_dust_ast())
         except:
             failed.append(k)
+            continue
         if my_ast == ref_asts[k]:
             successful.append(k)
+        else:
+            failed.append(k)
     print
     print ' Successful:', successful
     print ' Failed:', failed
