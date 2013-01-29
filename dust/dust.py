@@ -219,30 +219,26 @@ class BufferToken(object):
         return u'BufferToken(%r)' % disp
 
     def to_dust_ast(self):
-        # dammit brain, feels like i haven't written code
-        # this sad since college. need to write a PEG parser
-        # generator.
+        # It is hard to simulate the PEG parsing in this case
+        # while supporting universal newlines.
         if not self.text:
             return []
-        ret = []
-        lines = self.text.splitlines()
-        iter_lines = iter(lines)
-        leading_ws, lstripped = split_leading(next(iter_lines))
-        if not lstripped:
-            ret.append(('format', '\n', ''))
-        for line in iter_lines:
-            if lstripped:
-                ret.append(('buffer', lstripped))
-            if leading_ws:
-                ret.append(('format', '\n', leading_ws))
+        rev = []
+        remaining_lines = self.text.splitlines()
+        if self.text[-1] in ('\n', '\r'):
+            # kind of a bug in splitlines if you ask me.
+            remaining_lines.append('')
+        while remaining_lines:
+            line = remaining_lines.pop()
             leading_ws, lstripped = split_leading(line)
-        if lstripped:
-            ret.append(('buffer', lstripped))
-        if self.text and self.text[-1] in ('\n', '\r'):
-            if not ret or not ret[-1][:2] == ('format', '\n'):
-                leading_ws, lstripped = split_leading(lines[-1])
-                ret.append(('format', '\n', leading_ws))
-
+            if remaining_lines:
+                if lstripped:
+                    rev.append(('buffer', lstripped))
+                rev.append(('format', '\n', leading_ws))
+            else:
+                if line:
+                    rev.append(('buffer', line))
+        ret = list(reversed(rev))
         return ret
 
 
