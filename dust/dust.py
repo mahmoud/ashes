@@ -219,8 +219,8 @@ class BufferToken(object):
         return u'BufferToken(%r)' % disp
 
     def to_dust_ast(self):
-        # It is hard to simulate the PEG parsing in this case
-        # while supporting universal newlines.
+        # It is hard to simulate the PEG parsing in this case,
+        # especially while supporting universal newlines.
         if not self.text:
             return []
         rev = []
