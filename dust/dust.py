@@ -691,10 +691,36 @@ def escape_uri_component(text):
             .replace('&', '%26'))
 
 
-class Template(object):
+class Context(object):
     pass
 
 
+class Stack(object):
+    pass
+
+
+class Stub(object):
+    pass
+
+
+class Stream(object):
+    pass
+
+
+class Chunk(object):
+    pass
+
+
+class Tap(object):
+    pass
+
+
+class Template(object):
+    pass
+
+###########
+# Interface
+###########
 class DustEnv(object):
     default_filters = {
         'h': escape_html,
