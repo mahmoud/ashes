@@ -469,7 +469,7 @@ class Optimizer(object):
                 if memo:
                     memo[1] += filtered[1]
                 else:
-                    memo = filtered
+                    memo = list(filtered)
                     ret.append(filtered)
             else:
                 memo = None
@@ -485,6 +485,13 @@ def escape(text):
     return json.dumps(text)
 
 
+ROOT_RENDER_TMPL = '''
+def render(chk, ctx):
+    {body}
+
+    return {root_func_name}(chk, ctx)
+'''
+
 class CompileContext(object):
     sections = {'#': 'section',
                 '?': 'exists',
@@ -499,32 +506,42 @@ class CompileContext(object):
             env = DustEnv()
         self.env = env
 
-        self.bodies = []
+        self.bodies = {}
         self.blocks = {}
         self.block_str = ''
         self.index = 0
         self.auto = 'h'  # TODO
 
     def compile(self, ast):  # ast to init?
-        ast = self.filter_node(ast)
+        lines = []
         c_node = self._node(ast)
-        c_blocks = self._root_blocks()
-        c_bodies = self._root_bodies()
 
-        return c_node, c_blocks, c_bodies
+        block_str = self._root_blocks()
+        if block_str:
+            lines = ['    ' + block_str, '']
+
+        bodies = self._root_bodies()
+        lines.extend(bodies.splitlines())
+        body = '\n    '.join(lines)
+
+        ret = ROOT_RENDER_TMPL.format(body=body,
+                                      root_func_name=c_node)
+        return ret
 
     def _root_blocks(self):
         if not self.blocks:
             self.block_str = ''
             return ''
-        self.block_str = 'ctx=ctx.shift_blocks(blocks)'
-        return 'blocks = %r\n' % self.blocks
+        self.block_str = 'ctx = ctx.shift_blocks(blocks)'
+        return 'blocks = %r' % self.blocks
 
     def _root_bodies(self):
-        ret = []
-        for i, body in enumerate(self.bodies):
-            ret[i] = 'function body_%s(chk,ctx): ETC.'
-        return ret.join('')
+        max_body = max(self.bodies.keys())
+        ret = [''] * (max_body + 1)
+        for i, body in self.bodies.items():
+            print i, body
+            ret[i] = '\ndef body_%s(chk, ctx):\n\treturn chk%s\n' % (i, body)
+        return ''.join(ret)
 
     def _convert_special(self, node):
         return ['buffer', self.special_chars[node[1]]]
@@ -543,9 +560,10 @@ class CompileContext(object):
         return cfunc(node)
 
     def _body(self, node):
+        index = self.index
         self.index += 1   # make into property, equal to len of bodies?
-        name = 'body_%s' % self.index
-        self.bodies[self.index] = self._parts(node)
+        name = 'body_%s' % index
+        self.bodies[index] = self._parts(node)
         return name
 
     def _parts(self, body):
@@ -627,15 +645,15 @@ class CompileContext(object):
             ret += ',[%s]' % ','.join(f_list)
         return ret
 
-    def _key(node):
+    def _key(self, node):
         return 'ctx.get(%r)' % node[1]
 
-    def _path(node):
+    def _path(self, node):
         cur = node[1]
         keys = node[2] or []
         return 'ctx.get_path(%s, %s)' % (cur, keys)
 
-    def _literal(node):
+    def _literal(self, node):
         return escape(node[1])
 
 
