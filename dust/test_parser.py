@@ -1,8 +1,9 @@
 from pprint import pprint
 
-from dust import tokenize, ParseTree
+from dust import tokenize, ParseTree, Optimizer
 
 from tests.ref_templates import ref_templates
+from tests.ref_opt_asts import ref_opt_asts
 from tests.ref_asts import ref_asts
 
 DEFAULT_TMPL_NAME = 'escaped'
@@ -34,6 +35,23 @@ def see_ref_asts():
             print
         print '------------'
     return
+
+
+def main_opt_p():
+    optimize = Optimizer()
+    for k, v in ref_templates.items():
+        if k not in ref_opt_asts:
+            continue
+        parse_tree = t_and_p(ref_templates[k])
+        my_ast = json_roundtrip(parse_tree.to_dust_ast())
+        my_opt_ast = optimize(my_ast)
+        if my_opt_ast == ref_opt_asts[k]:
+            print k, 'passed.'
+        else:
+            pprint(ref_opt_asts[k])
+            print '--------'
+            pprint(my_opt_ast)
+    print
 
 
 def see_passing_asts():
@@ -84,7 +102,7 @@ def main_p(tmpl_name=DEFAULT_TMPL_NAME):
 
 if __name__ == '__main__':
     try:
-        main_p('conditional')
+        main_opt_p()  # 'conditional')
         #see_passing_asts()
     except Exception as e:
         import pdb;pdb.post_mortem()

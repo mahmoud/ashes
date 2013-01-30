@@ -439,7 +439,7 @@ class Optimizer(object):
     def filter_node(self, node):
         nsym = node[0]
         optimizer_name = self.optimizers[nsym]
-        getattr(self, optimizer_name)(node)
+        return getattr(self, optimizer_name)(node)
 
     def noop(self, node):
         return node
@@ -477,7 +477,7 @@ class Optimizer(object):
         return ret
 
     def __call__(self, node):
-        self.filter_node(node)
+        return self.filter_node(node)
 
 
 def escape(text):
