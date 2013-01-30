@@ -406,6 +406,80 @@ class ParseTree(object):
 #########
 # Compile
 #########
+DEFAULT_SPECIAL_CHARS = {'s': ' ',
+                         'n': '\n',
+                         'r': '\r',
+                         'lb': '{',
+                         'rb': '}'}
+
+DEFAULT_OPTIMIZERS = {
+    'body': 'compact_buffers',
+    'special': 'convert_special',
+    'format': 'nullify',
+    'comment': 'nullify'}
+
+for nsym in ('buffer', 'filters', 'key', 'path', 'literal'):
+    DEFAULT_OPTIMIZERS[nsym] = 'noop'
+
+for nsym in ('#', '?', '^', '<', '+', '@', '%', 'reference',
+             'partial', 'context', 'params', 'bodies', 'param'):
+    DEFAULT_OPTIMIZERS[nsym] = 'visit'
+
+
+class Optimizer(object):
+    def __init__(self, optimizers=None, special_chars=None):
+        if special_chars is None:
+            special_chars = DEFAULT_SPECIAL_CHARS
+        self.special_chars = special_chars
+
+        if optimizers is None:
+            optimizers = DEFAULT_OPTIMIZERS
+        self.optimizers = dict(optimizers)
+
+    def filter_node(self, node):
+        nsym = node[0]
+        optimizer_name = self.optimizers[nsym]
+        getattr(self, optimizer_name)(node)
+
+    def noop(self, node):
+        return node
+
+    def nullify(self, node):
+        return None
+
+    def convert_special(self, node):
+        return ['buffer', self.special_chars[node[1]]]
+
+    def visit(self, node):
+        ret = [node[0]]
+        for n in node[1:]:
+            filtered = self.filter_node(n)
+            if filtered:
+                ret.append(filtered)
+        return ret
+
+    def compact_buffers(self, node):
+        ret = [node[0]]
+        memo = None
+        for n in node[1:]:
+            filtered = self.filter_node(n)
+            if not filtered:
+                continue
+            if filtered[0] == 'buffer':
+                if memo:
+                    memo[1] += filtered[1]
+                else:
+                    memo = filtered
+                    ret.append(filtered)
+            else:
+                memo = None
+                ret.append(filtered)
+        return ret
+
+    def __call__(self, node):
+        self.filter_node(node)
+
+
 def escape(text):
     import json
     return json.dumps(text)
@@ -432,6 +506,7 @@ class CompileContext(object):
         self.auto = 'h'  # TODO
 
     def compile(self, ast):  # ast to init?
+        ast = self.filter_node(ast)
         c_node = self._node(ast)
         c_blocks = self._root_blocks()
         c_bodies = self._root_bodies()
@@ -445,13 +520,22 @@ class CompileContext(object):
         self.block_str = 'ctx=ctx.shift_blocks(blocks)'
         return 'blocks = %r\n' % self.blocks
 
+    def _root_bodies(self):
+        ret = []
+        for i, body in enumerate(self.bodies):
+            ret[i] = 'function body_%s(chk,ctx): ETC.'
+        return ret.join('')
+
+    def _convert_special(self, node):
+        return ['buffer', self.special_chars[node[1]]]
+
     def _node(self, node):
         ntype = node[0]
         if ntype in self.sections:
-            stype = sections[ntype]
+            stype = self.sections[ntype]
             return self._section(node, stype)
         elif ntype in self.nodes:
-            ntype = nodes[ntype]
+            ntype = self.nodes[ntype]
 
         cfunc = getattr(self, '_' + ntype, None)
         if not callable(cfunc):
@@ -461,7 +545,7 @@ class CompileContext(object):
     def _body(self, node):
         self.index += 1   # make into property, equal to len of bodies?
         name = 'body_%s' % self.index
-        self.bodies[self.index] = _parts(node)
+        self.bodies[self.index] = self._parts(node)
         return name
 
     def _parts(self, body):
