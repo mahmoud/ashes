@@ -537,8 +537,24 @@ class CompileContext(object):
         return ':'.join([self._node(node[1]), self._node(node[2])])
 
     def _filters(self, node):
+        ret = '"%s"' % self.auto
         f_list = ['"%s"' % f for f in node[1:]]  # repr?
-        pass
+        if f_list:
+            ret += ',[%s]' % ','.join(f_list)
+        return ret
+
+    def _key(node):
+        return 'ctx.get(%r)' % node[1]
+
+    def _path(node):
+        cur = node[1]
+        keys = node[2] or []
+        return 'ctx.get_path(%s, %s)' % (cur, keys)
+
+    def _literal(node):
+        return escape(node[1])
+
+
 #########
 # Runtime
 #########
