@@ -78,7 +78,8 @@ r'''{^xhr}
 {/title}
 {<main}
   Child Content
-{/main}'''
+{/main}
+'''
 
 RECURSION = r'''{name}{~n}{#kids}{>recursion:./}{/kids}'''
 

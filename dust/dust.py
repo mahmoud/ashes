@@ -402,6 +402,143 @@ class ParseTree(object):
         tokens = tokenize(src)
         return cls.from_tokens(tokens)
 
+
+#########
+# Compile
+#########
+def escape(text):
+    import json
+    return json.dumps(text)
+
+
+class CompileContext(object):
+    sections = {'#': 'section',
+                '?': 'exists',
+                '^': 'notexists'}
+    nodes = {'<': 'inline_partial',
+             '+': 'region',
+             '@': 'helper',
+             '%': 'pragma'}
+
+    def __init__(self, env=None):
+        if env is None:
+            env = DustEnv()
+        self.env = env
+
+        self.bodies = []
+        self.blocks = {}
+        self.block_str = ''
+        self.index = 0
+        self.auto = 'h'  # TODO
+
+    def compile(self, ast):  # ast to init?
+        c_node = self._node(ast)
+        c_blocks = self._root_blocks()
+        c_bodies = self._root_bodies()
+
+        return c_node, c_blocks, c_bodies
+
+    def _root_blocks(self):
+        if not self.blocks:
+            self.block_str = ''
+            return ''
+        self.block_str = 'ctx=ctx.shift_blocks(blocks)'
+        return 'blocks = %r\n' % self.blocks
+
+    def _node(self, node):
+        ntype = node[0]
+        if ntype in self.sections:
+            stype = sections[ntype]
+            return self._section(node, stype)
+        elif ntype in self.nodes:
+            ntype = nodes[ntype]
+
+        cfunc = getattr(self, '_' + ntype, None)
+        if not callable(cfunc):
+            raise TypeError('unsupported node type: "%r"', node[0])
+        return cfunc(node)
+
+    def _body(self, node):
+        self.index += 1   # make into property, equal to len of bodies?
+        name = 'body_%s' % self.index
+        self.bodies[self.index] = _parts(node)
+        return name
+
+    def _parts(self, body):
+        parts = []
+        for part in body[1:]:
+            parts.append(self._node(part))
+        return ''.join(parts)
+
+    def _buffer(self, node):
+        return '.write(%s)' % escape(node[1])
+
+    def _format(self, node):
+        return '.write(%s)' % escape(node[1] + node[2])
+
+    def _reference(self, node):
+        return '.reference(%s,ctx,%s)' % (self._node(node[1]),
+                                          self._node(node[2]))
+
+    def _section(self, node, cmd):
+        return '.%s(%s,%s,%s,%s)' % (cmd,
+                                     self._node(node[1]),
+                                     self._node(node[2]),
+                                     self._node(node[4]),
+                                     self._node(node[3]))
+
+    def _inline_partial(self, node):
+        bodies = node[4]
+        for param in bodies[1:]:
+            btype = param[1][1]
+            if btype == 'block':
+                self.blocks[node[1][1]] = self._node(param[2])
+                return ''
+        return ''
+
+    def _region(self, node):
+        """aka the plus sign ('+') block"""
+        tmpl = '.block(ctx.get_block(%s),%s,%s,%s)'
+        return tmpl % (escape(node[1][1]),
+                       self._node(node[2]),
+                       self._node(node[4]),
+                       self._node(node[3]))
+
+    def _helper(self, node):
+        return '.helper(%s,%s,%s,%s)' % (escape(node[1][1]),
+                                         self._node(node[2]),
+                                         self._node(node[4]),
+                                         self._node(node[3]))
+
+    def _pragma(self, node):
+        raise NotImplemented
+
+    def _partial(self, node):
+        return '.partial(%s,%s)' % (self._node(node[1]),
+                                    self._node(node[2]))
+
+    def _context(self, node):
+        contpath = node[1:]
+        if contpath:
+            return 'ctx.rebase(%s)' % (self._node(contpath[0]))
+        return 'ctx'
+
+    def _params(self, node):
+        parts = [self._node(p) for p in node[1:]]
+        if parts:
+            return '{' + ','.join(parts) + '}'
+        return 'None'
+
+    def _bodies(self, node):
+        parts = [self._node(p) for p in node[1:]]
+        return '{' + ','.join(parts) + '}'
+
+    def _param(self, node):
+        return ':'.join([self._node(node[1]), self._node(node[2])])
+
+    def _filters(self, node):
+        f_list = ['"%s"' % f for f in node[1:]]  # repr?
+        pass
 #########
 # Runtime
 #########
