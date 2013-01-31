@@ -75,3 +75,13 @@ r'''1
 1.1.1'''
 
 COMMENTS = 'Hello'
+
+ref_renders = {}
+for name, render_res in globals().items():
+    if not name.isupper() or name.startswith('_'):
+        continue
+    ref_renders[name.lower()] = render_res
+
+
+if __name__ == '__main__':
+    print 'known renders:', ref_renders.keys()
