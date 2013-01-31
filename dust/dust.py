@@ -24,7 +24,7 @@ path_re = re.compile('(' + key_re_str + ')?(\.' + key_re_str + ')+')
 
 #comment_re = ''  # TODO
 def strip_comments(text):
-    return re.sub(r'\{!.+?!\}', '', text, flags=re.DOTALL).strip()
+    return re.sub(r'\{!.+?!\}', '', text, flags=re.DOTALL)
 
 
 def get_path_or_key(pork):
