@@ -437,7 +437,7 @@ class Optimizer(object):
         self.optimizers = dict(optimizers)
 
     def optimize(self, node):
-        # aka filter_node
+        # aka filter_node()
         nsym = node[0]
         optimizer_name = self.optimizers[nsym]
         return getattr(self, optimizer_name)(node)
@@ -692,8 +692,87 @@ def escape_uri_component(text):
             .replace('&', '%26'))
 
 
+def make_base(global_vars):
+    return Context(stack, global_vars)
+
+
 class Context(object):
-    pass
+    def __init__(self, stack, global_vars=None, blocks=None):
+        self.stack = stack
+        if global_vars is None:
+            global_vars = {}
+        self.globals = global_vars
+        self.blocks = blocks
+
+    def wrap(self, context):
+        if isinstance(context, self.__class__):
+            return context
+        return Context(Stack(context))
+
+    def get(self, key):
+        ctx = self.stack
+        value = None
+
+        while ctx:
+            try:
+                value = ctx.head[key]
+            except (AttributeError, TypeError):
+                ctx = ctx.tail
+            except KeyError:
+                continue
+            return value
+        return self.globals.get(key)
+
+    def get_path(self, cur, down):
+        ctx = self.stack
+        length = len(down)  # TODO: try/except?
+        if cur and not length:
+            return ctx.head
+        try:
+            ctx = ctx.head
+        except AttributeError:
+            return None
+        for down_part in down:
+            try:
+                ctx = ctx[down_part]
+            except (AttributeError, TypeError):
+                break
+        return ctx
+
+    def push(self, head, index, length):
+        return Context(Stack(head, self.stack, index, length),
+                       self.globals,
+                       self.blocks)
+
+    def rebase(self, head):
+        return Context(Stack(head), self.globals, self.blocks)
+
+    def current(self):
+        return self.stack.head
+
+    def get_block(self, key):
+        blocks = self.blocks
+        if not blocks:
+            return None
+        fn = None
+        for block in blocks[::-1]:
+            try:
+                fn = block[key]
+                if fn:
+                    break
+            except KeyError:
+                continue
+        return fn
+
+    def shift_blocks(self, local_vars):
+        blocks = self.blocks
+        if local_vars:
+            if blocks:
+                new_blocks = blocks + [local_vars]
+            else:
+                new_blocks = [local_vars]
+            return Context(self.stack, self.globals, new_blocks)
+        return self
 
 
 class Stack(object):
