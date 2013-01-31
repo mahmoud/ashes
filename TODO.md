@@ -18,3 +18,13 @@
    introspection/convenience?
  * handle comments better
  * line/column number for errors
+ * rendering support for root-level recursive templates
+
+# Notes
+ * Javascript implicitly disregards extra arguments passed
+ to a function, so a lot of dust.js's functions were weird
+ to port. Especially so in the case of code generation.
+ Example: the exists tag takes params, but they're pushed into
+ the stack/context by the time the generated code runs. Nevertheless,
+ the generated js passes them to the Chunk.exists() function, even
+ though it doesn't take them.

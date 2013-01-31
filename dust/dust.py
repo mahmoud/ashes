@@ -315,10 +315,8 @@ class Section(object):
 
         bodies = ['bodies']
         if self.blocks:
-            #body_list = []
             for b in reversed(self.blocks):
                 bodies.extend(b.to_dust_ast())
-            #bodies.append(body_list)
 
         return [[symbol,
                 [u'key', key],
@@ -541,7 +539,7 @@ class CompileContext(object):
         max_body = max(self.bodies.keys())
         ret = [''] * (max_body + 1)
         for i, body in self.bodies.items():
-            print i, body
+            #print i, body
             ret[i] = '\ndef body_%s(chk, ctx):\n\treturn chk%s\n' % (i, body)
         return ''.join(ret)
 
@@ -585,11 +583,11 @@ class CompileContext(object):
                                           self._node(node[2]))
 
     def _section(self, node, cmd):
-        return '.%s(%s,%s,%s,%s)' % (cmd,
-                                     self._node(node[1]),
-                                     self._node(node[2]),
-                                     self._node(node[4]),
-                                     self._node(node[3]))
+        return '.%s(%s,%s,%s)' % (cmd,
+                                  self._node(node[1]),
+                                  self._node(node[2]),
+                                  self._node(node[4]))
+                                  #self._node(node[3]))
 
     def _inline_partial(self, node):
         bodies = node[4]
@@ -659,6 +657,16 @@ class CompileContext(object):
         return escape(node[1])
 
 
+def _python_compile(source, name, global_env=None):
+    if global_env is None:
+        global_env = {}
+    else:
+        global_env = dict(global_env)
+    code = compile(source, '<string>', 'single')
+    exec code in global_env
+    return global_env[name]
+
+
 #########
 # Runtime
 #########
@@ -706,22 +714,20 @@ def idx_helper(chunk, context, bodies):
 DEFAULT_HELPERS = {'sep': sep_helper, 'idx': idx_helper}
 
 
-def make_base(global_vars):
-    return Context(Stack(), global_vars)
-
-
 class Context(object):
-    def __init__(self, stack, global_vars=None, blocks=None):
+    def __init__(self, env, stack, global_vars=None, blocks=None):
+        self.env = env
         self.stack = stack
         if global_vars is None:
             global_vars = {}
         self.globals = global_vars
         self.blocks = blocks
 
-    def wrap(self, context):
-        if isinstance(context, self.__class__):
+    @classmethod
+    def wrap(cls, env, context):
+        if isinstance(context, cls):
             return context
-        return Context(Stack(context))
+        return cls(env, Stack(context))
 
     def get(self, key):
         ctx = self.stack
@@ -730,10 +736,10 @@ class Context(object):
         while ctx:
             try:
                 value = ctx.head[key]
-            except (AttributeError, TypeError):
+            except (AttributeError, KeyError, TypeError):
                 ctx = ctx.tail
-            except KeyError:
-                continue
+            #except KeyError:
+            #    ctx = None
             return value
         return self.globals.get(key)
 
@@ -753,13 +759,17 @@ class Context(object):
                 break
         return ctx
 
-    def push(self, head, index, length):
-        return Context(Stack(head, self.stack, index, length),
+    def push(self, head, index=None, length=None):
+        return Context(self.env,
+                       Stack(head, self.stack, index, length),
                        self.globals,
                        self.blocks)
 
     def rebase(self, head):
-        return Context(Stack(head), self.globals, self.blocks)
+        return Context(self.env,
+                       Stack(head),
+                       self.globals,
+                       self.blocks)
 
     def current(self):
         return self.stack.head
@@ -785,12 +795,12 @@ class Context(object):
                 new_blocks = blocks + [local_vars]
             else:
                 new_blocks = [local_vars]
-            return Context(self.stack, self.globals, new_blocks)
+            return Context(self.env, self.stack, self.globals, new_blocks)
         return self
 
 
 class Stack(object):
-    def __init__(self, head, tail, index, length):
+    def __init__(self, head, tail=None, index=0, length=1):
         self.head = head
         self.tail = tail
         self.index = index
@@ -856,13 +866,8 @@ def is_empty(obj):
         return False
 
 
-def apply_filters(*a, **kw):
-    # TODO: implement and tie in with environment
-    return '(filtered stuff)'
-
-
 class Chunk(object):
-    def __init__(self, root, next_chunk, taps=None):
+    def __init__(self, root, next_chunk=None, taps=None):
         self.root = root
         self.next = next_chunk
         self.taps = taps
@@ -875,7 +880,7 @@ class Chunk(object):
         self.data += data
         return self
 
-    def end(self, data):
+    def end(self, data=None):
         if data:
             self.write(data)
         self.flushable = True
@@ -904,7 +909,7 @@ class Chunk(object):
     def render(self, body, context):
         return body(self, context)
 
-    def reference(self, elem, context, auto, filters):
+    def reference(self, elem, context, auto, filters=None):
         if callable(elem):
             # this is all a pretty big TODO
             elem = elem(self, context, None, {'auto': auto,
@@ -914,18 +919,20 @@ class Chunk(object):
         if is_empty(elem):
             return self
         else:
-            return self.write(apply_filters(elem, auto, filters))
+            filtered = context.env.apply_filters(elem, auto, filters)
+            print filtered
+            return self.write(filtered)
 
     def section(self, elem, context, bodies, params=None):
         if callable(elem):
             elem = elem(self, context, bodies, params)
             if isinstance(elem, Chunk):
                 return elem
-        body = bodies.block
+        body = bodies.get('block')
         else_body = bodies.get('else')
         if params:
             context = context.push(params)
-        if not elem and elem != 0:
+        if not elem and elem != 0 and else_body:
             # breaks with dust.js; dust.js doesn't render else blocks
             # on sections referencing empty lists.
             return else_body(self, context)
@@ -939,8 +946,8 @@ class Chunk(object):
 
     def exists(self, elem, context, bodies):
         if not is_empty(elem):
-            if bodies.block:
-                return bodies.block(self, context)
+            if bodies.get('block'):
+                return bodies['block'](self, context)
         elif bodies.get('else'):
             return bodies['else'](self, context)
         return self
@@ -1003,25 +1010,48 @@ class Tap(object):
         return value
 
 
-class Template(object):
-    pass
+DEFAULT_FILTERS = {
+    'h': escape_html,
+    'j': escape_js,
+    'u': escape_uri,
+    'uc': escape_uri_component}
+
 
 ###########
 # Interface
 ###########
 class DustEnv(object):
-    default_filters = {
-        'h': escape_html,
-        'j': escape_js,
-        'u': escape_uri,
-        'uc': escape_uri_component}
-
-    def __init__(self):
+    def __init__(self,
+                 filters=None,
+                 helpers=None,
+                 special_chars=None,
+                 optimizers=None):
         self.templates = {}
-        self.filters = dict(self.default_filters)
+        self.filters = dict(DEFAULT_FILTERS)
+        if filters:
+            self.filters.update(filters)
+        self.helpers = dict(DEFAULT_HELPERS)
+        if helpers:
+            self.helpers.update(helpers)
+        self.special_chars = dict(DEFAULT_SPECIAL_CHARS)
+        if special_chars:
+            self.special_chars.update(special_chars)
+        self.optimizers = dict(DEFAULT_OPTIMIZERS)
+        if optimizers:
+            self.optimizers.update(optimizers)
 
-    def compile(self, string, name, src_file=None):
-        pass
+    def compile(self, source, name, src_file=None):
+        comp_str = self._compile_str(source)
+        tmpl_func = _python_compile(comp_str, 'render')
+        self.templates[name] = tmpl_func
+        return comp_str
+
+    def _compile_str(self, source):
+        parse_tree = ParseTree.from_source(source)
+        dust_ast = parse_tree.to_dust_ast()
+        optimized_ast = Optimizer().optimize(dust_ast)
+        comp_str = CompileContext().compile(optimized_ast)
+        return comp_str
 
     def load(self, src_file, name=None):
         if name is None:
@@ -1033,13 +1063,31 @@ class DustEnv(object):
                 code = f.read()
             return self.compile(code, name, src_file=src_file)
 
+    def apply_filters(self, string, auto, filters):
+        filters = filters or []
+        if auto and 's' not in filters and auto not in filters:
+            filters = filters + [auto]
+        for f in filters:
+            filt_fn = self.filters.get(f)
+            if filt_fn:
+                string = filt_fn(string)
+        return string
+
     def render(self, name, model):
         try:
             template = self.templates[name]
         except KeyError:
             raise ValueError('No template named "%s"' % name)
 
-        return template.render(model, env=self)
+        def tmp_cb(err, idk):
+            if err:
+                print 'Error: %r' % err
+                raise Exception(err)
+            else:
+                return idk
 
+        chunk = Stub(tmp_cb).head
+        template(chunk, Context.wrap(self, model)).end()
+        return chunk
 
 #dust = default_env = DustEnv()
