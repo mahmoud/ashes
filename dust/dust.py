@@ -436,7 +436,8 @@ class Optimizer(object):
             optimizers = DEFAULT_OPTIMIZERS
         self.optimizers = dict(optimizers)
 
-    def filter_node(self, node):
+    def optimize(self, node):
+        # aka filter_node
         nsym = node[0]
         optimizer_name = self.optimizers[nsym]
         return getattr(self, optimizer_name)(node)
@@ -453,7 +454,7 @@ class Optimizer(object):
     def visit(self, node):
         ret = [node[0]]
         for n in node[1:]:
-            filtered = self.filter_node(n)
+            filtered = self.optimize(n)
             if filtered:
                 ret.append(filtered)
         return ret
@@ -462,7 +463,7 @@ class Optimizer(object):
         ret = [node[0]]
         memo = None
         for n in node[1:]:
-            filtered = self.filter_node(n)
+            filtered = self.optimize(n)
             if not filtered:
                 continue
             if filtered[0] == 'buffer':
@@ -477,7 +478,7 @@ class Optimizer(object):
         return ret
 
     def __call__(self, node):
-        return self.filter_node(node)
+        return self.optimize(node)
 
 
 def escape(text):
