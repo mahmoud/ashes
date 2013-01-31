@@ -988,7 +988,19 @@ class Chunk(object):
 
 
 class Tap(object):
-    pass
+    def __init__(self, head=None, tail=None):
+        self.head = head
+        self.tail = tail
+
+    def push(self, tap):
+        return Tap(tap, self)
+
+    def go(self, value):
+        tap = self
+        while tap:
+            value = tap.head(value)  # TODO: type errors?
+            tap = tap.tail
+        return value
 
 
 class Template(object):
