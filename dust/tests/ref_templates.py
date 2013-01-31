@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 INTRO = r'''{#stream}{#delay}{.}{/delay}{/stream}'''
 PLAIN = r'''Hello World!'''
 REPLACE = r'''Hello {name}! You have {count} new messages.'''
