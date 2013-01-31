@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import re
 import cgi
 import urllib
-from pprint import pprint
+
 # need to add group for literals
 # switch to using word boundary for params section
 node_re = re.compile(r'({'
@@ -20,6 +20,7 @@ node_re = re.compile(r'({'
 key_re_str = '[a-zA-Z_$][0-9a-zA-Z_$]*'
 key_re = re.compile(key_re_str)
 path_re = re.compile('(' + key_re_str + ')?(\.' + key_re_str + ')+')
+
 
 #comment_re = ''  # TODO
 def strip_comments(text):
@@ -692,8 +693,21 @@ def escape_uri_component(text):
             .replace('&', '%26'))
 
 
+def sep_helper(chunk, context, bodies):
+    if context.stack.index == context.stack.of - 1:
+        return chunk
+    return bodies.block(chunk, context)
+
+
+def idx_helper(chunk, context, bodies):
+    return bodies.block(chunk, context.push(context.stack.index))
+
+
+DEFAULT_HELPERS = {'sep': sep_helper, 'idx': idx_helper}
+
+
 def make_base(global_vars):
-    return Context(stack, global_vars)
+    return Context(Stack(), global_vars)
 
 
 class Context(object):
@@ -835,8 +849,142 @@ class Stream(object):
         return self
 
 
+def is_empty(obj):
+    try:
+        return len(obj) == 0
+    except TypeError:
+        return False
+
+
+def apply_filters(*a, **kw):
+    # TODO: implement and tie in with environment
+    return '(filtered stuff)'
+
+
 class Chunk(object):
-    pass
+    def __init__(self, root, next_chunk, taps=None):
+        self.root = root
+        self.next = next_chunk
+        self.taps = taps
+        self.data = ''
+        self.flushable = False
+
+    def write(self, data):
+        if self.taps:
+            data = self.taps.go(data)
+        self.data += data
+        return self
+
+    def end(self, data):
+        if data:
+            self.write(data)
+        self.flushable = True
+        self.root.flush()
+        return self
+
+    def map(self, callback):
+        cursor = Chunk(self.root, self.next, self.taps)
+        branch = Chunk(self.root, cursor, self.taps)
+        self.next = branch
+        self.flushable = True
+        callback(branch)
+        return cursor
+
+    def tap(self, tap):
+        if self.taps:
+            self.taps = self.taps.push(tap)
+        else:
+            self.taps = Tap(tap)
+        return self
+
+    def untap(self):
+        self.taps = self.taps.tail
+        return self
+
+    def render(self, body, context):
+        return body(self, context)
+
+    def reference(self, elem, context, auto, filters):
+        if callable(elem):
+            # this is all a pretty big TODO
+            elem = elem(self, context, None, {'auto': auto,
+                                              'filters': filters})
+            if isinstance(elem, Chunk):
+                return elem
+        if is_empty(elem):
+            return self
+        else:
+            return self.write(apply_filters(elem, auto, filters))
+
+    def section(self, elem, context, bodies, params=None):
+        if callable(elem):
+            elem = elem(self, context, bodies, params)
+            if isinstance(elem, Chunk):
+                return elem
+        body = bodies.block
+        else_body = bodies.get('else')
+        if params:
+            context = context.push(params)
+        if not elem and elem != 0:
+            # breaks with dust.js; dust.js doesn't render else blocks
+            # on sections referencing empty lists.
+            return else_body(self, context)
+        else:
+            if not body:
+                return self
+            if elem is True:
+                return body(self, context)
+            else:
+                return body(self, context.push(elem))
+
+    def exists(self, elem, context, bodies):
+        if not is_empty(elem):
+            if bodies.block:
+                return bodies.block(self, context)
+        elif bodies.get('else'):
+            return bodies['else'](self, context)
+        return self
+
+    def notexists(self, elem, context, bodies):
+        if is_empty(elem):
+            if bodies.block:
+                return bodies.block(self, context)
+        elif bodies.get('else'):
+            return bodies['else'](self, context)
+        return self
+
+    def block(self, elem, context, bodies):
+        body = bodies.block
+        if elem:
+            body = elem
+        if body:
+            body(self, context)
+        return self
+
+    def partial(self, elem, context, bodies=None):
+        if callable(elem):
+            cback = lambda name, chk: self.env.load(name, chk, context).end()
+            return self.capture(elem, context, cback)
+        return self.env.load(elem, self, context)
+
+    def helper(self, name, context, bodies, params=None):
+        return self.env.helpers[name](self, context, bodies, params)
+
+    def capture(self, body, context, callback):
+        def map_func(chunk):
+            def stub_cb(err, out):
+                if err:
+                    chunk.set_error(err)
+                else:
+                    callback(out, chunk)
+            stub = Stub(stub_cb)
+            body(stub.head, context).end()
+        return self.map(map_func)
+
+    def set_error(self, error):
+        self.error = error
+        self.root.flush()
+        return self
 
 
 class Tap(object):
