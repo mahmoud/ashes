@@ -545,7 +545,6 @@ class CompileContext(object):
         max_body = max(self.bodies.keys())
         ret = [''] * (max_body + 1)
         for i, body in self.bodies.items():
-            #print i, body
             ret[i] = '\ndef body_%s(chk, ctx):\n\treturn chk%s\n' % (i, body)
         return ''.join(ret)
 
@@ -742,7 +741,6 @@ class Context(object):
             try:
                 value = ctx.head[key]
             except (AttributeError, KeyError, TypeError):
-                print '%r -> %r' % (key, ctx.tail)
                 ctx = ctx.tail
             #except KeyError:
             #    ctx = None
@@ -1094,16 +1092,18 @@ class DustEnv(object):
             template = self.templates[name]
         except KeyError:
             raise ValueError('No template named "%s"' % name)
+        rendered = []
 
-        def tmp_cb(err, idk):
+        def tmp_cb(err, result):
             if err:
                 print 'Error: %r' % err
                 raise Exception(err)
             else:
-                print idk
+                rendered.append(result)
+                return result
 
         chunk = Stub(tmp_cb).head
         template(chunk, Context.wrap(self, model)).end()
-        return chunk
+        return rendered[0]
 
 #dust = default_env = DustEnv()
