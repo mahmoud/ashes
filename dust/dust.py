@@ -243,11 +243,11 @@ class BufferToken(object):
             leading_ws, lstripped = split_leading(line)
             if remaining_lines:
                 if lstripped:
-                    rev.append(('buffer', lstripped))
-                rev.append(('format', '\n', leading_ws))
+                    rev.append(['buffer', lstripped])
+                rev.append(['format', '\n', leading_ws])
             else:
                 if line:
-                    rev.append(('buffer', line))
+                    rev.append(['buffer', line])
         ret = list(reversed(rev))
         return ret
 
