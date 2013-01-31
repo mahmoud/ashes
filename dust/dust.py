@@ -776,15 +776,63 @@ class Context(object):
 
 
 class Stack(object):
-    pass
+    def __init__(self, head, tail, index, length):
+        self.head = head
+        self.tail = tail
+        self.index = index
+        self.of = length
+        # self.is_object: is it necessary?
 
 
 class Stub(object):
-    pass
+    def __init__(self, callback):
+        self.head = Chunk(self)
+        self.callback = callback
+        self.out = ''  # TODO: convert to list, use property and ''.join()
+
+    def flush(self):
+        chunk = self.head
+        while chunk:
+            if chunk.flushable:
+                self.out += chunk.data
+            elif chunk.error:
+                self.callback(chunk.error, '')
+                self.flush = lambda self: None
+                return
+            else:
+                return
+            self.head = chunk = chunk.next
+        self.callback(None, self.out)
 
 
 class Stream(object):
-    pass
+    def __init__(self):
+        self.head = Chunk(self)
+        self.events = {}
+
+    def flush(self):
+        chunk = self.head
+        while chunk:
+            if chunk.flushable:
+                self.emit('data', chunk.data)
+            elif chunk.error:
+                self.emit('error', chunk.error)
+                self.flush = lambda self: None
+                return
+            else:
+                return
+            self.head = chunk = chunk.next
+        self.emit('end')
+
+    def emit(self, etype, data=None):
+        try:
+            self.events[etype](data)
+        except KeyError:
+            pass
+
+    def on(self, etype, callback):
+        self.events[etype] = callback
+        return self
 
 
 class Chunk(object):
