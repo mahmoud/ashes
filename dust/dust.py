@@ -177,6 +177,7 @@ class PartialTag(Tag):
                  ['literal', self.refpath],
                  context]]
 
+
 def get_tag(match):
     groups = match.groupdict()
     symbol = groups['symbol']
@@ -402,9 +403,9 @@ class ParseTree(object):
         return cls.from_tokens(tokens)
 
 
-#########
-# Compile
-#########
+##############
+# Optimize AST
+##############
 DEFAULT_SPECIAL_CHARS = {'s': ' ',
                          'n': '\n',
                          'r': '\r',
@@ -483,6 +484,11 @@ class Optimizer(object):
 def escape(text):
     import json
     return json.dumps(text)
+
+
+#########
+# Compile
+#########
 
 
 ROOT_RENDER_TMPL = '''
@@ -859,6 +865,10 @@ class Stream(object):
         return self
 
 
+def is_scalar(obj):
+        return not hasattr(obj, '__iter__') or isinstance(obj, basestring)
+
+
 def is_empty(obj):
     try:
         return obj is None or len(obj) == 0
@@ -911,7 +921,7 @@ class Chunk(object):
 
     def reference(self, elem, context, auto, filters=None):
         if callable(elem):
-            # this is all a pretty big TODO
+            # this whole callable thing is a pretty big TODO
             elem = elem(self, context, None, {'auto': auto,
                                               'filters': filters})
             if isinstance(elem, Chunk):
@@ -935,13 +945,20 @@ class Chunk(object):
             # breaks with dust.js; dust.js doesn't render else blocks
             # on sections referencing empty lists.
             return else_body(self, context)
-        else:
-            if not body:
-                return self
+
+        if not body:
+            return self
+        if is_scalar(elem):
             if elem is True:
                 return body(self, context)
             else:
                 return body(self, context.push(elem))
+        else:
+            chunk = self
+            length = len(elem)
+            for i, el in enumerate(elem):
+                chunk = body(chunk, context.push(el, i, length))
+            return chunk
 
     def exists(self, elem, context, bodies, params=None):
         if not is_empty(elem):

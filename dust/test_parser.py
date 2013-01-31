@@ -49,9 +49,9 @@ def main_opt_p():
         if json_indent(my_opt_ast) == json_indent(ref_opt_asts[k]):
             print k, 'passed.'
         else:
-            json_pprint(ref_opt_asts[k])
+            pprint(ref_opt_asts[k])
             print '--------'
-            json_pprint(my_opt_ast)
+            pprint(my_opt_ast)
     print
 
 
@@ -97,7 +97,7 @@ def json_roundtrip(obj):
 
 def main_p(tmpl_name=DEFAULT_TMPL_NAME):
     try:
-        json_pprint(ref_asts[tmpl_name])
+        pprint(ref_asts[tmpl_name])
     except KeyError:
         print '(no reference)'
     print
@@ -105,7 +105,7 @@ def main_p(tmpl_name=DEFAULT_TMPL_NAME):
     #pprint(parse_tree.root_block.to_list())
     print '\n----------\n'
     my_ast = json_roundtrip(parse_tree.to_dust_ast())
-    json_pprint(my_ast)
+    pprint(my_ast)
 
     print my_ast == ref_asts[tmpl_name]
 
