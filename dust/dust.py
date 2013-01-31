@@ -466,10 +466,10 @@ class Optimizer(object):
             if not filtered:
                 continue
             if filtered[0] == 'buffer':
-                if memo:
+                if memo is not None:
                     memo[1] += filtered[1]
                 else:
-                    memo = list(filtered)
+                    memo = filtered
                     ret.append(filtered)
             else:
                 memo = None
@@ -583,11 +583,11 @@ class CompileContext(object):
                                           self._node(node[2]))
 
     def _section(self, node, cmd):
-        return '.%s(%s,%s,%s)' % (cmd,
-                                  self._node(node[1]),
-                                  self._node(node[2]),
-                                  self._node(node[4]))
-                                  #self._node(node[3]))
+        return '.%s(%s,%s,%s,%s)' % (cmd,
+                                     self._node(node[1]),
+                                     self._node(node[2]),
+                                     self._node(node[4]),
+                                     self._node(node[3]))
 
     def _inline_partial(self, node):
         bodies = node[4]
@@ -732,11 +732,11 @@ class Context(object):
     def get(self, key):
         ctx = self.stack
         value = None
-
         while ctx:
             try:
                 value = ctx.head[key]
             except (AttributeError, KeyError, TypeError):
+                print '%r -> %r' % (key, ctx.tail)
                 ctx = ctx.tail
             #except KeyError:
             #    ctx = None
@@ -861,7 +861,7 @@ class Stream(object):
 
 def is_empty(obj):
     try:
-        return len(obj) == 0
+        return obj is None or len(obj) == 0
     except TypeError:
         return False
 
@@ -920,7 +920,6 @@ class Chunk(object):
             return self
         else:
             filtered = context.env.apply_filters(elem, auto, filters)
-            print filtered
             return self.write(filtered)
 
     def section(self, elem, context, bodies, params=None):
@@ -944,7 +943,7 @@ class Chunk(object):
             else:
                 return body(self, context.push(elem))
 
-    def exists(self, elem, context, bodies):
+    def exists(self, elem, context, bodies, params=None):
         if not is_empty(elem):
             if bodies.get('block'):
                 return bodies['block'](self, context)
@@ -952,16 +951,16 @@ class Chunk(object):
             return bodies['else'](self, context)
         return self
 
-    def notexists(self, elem, context, bodies):
+    def notexists(self, elem, context, bodies, params=None):
         if is_empty(elem):
-            if bodies.block:
-                return bodies.block(self, context)
+            if bodies.get('block'):
+                return bodies['block'](self, context)
         elif bodies.get('else'):
             return bodies['else'](self, context)
         return self
 
     def block(self, elem, context, bodies):
-        body = bodies.block
+        body = bodies.get('block')
         if elem:
             body = elem
         if body:
@@ -1084,7 +1083,7 @@ class DustEnv(object):
                 print 'Error: %r' % err
                 raise Exception(err)
             else:
-                return idk
+                print idk
 
         chunk = Stub(tmp_cb).head
         template(chunk, Context.wrap(self, model)).end()

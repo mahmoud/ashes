@@ -2,12 +2,16 @@ from dust import DustEnv
 
 from tests.ref_templates import ref_templates
 
+DEFAULT_CONTEXT = {"tags": [],
+                   "likes": ["moe", "larry", "curly", "shemp"]
+                   }
+
 
 def main_r(tmpl_name):
     tmpl = ref_templates[tmpl_name]
     env = DustEnv()
     env.compile(tmpl, tmpl_name)
-    render_str = env.render(tmpl_name, {})
+    render_str = env.render(tmpl_name, DEFAULT_CONTEXT)
     print render_str
     import pdb;pdb.set_trace()
     return render_str

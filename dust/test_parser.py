@@ -1,4 +1,5 @@
 from pprint import pprint
+import json
 
 from dust import tokenize, ParseTree, Optimizer
 
@@ -6,7 +7,7 @@ from tests.ref_templates import ref_templates
 from tests.ref_opt_asts import ref_opt_asts
 from tests.ref_asts import ref_asts
 
-DEFAULT_TMPL_NAME = 'escaped'
+DEFAULT_TMPL_NAME = 'conditional'
 
 
 def main_t():
@@ -45,12 +46,12 @@ def main_opt_p():
         parse_tree = t_and_p(ref_templates[k])
         my_ast = json_roundtrip(parse_tree.to_dust_ast())
         my_opt_ast = optimize(my_ast)
-        if my_opt_ast == ref_opt_asts[k]:
+        if json_indent(my_opt_ast) == json_indent(ref_opt_asts[k]):
             print k, 'passed.'
         else:
-            pprint(ref_opt_asts[k])
+            json_pprint(ref_opt_asts[k])
             print '--------'
-            pprint(my_opt_ast)
+            json_pprint(my_opt_ast)
     print
 
 
@@ -80,14 +81,23 @@ def see_passing_asts():
     return successful, failed
 
 
+def json_indent(obj):
+    if isinstance(obj, basestring):
+        obj = json.loads(obj)
+    return json.dumps(obj, indent=2)
+
+
+def json_pprint(obj):
+    print json_indent(obj)
+
+
 def json_roundtrip(obj):
-    import json
     return json.loads(json.dumps(obj))
 
 
 def main_p(tmpl_name=DEFAULT_TMPL_NAME):
     try:
-        pprint(ref_asts[tmpl_name])
+        json_pprint(ref_asts[tmpl_name])
     except KeyError:
         print '(no reference)'
     print
@@ -95,7 +105,7 @@ def main_p(tmpl_name=DEFAULT_TMPL_NAME):
     #pprint(parse_tree.root_block.to_list())
     print '\n----------\n'
     my_ast = json_roundtrip(parse_tree.to_dust_ast())
-    pprint(my_ast)
+    json_pprint(my_ast)
 
     print my_ast == ref_asts[tmpl_name]
 
@@ -103,7 +113,7 @@ def main_p(tmpl_name=DEFAULT_TMPL_NAME):
 if __name__ == '__main__':
     try:
         main_opt_p()  # 'conditional')
-        #see_passing_asts()
+        see_passing_asts()
     except Exception as e:
         import pdb;pdb.post_mortem()
         raise
