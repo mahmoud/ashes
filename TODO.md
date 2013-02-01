@@ -19,6 +19,7 @@
  * handle comments better
  * line/column number for errors
  * rendering support for root-level recursive templates
+ * Interpolated values in parameters and partials
 
 # Notes
  * Javascript implicitly disregards extra arguments passed

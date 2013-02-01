@@ -489,10 +489,9 @@ def escape(text):
 #########
 
 
-ROOT_RENDER_TMPL = '''
-def render(chk, ctx):
+ROOT_RENDER_TMPL = \
+'''def render(chk, ctx):
     {body}
-
     return {root_func_name}(chk, ctx)
 '''
 
@@ -522,7 +521,7 @@ class CompileContext(object):
 
         block_str = self._root_blocks()
         if block_str:
-            lines = ['    ' + block_str, '']
+            lines = [block_str, '']
 
         bodies = self._root_bodies()
         lines.extend(bodies.splitlines())
@@ -543,7 +542,7 @@ class CompileContext(object):
         max_body = max(self.bodies.keys())
         ret = [''] * (max_body + 1)
         for i, body in self.bodies.items():
-            ret[i] = '\ndef body_%s(chk, ctx):\n\treturn chk%s\n' % (i, body)
+            ret[i] = '\ndef body_%s(chk, ctx):\n    return chk%s\n' % (i, body)
         return ''.join(ret)
 
     def _convert_special(self, node):
@@ -619,8 +618,9 @@ class CompileContext(object):
         raise NotImplemented
 
     def _partial(self, node):
-        return '.partial(%s,%s)' % (self._node(node[1]),
-                                    self._node(node[2]))
+        tmpl_name = self._node(node[1]).strip(r"'\"")
+        return '.partial("%s",%s)' % (tmpl_name,
+                                      self._node(node[2]))
 
     def _context(self, node):
         contpath = node[1:]
@@ -993,12 +993,12 @@ class Chunk(object):
 
     def partial(self, elem, context, bodies=None):
         if callable(elem):
-            cback = lambda name, chk: self.env.load(name, chk, context).end()
+            cback = lambda name, chk: context.env.load_chunk(name, chk, context).end()
             return self.capture(elem, context, cback)
-        return self.env.load(elem, self, context)
+        return context.env.load_chunk(elem, self, context)
 
     def helper(self, name, context, bodies, params=None):
-        return self.env.helpers[name](self, context, bodies, params)
+        return context.env.helpers[name](self, context, bodies, params)
 
     def capture(self, body, context, callback):
         def map_func(chunk):
@@ -1076,16 +1076,6 @@ class DustEnv(object):
         comp_str = CompileContext().compile(optimized_ast)
         return comp_str
 
-    def load(self, src_file, name=None):
-        if name is None:
-            name = src_file
-        if src_file in self.templates:
-            return self.templates[name].root_node
-        else:
-            with open(src_file, 'r') as f:
-                code = f.read()
-            return self.compile(code, name, src_file=src_file)
-
     def apply_filters(self, string, auto, filters):
         filters = filters or []
         if auto and 's' not in filters and auto not in filters:
@@ -1095,6 +1085,13 @@ class DustEnv(object):
             if filt_fn:
                 string = filt_fn(string)
         return string
+
+    def load_chunk(self, name, chunk, context):
+        if name not in self.templates:
+            # TODO: on_load hook
+            return chunk.set_error(Exception('Template not found "%s"' % name))
+        return self.templates[name](chunk, context)
+
 
     def render(self, name, model):
         try:

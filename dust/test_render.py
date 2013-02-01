@@ -4,13 +4,18 @@ from tests.ref_templates import ref_templates
 from tests.ref_renders import ref_renders
 from tests.ref_contexts import ref_contexts
 
+ENV = DustEnv()
+for k, v in ref_templates.items():
+    if k not in ref_renders or k not in ref_contexts:
+        continue
+    ENV.compile(v, k)
+
+
 
 def main_r(tmpl_name):
     tmpl = ref_templates[tmpl_name]
-    env = DustEnv()
-    env.compile(tmpl, tmpl_name)
     print ref_contexts[tmpl_name]
-    render_str = env.render(tmpl_name, ref_contexts[tmpl_name])
+    render_str = ENV.render(tmpl_name, ref_contexts[tmpl_name])
     print render_str
     import pdb;pdb.set_trace()
     return render_str
@@ -23,9 +28,7 @@ def see_passing_renders():
         if k not in ref_renders or k not in ref_contexts:
             continue
         try:
-            env = DustEnv()
-            env.compile(v, k)
-            render_str = env.render(k, ref_contexts[k])
+            render_str = ENV.render(k, ref_contexts[k])
         except:
             print 'Exception: ', k
             failed.append(k)
@@ -47,7 +50,7 @@ def see_passing_renders():
 
 if __name__ == '__main__':
     try:
-        #main_r('force_current')
+        #main_r('partials')
         see_passing_renders()
     except Exception as e:
         import pdb;pdb.post_mortem()
