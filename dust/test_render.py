@@ -26,15 +26,17 @@ def see_passing_renders():
             env = DustEnv()
             env.compile(v, k)
             render_str = env.render(k, ref_contexts[k])
-            print k
-            print '"' + render_str.strip() + '"'
-            print
         except:
+            print 'Exception: ', k
             failed.append(k)
             continue
         if render_str.strip() == ref_renders[k].strip():
             successful.append(k)
         else:
+            print k, 'did not match:'
+            print '"' + render_str.strip() + '"'
+            print '"' + ref_renders[k].strip() + '"'
+            print
             failed.append(k)
     print
     print ' Successful:', successful
@@ -45,7 +47,7 @@ def see_passing_renders():
 
 if __name__ == '__main__':
     try:
-        #main_r('else_block')
+        #main_r('object')
         see_passing_renders()
     except Exception as e:
         import pdb;pdb.post_mortem()

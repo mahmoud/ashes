@@ -675,7 +675,8 @@ def _python_compile(source, name, global_env=None):
 #########
 def escape_html(text):
     text = unicode(text)
-    return cgi.escape(text, True).replace("'", '&squot;')
+    # TODO: dust.js doesn't use this, but maybe we should: .replace("'", '&squot;')
+    return cgi.escape(text, True)
 
 
 def escape_js(text):
@@ -742,8 +743,10 @@ class Context(object):
                 ctx = ctx.tail
             else:
                 return value
-        if not value:
+        if value is None:
             return self.globals.get(key)
+        else:
+            return value
 
     def get_path(self, cur, down):
         ctx = self.stack
@@ -807,7 +810,7 @@ class Stack(object):
         self.tail = tail
         self.index = index
         self.of = length
-        # self.is_object: is it necessary?
+        #self.is_object = is_scalar(head)
 
     def __repr__(self):
         return 'Stack(%r, %r, %r, %r)' % (self.head,
@@ -950,7 +953,7 @@ class Chunk(object):
 
         if not body:
             return self
-        if is_scalar(elem):
+        if is_scalar(elem) or hasattr(elem, 'keys'):  # haaack
             if elem is True:
                 return body(self, context)
             else:
