@@ -220,8 +220,6 @@ def split_leading(text):
 class BufferToken(object):
     def __init__(self, text=''):
         self.text = text
-        #if 'not bar!' in self.text:
-        #    import pdb;pdb.set_trace()
 
     def __repr__(self):
         disp = self.text
@@ -742,10 +740,10 @@ class Context(object):
                 value = ctx.head[key]
             except (AttributeError, KeyError, TypeError):
                 ctx = ctx.tail
-            #except KeyError:
-            #    ctx = None
-            return value
-        return self.globals.get(key)
+            else:
+                return value
+        if not value:
+            return self.globals.get(key)
 
     def get_path(self, cur, down):
         ctx = self.stack
@@ -811,6 +809,12 @@ class Stack(object):
         self.of = length
         # self.is_object: is it necessary?
 
+    def __repr__(self):
+        return 'Stack(%r, %r, %r, %r)' % (self.head,
+                                          self.tail,
+                                          self.index,
+                                          self.of)
+
 
 class Stub(object):
     def __init__(self, callback):
@@ -864,7 +868,7 @@ class Stream(object):
 
 
 def is_scalar(obj):
-        return not hasattr(obj, '__iter__') or isinstance(obj, basestring)
+    return not hasattr(obj, '__iter__') or isinstance(obj, basestring)
 
 
 def is_empty(obj):
@@ -939,7 +943,7 @@ class Chunk(object):
         else_body = bodies.get('else')
         if params:
             context = context.push(params)
-        if not elem and elem != 0 and else_body:
+        if not elem and else_body and elem is not 0:
             # breaks with dust.js; dust.js doesn't render else blocks
             # on sections referencing empty lists.
             return else_body(self, context)

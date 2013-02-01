@@ -9,7 +9,8 @@ def main_r(tmpl_name):
     tmpl = ref_templates[tmpl_name]
     env = DustEnv()
     env.compile(tmpl, tmpl_name)
-    render_str = env.render(tmpl_name, DEFAULT_CONTEXT)
+    print ref_contexts[tmpl_name]
+    render_str = env.render(tmpl_name, ref_contexts[tmpl_name])
     print render_str
     import pdb;pdb.set_trace()
     return render_str
@@ -25,10 +26,13 @@ def see_passing_renders():
             env = DustEnv()
             env.compile(v, k)
             render_str = env.render(k, ref_contexts[k])
+            print k
+            print '"' + render_str.strip() + '"'
+            print
         except:
             failed.append(k)
             continue
-        if render_str == ref_renders[k]:
+        if render_str.strip() == ref_renders[k].strip():
             successful.append(k)
         else:
             failed.append(k)
@@ -41,7 +45,7 @@ def see_passing_renders():
 
 if __name__ == '__main__':
     try:
-        #main_r('conditional')
+        #main_r('else_block')
         see_passing_renders()
     except Exception as e:
         import pdb;pdb.post_mortem()
