@@ -13,7 +13,7 @@ def main_c(tmpl_name):
 
 if __name__ == '__main__':
     try:
-        main_c('object')
+        main_c('force_current')
         #see_passing_asts()
     except Exception as e:
         import pdb;pdb.post_mortem()

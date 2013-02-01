@@ -752,7 +752,7 @@ class Context(object):
         ctx = self.stack
         length = len(down)  # TODO: try/except?
         if cur and not length:
-            return ctx.head
+            return ctx.head  # aka implicit
         try:
             ctx = ctx.head
         except AttributeError:
@@ -762,6 +762,8 @@ class Context(object):
                 ctx = ctx[down_part]
             except (AttributeError, TypeError):
                 break
+            except KeyError:
+                return None
         return ctx
 
     def push(self, head, index=None, length=None):
