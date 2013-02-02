@@ -31,11 +31,19 @@ class ATMeta(type):
 
     @property
     def ast(cls):
-        return json.loads(cls.json_ast)
+        if getattr(cls, 'json_ast', None):
+            return json.loads(cls.json_ast)
+        return None
 
     @property
     def opt_ast(cls):
-        return json.loads(cls.json_ast)
+        if getattr(cls, 'json_opt_ast', None):
+            return json.loads(cls.json_opt_ast)
+        return None
+
+    def __repr__(self):
+        return 'AshesTest(%r)' % self.name
+
 
 
 class AshesTest(object):
@@ -46,6 +54,7 @@ class AshesTest(object):
     rendered = None
 
     __metaclass__ = ATMeta
+
 
 
 def json_rtrip(obj, raise_exc=False):
