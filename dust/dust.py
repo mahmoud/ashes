@@ -1011,7 +1011,7 @@ class Chunk(object):
             return bodies['else'](self, context)
         return self
 
-    def block(self, elem, context, bodies):
+    def block(self, elem, context, bodies, params=None):
         body = bodies.get('block')
         if elem:
             body = elem
