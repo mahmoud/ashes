@@ -643,9 +643,11 @@ class CompileContext(object):
         raise NotImplemented
 
     def _partial(self, node):
-        tmpl_name = self._node(node[1]).strip(r"'\"")
-        return '.partial("%s",%s)' % (tmpl_name,
-                                      self._node(node[2]))
+        if node[0] == 'body':
+            body_name = self._node(node[1])
+            return '.partial(' + body_name + ', %s)' % self._node(node[2])
+        return '.partial(%s, %s)' % (self._node(node[1]),
+                                     self._node(node[2]))
 
     def _context(self, node):
         contpath = node[1:]
@@ -1127,7 +1129,7 @@ class DustEnv(object):
 
         def tmp_cb(err, result):
             if err:
-                print 'Error: %r' % err
+                print 'Error on template %r: %r' % (name, err)
                 raise Exception(err)
             else:
                 rendered.append(result)
