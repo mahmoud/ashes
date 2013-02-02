@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 import json
 
-_INTRO = r'''function() {
+INTRO = r'''function() {
   var d = 1;
   return {
     stream: function() {
@@ -86,13 +86,13 @@ CONDITIONAL = r'''{
   "likes": ["moe", "larry", "curly", "shemp"]
 }'''
 
-_SYNC_KEY = r'''{
+SYNC_KEY = r'''{
   "type": function(chunk) {
     return "Sync";
   }
 }'''
 
-_ASYNC_KEY = r'''{
+ASYNC_KEY = r'''{
   "type": function(chunk) {
     return chunk.map(function(chunk) {
       dust.nextTick(function() {
@@ -102,7 +102,7 @@ _ASYNC_KEY = r'''{
   }
 }'''
 
-_ASYNC_ITERATOR = r'''{
+ASYNC_ITERATOR = r'''{
   "numbers": [
   3, 2, 1],
   "delay": function(chunk, context, bodies) {
@@ -114,7 +114,7 @@ _ASYNC_ITERATOR = r'''{
   }
 }'''
 
-_FILTER = r'''{
+FILTER = r'''{
   "filter": function(chunk, context, bodies) {
     return chunk.tap(function(data) {
       return data.toUpperCase();
@@ -123,7 +123,7 @@ _FILTER = r'''{
   "bar": "bar"
 }'''
 
-_CONTEXT = r'''{
+CONTEXT = r'''{
   "list": function(chunk, context, bodies) {
     var items = context.current(),
         len = items.length;
@@ -150,7 +150,7 @@ _CONTEXT = r'''{
   }]
 }'''
 
-_PARAMS = r'''{
+PARAMS = r'''{
   "helper": function(chunk, context, bodies, params) {
     return chunk.write(params.foo);
   }
@@ -190,9 +190,9 @@ COMMENTS = '{}'
 
 ref_contexts = {}
 for name, json_source in globals().items():
-    if not name.isupper() or name.startswith('_'):
+    if not name.isupper():
         continue
-    ref_contexts[name.lower()] = json.loads(json_source)
+    ref_contexts[name.lower()] = json_source
 
 
 if __name__ == '__main__':

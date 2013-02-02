@@ -78,7 +78,7 @@ COMMENTS = 'Hello'
 
 ref_renders = {}
 for name, render_res in globals().items():
-    if not name.isupper() or name.startswith('_'):
+    if not name.isupper():
         continue
     ref_renders[name.lower()] = render_res
 

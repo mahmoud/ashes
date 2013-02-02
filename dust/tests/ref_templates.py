@@ -95,7 +95,7 @@ r'''{!
 
 ref_templates = {}
 for name, tmpl_source in globals().items():
-    if not name.isupper() or name.startswith('_'):
+    if not name.isupper():
         continue
     ref_templates[name.lower()] = tmpl_source
 

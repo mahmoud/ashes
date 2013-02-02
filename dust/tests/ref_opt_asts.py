@@ -7,9 +7,9 @@ CONDITIONAL = r'''["body",["?",["key","tags"],["context"],["params"],["bodies",[
 
 ref_opt_asts = {}
 for name, json_source in globals().items():
-    if not name.isupper() or name.startswith('_'):
+    if not name.isupper():
         continue
-    ref_opt_asts[name.lower()] = json.loads(json_source)
+    ref_opt_asts[name.lower()] = json_source
 
 
 if __name__ == '__main__':

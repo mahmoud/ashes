@@ -58,9 +58,9 @@ COMMENTS = r'''["body",["comment","\n  Multiline\n  {#foo}{bar}{/foo}\n"],["form
 
 ref_asts = {}
 for name, json_source in globals().items():
-    if not name.isupper() or name.startswith('_'):
+    if not name.isupper():
         continue
-    ref_asts[name.lower()] = json.loads(json_source)
+    ref_asts[name.lower()] = json_source
 
 
 if __name__ == '__main__':
