@@ -4,7 +4,6 @@
    (assignments to indexes > len(x) autocreate undefined elements)
  * make a nice Template class
  * add flags for common Optimization tweaks (e.g., whitespace on/off)
- * better name
  * docs, of course
  * more tests (corner cases, negative cases, larger pages)
    * what happens if tags spans multiple lines?
@@ -17,6 +16,7 @@
  * line/column number for errors
  * rendering support for root-level recursive templates
  * Interpolated values in parameters
+ * nosetests
 
 # Notes
  * Javascript implicitly disregards extra arguments passed

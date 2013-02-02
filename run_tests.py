@@ -1,8 +1,8 @@
 from __future__ import unicode_literals
 
-from collections import namedtuple, defaultdict, OrderedDict
+from collections import defaultdict, OrderedDict
 
-from dust import DustEnv, ParseTree, Optimizer, tokenize
+from ashes import AshesEnv, ParseTree, Optimizer, tokenize
 from tests import dust_site_tests
 from tests.core import json_rtrip
 
@@ -59,7 +59,7 @@ SYMBOLS = {'passed': '.', 'failed': 'X', 'skipped': '_', 'error': 'E'}
 
 
 def get_test_results(test_cases, env=None):
-    env = env or DustEnv()
+    env = env or AshesEnv()
     by_op = defaultdict(dict)
     by_test = defaultdict(dict)
     failed_memo = set()

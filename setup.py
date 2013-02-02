@@ -1,31 +1,33 @@
 # -*- coding: utf-8 -*-
 """
-dust.py provides a Python implementation of the dust_ templating
-language. It is a fork of dust-py_.
+Ashes provides a Python implementation of the dust_ templating
+language.
 
 .. _dust: http://akdubya.github.com/dustjs/
-.. _dust-py: https://code.google.com/p/dust-py/
 
 """
 from setuptools import setup
 
 
 setup(
-    name='dust.py',
+    name='ashes',
     version='0.4.0',
-    license='MIT',
+    license='BSD',
     author='Mahmoud Hashemi',
-    author_email='makuro@gmail.com',
-    url='https://github.com/mahmoud/dust.py',
+    author_email='mahmoudrhashemi@gmail.com',
+    url='https://github.com/mahmoud/ashes',
     description='Dust templating for Python',
     long_description=__doc__,
     classifiers=(
         'Development Status :: 3 - Alpha',
-        'License :: OSI Approved :: MIT License',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: BSD License',
         'Programming Language :: JavaScript',
         'Programming Language :: Python :: 2',
         'Topic :: Internet :: WWW/HTTP',
         'Topic :: Text Processing :: Markup',
     ),
-    packages=('dust',),
+    py_modules=('ashes',),
+    scripts=('ashes.py',),
+    platforms='any'
 )

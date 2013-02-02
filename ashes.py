@@ -531,7 +531,7 @@ class Compiler(object):
 
     def __init__(self, env=None):
         if env is None:
-            env = DustEnv()
+            env = AshesEnv()
         self.env = env
 
         self.bodies = {}
@@ -1076,7 +1076,7 @@ DEFAULT_FILTERS = {
 ###########
 # Interface
 ###########
-class DustEnv(object):
+class AshesEnv(object):
     def __init__(self,
                  filters=None,
                  helpers=None,
@@ -1145,4 +1145,4 @@ class DustEnv(object):
         template(chunk, Context.wrap(self, model)).end()
         return rendered[0]
 
-#dust = default_env = DustEnv()
+ashes = default_env = AshesEnv()

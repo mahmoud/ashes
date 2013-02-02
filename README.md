@@ -1,20 +1,17 @@
-dust.py
-=======
+Ashes
+=====
 
-[Dust](http://akdubya.github.com/dustjs/) templating for Python, originally
-based on [dust-py](http://code.google.com/p/dust-py/), but now in the process
-of being rewritten, since dust-py was incomplete, buggy, and didn't compile
-to python.
+[Dust](http://akdubya.github.com/dustjs/) templating for Python.
 
 A quick example (which will work again soon):
 
 ```python
->>> from dust import dust
->>> dust.compile("Hello, {name}!", 'hello')
->>> dust.render('hello', {'name': 'World'})
+>>> from ashes import ashes
+>>> ashes.compile("Hello, {name}!", 'hello')
+>>> ashes.render('hello', {'name': 'World'})
 'Hello, World!'
->>> dust.load('hella.html', 'hella')
->>> dust.render('hella', {'names': ['Kurt', 'Alex']})
+>>> ashes.load('hella.html', 'hella')
+>>> ashes.render('hella', {'names': ['Kurt', 'Alex']})
 'Hella Kurt and Alex!'
 ```
 
