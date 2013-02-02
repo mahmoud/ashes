@@ -449,6 +449,13 @@ for nsym in ('#', '?', '^', '<', '+', '@', '%', 'reference',
              'partial', 'context', 'params', 'bodies', 'param'):
     DEFAULT_OPTIMIZERS[nsym] = 'visit'
 
+UNOPT_OPTIMIZERS = dict(DEFAULT_OPTIMIZERS)
+UNOPT_OPTIMIZERS.update({'format': 'noop', 'body': 'visit'})
+
+
+def escape(text, esc_func=json.dumps):
+    return esc_func(text)
+
 
 class Optimizer(object):
     def __init__(self, optimizers=None, special_chars=None):
@@ -505,10 +512,6 @@ class Optimizer(object):
         return self.optimize(node)
 
 
-def escape(text, esc_func=json.dumps):
-    return esc_func(text)
-
-
 #########
 # Compile
 #########
@@ -520,7 +523,26 @@ ROOT_RENDER_TMPL = \
     return {root_func_name}(chk, ctx)
 '''
 
+
+def _python_compile(source, name, global_env=None):
+    if global_env is None:
+        global_env = {}
+    else:
+        global_env = dict(global_env)
+    try:
+        code = compile(source, '<string>', 'single')
+    except:
+        print source
+        raise
+    exec code in global_env
+    return global_env[name]
+
+
 class Compiler(object):
+    """
+    Note: Compiler objects aren't really meant to be reused,
+    the class is just for namespacing and convenience.
+    """
     sections = {'#': 'section',
                 '?': 'exists',
                 '^': 'notexists'}
@@ -531,7 +553,7 @@ class Compiler(object):
 
     def __init__(self, env=None):
         if env is None:
-            env = AshesEnv()
+            env = default_env
         self.env = env
 
         self.bodies = {}
@@ -540,7 +562,11 @@ class Compiler(object):
         self.index = 0
         self.auto = 'h'  # TODO
 
-    def compile(self, ast):  # ast to init?
+    def compile(self, ast, name='render'):
+        python_source = self._gen_python(ast)
+        return _python_compile(python_source, name)
+
+    def _gen_python(self, ast):  # ast to init?
         lines = []
         c_node = self._node(ast)
 
@@ -554,6 +580,7 @@ class Compiler(object):
 
         ret = ROOT_RENDER_TMPL.format(body=body,
                                       root_func_name=c_node)
+        self.python_source = ret
         return ret
 
     def _root_blocks(self):
@@ -686,20 +713,6 @@ class Compiler(object):
 
     def _literal(self, node):
         return escape(node[1])
-
-
-def _python_compile(source, name, global_env=None):
-    if global_env is None:
-        global_env = {}
-    else:
-        global_env = dict(global_env)
-    try:
-        code = compile(source, '<string>', 'single')
-    except:
-        print source
-        raise
-    exec code in global_env
-    return global_env[name]
 
 
 #########
@@ -1076,6 +1089,70 @@ DEFAULT_FILTERS = {
 ###########
 # Interface
 ###########
+
+
+class Template(object):
+    def __init__(self,
+                 name,
+                 source,
+                 source_file=None,
+                 optimize=True,
+                 keep_source=True,
+                 env=None):
+        self.name = name
+        self.source = source
+        self.source_file = source_file
+        self.optimized = optimize
+        if env is None:
+            env = default_env
+        self.env = env
+
+        self.render_func = self._get_render_func(optimize)
+        if not keep_source:
+            self.source = None
+
+    def render(self, model, env=None):
+        env = env or self.env
+        rendered = []
+
+        def tmp_cb(err, result):
+            if err:
+                print 'Error on template %r: %r' % (self.name, err)
+                raise Exception(err)
+            else:
+                rendered.append(result)
+                return result
+
+        chunk = Stub(tmp_cb).head
+        self.render_func(chunk, Context.wrap(env, model)).end()
+        return rendered[0]
+
+    def _get_tokens(self):
+        if not self.source:
+            return None
+        return tokenize(self.source)
+
+    def _get_ast(self, optimize=False):
+        if not self.source:
+            return None
+        dast = ParseTree.from_source(self.source).to_dust_ast()
+        return self.env.filter_ast(dast, optimize)
+
+    def _get_comp_str(self, optimize=False):
+        ast = self._get_ast(optimize)
+        if not ast:
+            return None
+        return Compiler(self.env)._gen_python(ast)
+
+    def _get_render_func(self, optimize=True):
+        # switching over to optimize=True by default because it
+        # makes the output easier to read and more like dust's docs
+        ast = self._get_ast(optimize)
+        if not ast:
+            return None
+        return Compiler(self.env).compile(ast)
+
+
 class AshesEnv(object):
     def __init__(self,
                  filters=None,
@@ -1096,18 +1173,28 @@ class AshesEnv(object):
         if optimizers:
             self.optimizers.update(optimizers)
 
-    def compile(self, source, name, src_file=None):
-        comp_str = self._compile_str(source)
-        tmpl_func = _python_compile(comp_str, 'render')
-        self.templates[name] = tmpl_func
-        return comp_str
+    def register(self, name, template):
+        try:
+            if not template or not callable(template.render):
+                raise AttributeError()
+        except AttributeError:
+            raise ValueError('Invalid template %r: %r' % (name, template))
+        self.templates[name] = template
 
-    def _compile_str(self, source):
-        parse_tree = ParseTree.from_source(source)
-        dust_ast = parse_tree.to_dust_ast()
-        optimized_ast = Optimizer().optimize(dust_ast)
-        comp_str = Compiler().compile(optimized_ast)
-        return comp_str
+    def render(self, name, model):
+        try:
+            template = self.templates[name]
+        except KeyError:
+            raise ValueError('No template named "%s"' % name)
+        return template.render(model, self)
+
+    def filter_ast(self, ast, optimize=True):
+        if optimize:
+            optimizers = self.optimizers
+        else:
+            optimizers = UNOPT_OPTIMIZERS
+        optimizer = Optimizer(optimizers, self.special_chars)
+        return optimizer.optimize(ast)
 
     def apply_filters(self, string, auto, filters):
         filters = filters or []
@@ -1125,24 +1212,5 @@ class AshesEnv(object):
             return chunk.set_error(Exception('Template not found "%s"' % name))
         return self.templates[name](chunk, context)
 
-
-    def render(self, name, model):
-        try:
-            template = self.templates[name]
-        except KeyError:
-            raise ValueError('No template named "%s"' % name)
-        rendered = []
-
-        def tmp_cb(err, result):
-            if err:
-                print 'Error on template %r: %r' % (name, err)
-                raise Exception(err)
-            else:
-                rendered.append(result)
-                return result
-
-        chunk = Stub(tmp_cb).head
-        template(chunk, Context.wrap(self, model)).end()
-        return rendered[0]
 
 ashes = default_env = AshesEnv()
