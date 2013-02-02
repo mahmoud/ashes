@@ -545,11 +545,11 @@ class CompileContext(object):
         c_node = self._node(ast)
 
         block_str = self._root_blocks()
-        if block_str:
-            lines = [block_str, '']
 
         bodies = self._root_bodies()
         lines.extend(bodies.splitlines())
+        if block_str:
+            lines.extend(['', block_str, ''])
         body = '\n    '.join(lines)
 
         ret = ROOT_RENDER_TMPL.format(body=body,
@@ -560,14 +560,15 @@ class CompileContext(object):
         if not self.blocks:
             self.block_str = ''
             return ''
-        self.block_str = 'ctx = ctx.shift_blocks(blocks)'
-        return 'blocks = %r' % self.blocks
+        self.block_str = 'ctx = ctx.shift_blocks(blocks)\n    '
+        pairs = ['"' + name + '": ' + fn for name, fn in self.blocks.items()]
+        return 'blocks = {' + ', '.join(pairs) + '}'
 
     def _root_bodies(self):
         max_body = max(self.bodies.keys())
         ret = [''] * (max_body + 1)
         for i, body in self.bodies.items():
-            ret[i] = '\ndef body_%s(chk, ctx):\n    return chk%s\n' % (i, body)
+            ret[i] = '\ndef body_%s(chk, ctx):\n    %sreturn chk%s\n' % (i, self.block_str, body)
         return ''.join(ret)
 
     def _convert_special(self, node):
@@ -692,7 +693,11 @@ def _python_compile(source, name, global_env=None):
         global_env = {}
     else:
         global_env = dict(global_env)
-    code = compile(source, '<string>', 'single')
+    try:
+        code = compile(source, '<string>', 'single')
+    except:
+        print source
+        raise
     exec code in global_env
     return global_env[name]
 
@@ -905,7 +910,7 @@ def is_scalar(obj):
 
 def is_empty(obj):
     try:
-        return obj is None or len(obj) == 0
+        return obj is None or obj is False or len(obj) == 0
     except TypeError:
         return False
 

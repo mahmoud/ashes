@@ -50,7 +50,7 @@ def see_passing_renders():
 
 if __name__ == '__main__':
     try:
-        #main_r('base_template')
+        #main_r('child_template')
         see_passing_renders()
     except Exception as e:
         import pdb;pdb.post_mortem()
