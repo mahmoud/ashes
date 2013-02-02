@@ -917,6 +917,7 @@ class Chunk(object):
         self.taps = taps
         self.data = ''
         self.flushable = False
+        self.error = None
 
     def write(self, data):
         if self.taps:
