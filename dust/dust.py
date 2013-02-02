@@ -168,17 +168,40 @@ class BlockTag(Tag):
 class PartialTag(Tag):
     req_attrs = ('symbol', 'refpath', 'selfclosing')
 
+    def __init__(self, **kw):
+        super(PartialTag, self).__init__(**kw)
+        self.subtokens = parse_inline(self.refpath)
+
     def to_dust_ast(self):
         context = ['context']
         contpath = self.contpath
         if contpath:
             context.append(get_path_or_key(contpath))
+        subtokens = self.subtokens
+        if subtokens and isinstance(subtokens[0], BufferToken):
+            body = ['literal', subtokens[0].text]
+        else:
+            body = ['body']
+            for b in self.subtokens:
+                body.extend(b.to_dust_ast())
         return [['partial',
-                 ['literal', self.refpath],
+                 body,
                  context]]
 
 
-def get_tag(match):
+def parse_inline(source):
+    if not source:
+        raise ValueError('empty inline token')
+    orig_source = source
+    if source.startswith('"') and source.endswith('"'):
+        source = source[1:-1]
+    if not source:
+        return BufferToken()
+    tokens = tokenize(source, inline=True)
+    return tokens
+
+
+def get_tag(match, inline=False):
     groups = match.groupdict()
     symbol = groups['symbol']
     closing = groups['closing']
@@ -197,6 +220,8 @@ def get_tag(match):
         tag_type = PartialTag
     else:
         raise ValueError('invalid tag')
+    if inline and tag_type not in (ReferenceTag, SpecialTag):
+        raise ValueError('invalid inline tag')
     return tag_type.from_match(match)
 
 
@@ -251,7 +276,7 @@ class BufferToken(object):
         return ret
 
 
-def tokenize(source):
+def tokenize(source, inline=False):
     # TODO: line/column numbers
     # removing comments
     source = strip_comments(source)
@@ -264,7 +289,7 @@ def tokenize(source):
         if prev_end < start:
             tokens.append(BufferToken(source[prev_end:start]))
         prev_end = end
-        tag = get_tag(match)
+        tag = get_tag(match, inline)
         tokens.append(tag)
     tail = source[prev_end:]
     if tail:
