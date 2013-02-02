@@ -1,10 +1,7 @@
 # TODO
- * refactor global state of rendering
  * remove unnecessary callback dynamics
- * add support for implicit ({.}) variables
  * stop using dicts to get around javascript's array behavior
    (assignments to indexes > len(x) autocreate undefined elements)
- * get off the fence with CompileContext
  * make a nice Template class
  * add flags for common Optimization tweaks (e.g., whitespace on/off)
  * better name
@@ -19,7 +16,7 @@
  * handle comments better
  * line/column number for errors
  * rendering support for root-level recursive templates
- * Interpolated values in parameters and partials
+ * Interpolated values in parameters
 
 # Notes
  * Javascript implicitly disregards extra arguments passed

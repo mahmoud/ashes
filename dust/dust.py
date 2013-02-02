@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import re
 import cgi
+import json
 import urllib
 
 # need to add group for literals
@@ -504,9 +505,8 @@ class Optimizer(object):
         return self.optimize(node)
 
 
-def escape(text):
-    import json
-    return json.dumps(text)
+def escape(text, esc_func=json.dumps):
+    return esc_func(text)
 
 
 #########
@@ -520,7 +520,7 @@ ROOT_RENDER_TMPL = \
     return {root_func_name}(chk, ctx)
 '''
 
-class CompileContext(object):
+class Compiler(object):
     sections = {'#': 'section',
                 '?': 'exists',
                 '^': 'notexists'}
@@ -1106,7 +1106,7 @@ class DustEnv(object):
         parse_tree = ParseTree.from_source(source)
         dust_ast = parse_tree.to_dust_ast()
         optimized_ast = Optimizer().optimize(dust_ast)
-        comp_str = CompileContext().compile(optimized_ast)
+        comp_str = Compiler().compile(optimized_ast)
         return comp_str
 
     def apply_filters(self, string, auto, filters):
