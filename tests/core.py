@@ -78,8 +78,8 @@ class AshesTest(object):
     __metaclass__ = ATMeta
 
     @classmethod
-    def get_test_result(cls, env, lazy=False):
-        return AshesTestResult(cls, env, lazy=False)
+    def get_test_result(cls, env, lazy=False, raise_exc=False):
+        return AshesTestResult(cls, env, lazy, raise_exc)
 
 
 DTR = namedtuple('DiffableTestResult', 'op_name result ref_result test_result')
@@ -99,15 +99,19 @@ OPS = [DTO('tokenize', lambda tmpl, tc: tmpl._get_tokens(), None),
 
 
 class AshesTestResult(object):
-    def __init__(self, test_case, env, lazy=True):
+    def __init__(self, test_case, env, lazy=True, raise_exc=False):
         self.name = test_case.name
         self.test_case = test_case
         self.env = env
         self.ops = [op for op in dir(self) if op.startswith('_test_')]
+        self.raise_exc = raise_exc
         if not lazy:
             self.run()
 
-    def run(self):
+    def run(self, raise_exc=None):
+        if raise_exc is None:
+            raise_exc = self.raise_exc
+
         self.results = []
         tmpl = self.env.load(self.name)
         tc = self.test_case
@@ -128,9 +132,13 @@ class AshesTestResult(object):
                     else:
                         tres = (res == ref)
             except Exception as e:
-                tres = e
-                if not isinstance(e, SkipTest):
+                if isinstance(e, SkipTest):
+                    tres = 'skipped'
+                else:
+                    res = tres = e
                     skip_rest = True
+                    if raise_exc:
+                        raise
             finally:
                 self.results.append(DTR(op_name, res, ref, tres))
 
