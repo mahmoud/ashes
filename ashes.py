@@ -532,7 +532,7 @@ def _python_compile(source, name, global_env=None):
     try:
         code = compile(source, '<string>', 'single')
     except:
-        print source
+        #print source
         raise
     exec code in global_env
     return global_env[name]
@@ -1116,8 +1116,6 @@ class Template(object):
             self.source = None
 
     def render(self, model, env=None):
-        if not self.render_func:
-            self.render_func = self._get_render_func(self.optimized)
         env = env or self.env
         rendered = []
 
@@ -1130,8 +1128,13 @@ class Template(object):
                 return result
 
         chunk = Stub(tmp_cb).head
-        self.render_func(chunk, Context.wrap(env, model)).end()
+        self.render_chunk(chunk, Context.wrap(env, model)).end()
         return rendered[0]
+
+    def render_chunk(self, chunk, context):
+        if not self.render_func:
+            self.render_func = self._get_render_func(self.optimized)
+        return self.render_func(chunk, context)
 
     def _get_tokens(self):
         if not self.source:
@@ -1223,7 +1226,7 @@ class AshesEnv(object):
             tmpl = self.load(name)
         except KeyError:
             return chunk.set_error(Exception('Template not found "%s"' % name))
-        return tmpl.render_func(chunk, context)
+        return tmpl.render_chunk(chunk, context)
 
 
 ashes = default_env = AshesEnv()
