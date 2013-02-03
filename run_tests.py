@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 from pprint import pformat
+from collections import OrderedDict
 
 from ashes import AshesEnv, Template
 from tests import dust_site_tests
@@ -39,14 +40,23 @@ def get_grid(width=DEFAULT_WIDTH):
     test_results = get_test_results()
 
     if test_results:
+        test_count = len(test_results)
         col_names = [dt.op_name for dt in OPS]
         headings = get_line('Dust.js site refs', col_names, talign='^')
         lines.append(headings)
         rstripped_width = len(headings.rstrip())
-        lines.append('-' * (rstripped_width + 1))
+        bar_str = '-' * (rstripped_width + 1)
+        lines.append(bar_str)
 
+        counters = OrderedDict([(cn, 0) for cn in col_names])
         for tres in test_results:
             lines.append(get_line(tres.name, tres.get_symbols()))
+            for dtr in tres.results:
+                if dtr.test_result is True:
+                    counters[dtr.op_name] += 1
+        lines.append(bar_str)
+        lines.append(get_line('(%s total)' % test_count, counters.values()))
+
     else:
         lines.append('No tests found.')
     return '\n'.join(lines + [''])

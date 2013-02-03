@@ -145,7 +145,7 @@ class AshesTestResult(object):
     def get_symbols(self):
         ret = []
         for result in self.results:
-            if isinstance(result.test_result, SkipTest):
+            if result.test_result == 'skipped':
                 label = 'skipped'
             elif isinstance(result.test_result, Exception):
                 label = 'error'
