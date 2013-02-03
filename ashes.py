@@ -852,11 +852,11 @@ class Context(object):
 
 
 class Stack(object):
-    def __init__(self, head, tail=None, index=0, length=1):
+    def __init__(self, head, tail=None, index=None, length=None):
         self.head = head
         self.tail = tail
-        self.index = index
-        self.of = length
+        self.index = index or 0
+        self.of = length or 1
         #self.is_object = is_scalar(head)
 
     def __repr__(self):
@@ -999,7 +999,7 @@ class Chunk(object):
             # on sections referencing empty lists.
             return else_body(self, context)
 
-        if not body:
+        if not body or elem is None:
             return self
         if is_scalar(elem) or hasattr(elem, 'keys'):  # haaack
             if elem is True:
@@ -1044,7 +1044,7 @@ class Chunk(object):
         return context.env.load_chunk(elem, self, context)
 
     def helper(self, name, context, bodies, params=None):
-        return context.env.helpers[name](self, context, bodies, params)
+        return context.env.helpers[name](self, context, bodies)
 
     def capture(self, body, context, callback):
         def map_func(chunk):
