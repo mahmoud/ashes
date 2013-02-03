@@ -1098,7 +1098,8 @@ class Template(object):
                  source_file=None,
                  optimize=True,
                  keep_source=True,
-                 env=None):
+                 env=None,
+                 lazy=False):
         self.name = name
         self.source = source
         self.source_file = source_file
@@ -1107,11 +1108,16 @@ class Template(object):
             env = default_env
         self.env = env
 
+        if lazy:  # lazy is really only for testing
+            self.render_func = None
+            return
         self.render_func = self._get_render_func(optimize)
         if not keep_source:
             self.source = None
 
     def render(self, model, env=None):
+        if not self.render_func:
+            self.render_func = self._get_render_func(self.optimized)
         env = env or self.env
         rendered = []
 
@@ -1132,10 +1138,12 @@ class Template(object):
             return None
         return tokenize(self.source)
 
-    def _get_ast(self, optimize=False):
+    def _get_ast(self, optimize=False, raw=False):
         if not self.source:
             return None
         dast = ParseTree.from_source(self.source).to_dust_ast()
+        if raw:
+            return dast
         return self.env.filter_ast(dast, optimize)
 
     def _get_comp_str(self, optimize=False):
@@ -1173,13 +1181,13 @@ class AshesEnv(object):
         if optimizers:
             self.optimizers.update(optimizers)
 
-    def register(self, name, template):
+    def register(self, template):
         try:
             if not template or not callable(template.render):
                 raise AttributeError()
+            self.templates[template.name] = template
         except AttributeError:
-            raise ValueError('Invalid template %r: %r' % (name, template))
-        self.templates[name] = template
+            raise ValueError('Invalid template: %r' % template)
 
     def render(self, name, model):
         try:
@@ -1187,6 +1195,10 @@ class AshesEnv(object):
         except KeyError:
             raise ValueError('No template named "%s"' % name)
         return template.render(model, self)
+
+    def load(self, name):
+        # TODO: this function (and raise better exceptions)
+        return self.templates[name]
 
     def filter_ast(self, ast, optimize=True):
         if optimize:
@@ -1207,10 +1219,11 @@ class AshesEnv(object):
         return string
 
     def load_chunk(self, name, chunk, context):
-        if name not in self.templates:
-            # TODO: on_load hook
+        try:
+            tmpl = self.load(name)
+        except KeyError:
             return chunk.set_error(Exception('Template not found "%s"' % name))
-        return self.templates[name](chunk, context)
+        return tmpl.render_func(chunk, context)
 
 
 ashes = default_env = AshesEnv()
