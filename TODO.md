@@ -2,8 +2,6 @@
  * remove unnecessary callback dynamics
  * stop using dicts to get around javascript's array behavior
    (assignments to indexes > len(x) autocreate undefined elements)
- * make a nice Template class
- * add flags for common Optimization tweaks (e.g., whitespace on/off)
  * docs, of course
  * more tests (corner cases, negative cases, larger pages)
    * what happens if tags spans multiple lines?
