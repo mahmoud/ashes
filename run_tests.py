@@ -21,9 +21,10 @@ def get_line(title, items, twidth=20, talign='>', width=DEFAULT_WIDTH):
                        *items)
 
 
-def main(width=DEFAULT_WIDTH):
-    lines = []
-    headings = get_line('Dust.js site refs', OPS.keys(), talign='^')
+def get_grid(width=DEFAULT_WIDTH):
+    lines = ['']
+    col_names = [dt.op_name for dt in OPS]
+    headings = get_line('Dust.js site refs', col_names, talign='^')
     lines.append(headings)
     rstripped_width = len(headings.rstrip())
     lines.append('-' * (rstripped_width + 1))
@@ -34,10 +35,12 @@ def main(width=DEFAULT_WIDTH):
 
     for tc in dust_site_tests:
         tres = tc.get_test_result(env)
-        lines.append(get_line(tres.name, tres.symbols))
-    print
-    print '\n'.join(lines)
-    print
+        lines.append(get_line(tres.name, tres.get_symbols()))
+    return '\n'.join(lines + [''])
+
+
+def main(width=DEFAULT_WIDTH):
+    print get_grid()
 
 
 if __name__ == '__main__':

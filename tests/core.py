@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 import re
 import json
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 
 __all__ = ['AshesTest', 'json_rtrip', 'camel2under', 'under2camel']
 
@@ -15,6 +15,17 @@ def camel2under(string):
 
 def under2camel(string):
     return ''.join(w.capitalize() or '_' for w in string.split('_'))
+
+
+def json_rtrip(obj, raise_exc=False):
+    try:
+        if isinstance(obj, basestring):
+            return json.dumps(json.loads(obj))
+        return json.loads(json.dumps(obj))
+    except:
+        if raise_exc:
+            raise
+        return obj
 
 
 class ATMeta(type):
@@ -55,43 +66,6 @@ class SkipTest(Exception):
     pass
 
 
-def _test_tokenize(tmpl, tc=None, env=None):
-    return tmpl._get_tokens() is not None
-
-
-def _test_parse(tmpl, tc, env=None):
-    dust_ast = json_rtrip(tmpl._get_ast(raw=True))
-    if not tc.ast:
-        raise SkipTest()
-    return dust_ast == tc.ast
-
-
-def _test_optimize(tmpl, tc, env=None):
-    dust_opt_ast = json_rtrip(tmpl._get_ast(optimize=True))
-    if not tc.opt_ast:
-        raise SkipTest()
-    return dust_opt_ast == json_rtrip(tc.opt_ast)
-
-
-def _test_compile(tmpl, tc, env=None):
-    return callable(tmpl._get_render_func())
-
-
-def _test_render(tmpl, tc, env):
-    context = tc.context or {}
-    rendered = tmpl.render(context)
-    if tc.rendered is None:
-        raise SkipTest()
-    return rendered.strip() == tc.rendered.strip()
-
-
-OPS = OrderedDict([('tokenize', _test_tokenize),
-                   ('parse', _test_parse),
-                   ('optimize', _test_optimize),
-                   ('compile', _test_compile),
-                   ('render', _test_render)])
-
-
 SYMBOLS = {'passed': '.', 'failed': 'X', 'skipped': '_', 'error': 'E'}
 
 class AshesTest(object):
@@ -104,45 +78,72 @@ class AshesTest(object):
     __metaclass__ = ATMeta
 
     @classmethod
-    def get_test_result(cls, env):
-        res_kwargs = {}
-        tmpl = env.load(cls.name)
-        for op_name, op_func in OPS.items():
-            try:
-                if op_func(tmpl, cls, env):
-                    res = 'passed'
-                else:
-                    res = 'failed'
-            except SkipTest:
-                res = 'skipped'
-            except Exception as e:
-                res = e
-                break
-            finally:
-                res_kwargs[op_name] = res
-        return AshesTestResult(cls, **res_kwargs)
+    def get_test_result(cls, env, lazy=False):
+        return AshesTestResult(cls, env, lazy=False)
+
+
+DTR = namedtuple('DiffableTestResult', 'op_name result ref_result test_result')
+DTO = namedtuple('DiffableTestOp', 'op_name get_test_result get_ref_result')
+
+OPS = [DTO('tokenize', lambda tmpl, tc: tmpl._get_tokens(), None),
+       DTO('parse',
+           lambda tmpl, tc: json_rtrip(tmpl._get_ast(raw=True)),
+           lambda tc: tc.ast),
+       DTO('optimize',
+           lambda tmpl, tc: json_rtrip(tmpl._get_ast(optimize=True)),
+           lambda tc: tc.opt_ast),
+       DTO('compile', lambda tmpl, tc: tmpl._get_render_func(), None),
+       DTO('render',
+           lambda tmpl, tc: tmpl.render(tc.context or {}).strip(),
+           lambda tc: tc.rendered.strip())]
 
 
 class AshesTestResult(object):
-    def __init__(self, test_case, **kwargs):
+    def __init__(self, test_case, env, lazy=True):
         self.name = test_case.name
         self.test_case = test_case
-        self.results = OrderedDict()
-        for op_name in OPS:
-            self.results[op_name] = kwargs.get(op_name, 'skipped')
-        self.symbols = []
-        for op_name, result in self.results.items():
-            if isinstance(result, Exception):
-                result = 'error'
-            self.symbols.append(SYMBOLS[result])
+        self.env = env
+        self.ops = [op for op in dir(self) if op.startswith('_test_')]
+        if not lazy:
+            self.run()
 
+    def run(self):
+        self.results = []
+        tmpl = self.env.load(self.name)
+        tc = self.test_case
+        skip_rest = False
+        for op_name, get_result, get_ref in OPS:
+            res, ref, tres = None, None, None
+            try:
+                if skip_rest:
+                    continue
+                if get_ref is not None:
+                    ref = get_ref(tc)
+                res = get_result(tmpl, tc)
+                if get_ref is None:
+                    tres = res is not None
+                else:
+                    if ref is None:
+                        raise SkipTest()
+                    else:
+                        tres = (res == ref)
+            except Exception as e:
+                tres = e
+                if not isinstance(e, SkipTest):
+                    skip_rest = True
+            finally:
+                self.results.append(DTR(op_name, res, ref, tres))
 
-def json_rtrip(obj, raise_exc=False):
-    try:
-        if isinstance(obj, basestring):
-            return json.dumps(json.loads(obj))
-        return json.loads(json.dumps(obj))
-    except:
-        if raise_exc:
-            raise
-        return obj
+    def get_symbols(self):
+        ret = []
+        for result in self.results:
+            if isinstance(result.test_result, SkipTest):
+                label = 'skipped'
+            elif isinstance(result.test_result, Exception):
+                label = 'error'
+            elif result.test_result:
+                label = 'passed'
+            else:
+                label = 'failed'
+            ret.append(SYMBOLS[label])
+        return ret
