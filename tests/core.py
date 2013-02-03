@@ -46,6 +46,11 @@ class ATMeta(type):
         return 'AshesTest(%r)' % self.name
 
 
+###########################
+# Test result stuff follows
+###########################
+
+
 class SkipTest(Exception):
     pass
 
@@ -89,7 +94,6 @@ OPS = OrderedDict([('tokenize', _test_tokenize),
 
 SYMBOLS = {'passed': '.', 'failed': 'X', 'skipped': '_', 'error': 'E'}
 
-#
 class AshesTest(object):
     template = None
     json_ast = None

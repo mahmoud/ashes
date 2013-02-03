@@ -7,31 +7,6 @@ from tests.core import OPS
 DEFAULT_WIDTH = 70
 
 
-def get_test_results(test_cases, env=None):
-    env = env or AshesEnv()
-    by_op = defaultdict(dict)
-    by_test = defaultdict(dict)
-    failed_memo = set()
-    for op_name, op_func in OPS.items():
-        for tc in test_cases:
-            try:
-                if tc.name in failed_memo:
-                    raise SkipTest()
-                elif op_func(tc, env):
-                    res = 'passed'
-                else:
-                    res = 'failed'
-            except SkipTest:
-                res = 'skipped'
-            except Exception as e:
-                res = 'error'
-                failed_memo.add(tc.name)
-            by_op[op_name][tc.name] = res
-            by_test[tc.name][op_name] = res
-
-    return by_op, by_test
-
-
 def get_line(title, items, twidth=20, talign='>', width=DEFAULT_WIDTH):
     if len(title) > twidth:
         title = title[:twidth - 3] + '...'
