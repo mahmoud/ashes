@@ -72,7 +72,8 @@ class SkipTest(Exception):
 
 SYMBOLS = {'passed': '.', 'failed': 'X', 'skipped': '_', 'error': 'E'}
 
-AshesTestBase = ATMeta('AshesTestBase', (object,), {})
+AshesTestBase = ATMeta(str('AshesTestBase'), (object,), {})
+
 
 class AshesTest(AshesTestBase):
     template = None
