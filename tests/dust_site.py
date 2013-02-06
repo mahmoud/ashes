@@ -136,11 +136,19 @@ class Object(AshesTest):
     rendered = u'Subject: Larry, 45'
 
 
+def filter_func(chunk, context, bodies, *a, **kw):
+    return (chunk.tap(lambda data: data.upper())
+            .render(bodies['block'], context)
+            .untap())
+
+
 class Filter(AshesTest):
     template = u'{#filter}foo {bar}{/filter}'
     json_ast = '["body", ["#", ["key", "filter"], ["context"], ["params"], ["bodies", ["param", ["literal", "block"], ["body", ["buffer", "foo "], ["reference", ["key", "bar"], ["filters"]]]]]]]'
     json_context = u'{\n  "filter": function(chunk, context, bodies) {\n    return chunk.tap(function(data) {\n      return data.toUpperCase();\n    }).render(bodies.block, context).untap();\n  },\n  "bar": "bar"\n}'
     rendered = u'FOO BAR'
+    context = {'filter': filter_func,
+               'bar': 'bar'}
 
 
 class ForceCurrent(AshesTest):
