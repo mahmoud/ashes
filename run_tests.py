@@ -9,6 +9,8 @@ from tests.core import OPS
 
 DEFAULT_WIDTH = 70
 
+LEGEND = '. = passed, _ = skipped, X = failed, E = exception'
+
 
 def get_line(title, items, twidth=20, talign='>', width=DEFAULT_WIDTH):
     if len(title) > twidth:
@@ -36,7 +38,7 @@ def get_test_results(raise_on=None):
 
 
 def get_grid(width=DEFAULT_WIDTH):
-    lines = ['']
+    lines = ['', '  ' + LEGEND, '']
     test_results = get_test_results()
 
     if test_results:

@@ -51,10 +51,14 @@ class Comments(AshesTest):
     rendered = u'Hello'
 
 
+def params_helper(chunk, context, bodies, params):
+    return chunk.write(params.get('foo'))
+
 class Params(AshesTest):
     template = u'{#helper foo="bar"/}'
     json_ast = '["body", ["#", ["key", "helper"], ["context"], ["params", ["param", ["literal", "foo"], ["literal", "bar"]]], ["bodies"]]]'
     json_context = u'{\n  "helper": function(chunk, context, bodies, params) {\n    return chunk.write(params.foo);\n  }\n}'
+    context = {'helper': params_helper}
     rendered = u'bar'
 
 
