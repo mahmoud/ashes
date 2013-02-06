@@ -17,10 +17,15 @@ class Path(AshesTest):
     rendered = u'Hello!'
 
 
+def sync_chunk_func(chunk, *a, **kw):
+    return chunk.write('Chunky')
+
+
 class SyncChunk(AshesTest):
     template = u'Hello {type} World!'
     json_ast = '["body", ["buffer", "Hello "], ["reference", ["key", "type"], ["filters"]], ["buffer", " World!"]]'
     rendered = u'Hello Chunky World!'
+    context = {'type': sync_chunk_func}
 
 
 class Zero(AshesTest):
@@ -42,6 +47,7 @@ class SyncKey(AshesTest):
     json_ast = '["body", ["buffer", "Hello "], ["reference", ["key", "type"], ["filters"]], ["buffer", " World!"]]'
     json_context = u'{\n  "type": function(chunk) {\n    return "Sync";\n  }\n}'
     rendered = u'Hello Sync World!'
+    context = {'type': lambda *a, **kw: 'Sync'}
 
 
 class Comments(AshesTest):
