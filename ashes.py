@@ -532,7 +532,6 @@ def _python_compile(source, name, global_env=None):
     try:
         code = compile(source, '<string>', 'single')
     except:
-        #print source
         raise
     exec code in global_env
     return global_env[name]

@@ -15,6 +15,8 @@
  * rendering support for root-level recursive templates
  * Interpolated values in parameters
  * nosetests
+ * Template loader (i.e., load templates from a directory)
+ * LinkedIn helpers?
 
 # Notes
  * Javascript implicitly disregards extra arguments passed
