@@ -43,33 +43,6 @@ def get_path_or_key(pork):
     return pk
 
 
-def params_to_kv(params_str):
-    ret = []
-    new_k, v = None, None
-    k, _, tail = params_str.partition('=')
-    while tail:
-        tmp, _, tail = tail.partition('=')
-        if not tail:
-            v = tmp
-        else:
-            v, new_k = tmp.split()
-        ret.append((k.strip(), v.strip()))
-        k = new_k
-    return ret
-
-
-def wrap_params(param_kv):
-    ret = []
-    for k, v in param_kv:
-        if v.startswith('"') and v.endswith('"'):
-            v = v[1:-1]
-            v_tuple = ('literal', v)
-        else:
-            v_tuple = get_path_or_key(v)
-        ret.append(('param', ('literal', k), v_tuple))
-    return ret
-
-
 ALL_ATTRS = ('closing', 'symbol', 'refpath', 'contpath',
              'filters', 'params', 'selfclosing')
 
@@ -178,15 +151,9 @@ class PartialTag(Tag):
         contpath = self.contpath
         if contpath:
             context.append(get_path_or_key(contpath))
-        subtokens = self.subtokens
-        if subtokens and isinstance(subtokens[0], BufferToken):
-            body = ['literal', subtokens[0].text]
-        else:
-            body = ['body']
-            for b in self.subtokens:
-                body.extend(b.to_dust_ast())
+        inline_body = inline_to_dust_ast(self.subtokens)
         return [['partial',
-                 body,
+                 inline_body,
                  context]]
 
 
@@ -197,9 +164,45 @@ def parse_inline(source):
     if source.startswith('"') and source.endswith('"'):
         source = source[1:-1]
     if not source:
-        return BufferToken()
+        return [BufferToken()]
     tokens = tokenize(source, inline=True)
     return tokens
+
+
+def inline_to_dust_ast(tokens):
+    if tokens and isinstance(tokens[0], BufferToken):
+        body = ['literal', tokens[0].text]
+    else:
+        body = ['body']
+        for b in tokens:
+            body.extend(b.to_dust_ast())
+    return body
+
+
+def params_to_kv(params_str):
+    ret = []
+    new_k, v = None, None
+    k, _, tail = params_str.partition('=')
+    while tail:
+        tmp, _, tail = tail.partition('=')
+        if not tail:
+            v = tmp
+        else:
+            v, new_k = tmp.split()
+        ret.append((k.strip(), v.strip()))
+        k = new_k
+    return ret
+
+
+def params_to_dust_ast(param_kv):
+    ret = []
+    for k, v in param_kv:
+        try:
+            v_body = get_path_or_key(v)
+        except ValueError:
+            v_body = inline_to_dust_ast(parse_inline(v))
+        ret.append(['param', ['literal', k], v_body])
+    return ret
 
 
 def get_tag(match, inline=False):
@@ -336,7 +339,7 @@ class Section(object):
         params = ['params']
         param_list = self.start_tag.param_list
         if param_list:
-            params.extend(wrap_params(param_list))
+            params.extend(params_to_dust_ast(param_list))
 
         bodies = ['bodies']
         if self.blocks:
@@ -594,7 +597,8 @@ class Compiler(object):
         max_body = max(self.bodies.keys())
         ret = [''] * (max_body + 1)
         for i, body in self.bodies.items():
-            ret[i] = '\ndef body_%s(chk, ctx):\n    %sreturn chk%s\n' % (i, self.block_str, body)
+            ret[i] = ('\ndef body_%s(chk, ctx):\n    %sreturn chk%s\n'
+                      % (i, self.block_str, body))
         return ''.join(ret)
 
     def _convert_special(self, node):
@@ -974,8 +978,7 @@ class Chunk(object):
     def reference(self, elem, context, auto, filters=None):
         if callable(elem):
             # this whole callable thing is a pretty big TODO
-            elem = elem(self, context, None, {'auto': auto,
-                                              'filters': filters})
+            elem = elem(self, context)
             if isinstance(elem, Chunk):
                 return elem
         if is_empty(elem):
@@ -1148,19 +1151,18 @@ class Template(object):
             return dast
         return self.env.filter_ast(dast, optimize)
 
-    def _get_comp_str(self, optimize=False):
-        ast = self._get_ast(optimize)
-        if not ast:
-            return None
-        return Compiler(self.env)._gen_python(ast)
-
-    def _get_render_func(self, optimize=True):
+    def _get_render_func(self, optimize=True, ret_str=False):
         # switching over to optimize=True by default because it
         # makes the output easier to read and more like dust's docs
         ast = self._get_ast(optimize)
         if not ast:
             return None
-        return Compiler(self.env).compile(ast)
+        compiler = Compiler(self.env)
+        func = compiler.compile(ast)
+        if ret_str:
+            # for testing/dev purposes
+            return Compiler(self.env)._gen_python(ast)
+        return func
 
 
 class AshesEnv(object):

@@ -142,6 +142,13 @@ class RenameKey(AshesTest):
     rendered = u'Subject: Larry, 45'
 
 
+class InterpolatedParam(AshesTest):
+    template = u'{#person foo="{root}_id"}{foo}: {name}, {age}{/person}'
+    json_ast = u'''["body",["#",["key","person"],["context"],["params",["param",["literal","foo"],["body",["reference",["key","root"],["filters"]],["buffer","_id"]]]],["bodies",["param",["literal","block"],["body",["reference",["key","foo"],["filters"]],["buffer",": "],["reference",["key","name"],["filters"]],["buffer",", "],["reference",["key","age"],["filters"]]]]]]]'''
+    json_context = '{"person": {"age": 45, "name": "Larry"}, "root": "Subject"}'
+    rendered = u'Subject_id: Larry, 45'
+
+
 class EscapePragma(AshesTest):
     template = u'{safe|s}{~n}{unsafe}'
     json_ast = '["body", ["%", ["key", "esc"], ["context", ["key", "s"]], ["params"], ["bodies", ["param", ["literal", "block"], ["body", ["format", "\\n", "  "], ["reference", ["key", "unsafe"], ["filters"]], ["special", "n"], ["format", "\\n", "  "], ["%", ["key", "esc"], ["context", ["key", "h"]], ["params"], ["bodies", ["param", ["literal", "block"], ["body", ["format", "\\n", "    "], ["reference", ["key", "unsafe"], ["filters"]], ["format", "\\n", "  "]]]]], ["format", "\\n", ""]]]]]]'

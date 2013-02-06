@@ -87,9 +87,13 @@ def get_single_report(name, op=None, verbose=None, debug=None):
         else:
             lines.append('')
         lines.append(' * %s %s reference:' % (name, op_name))
-        lines.extend(['----', pformat(result_ref), '----', ''])
+        if not isinstance(result_ref, basestring):
+            result_ref = pformat(result_ref)
+        lines.extend(['----', result_ref, '----', ''])
         lines.append(' * %s %s actual:' % (name, op_name))
-        lines.extend(['----', pformat(result), '----'])
+        if not isinstance(result, basestring):
+            result = pformat(result)
+        lines.extend(['----', result, '----'])
     if not lines:
         lines = ['No results found for test: %r' % name]
     else:

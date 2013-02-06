@@ -92,7 +92,7 @@ OPS = [DTO('tokenize', lambda tmpl, tc: tmpl._get_tokens(), None),
        DTO('optimize',
            lambda tmpl, tc: json_rtrip(tmpl._get_ast(optimize=True)),
            lambda tc: tc.opt_ast),
-       DTO('compile', lambda tmpl, tc: tmpl._get_render_func(), None),
+       DTO('compile', lambda tmpl, tc: tmpl._get_render_func(ret_str=True), None),
        DTO('render',
            lambda tmpl, tc: tmpl.render(tc.context or {}).strip(),
            lambda tc: tc.rendered.strip())]
