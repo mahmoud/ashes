@@ -76,11 +76,16 @@ class Replace(AshesTest):
     rendered = u'Hello Mick! You have 30 new messages.'
 
 
+def async_key_func(chunk, *a, **kw):
+    return chunk.map(lambda chk: chk.end('Async'))
+
+
 class AsyncKey(AshesTest):
     template = u'Hello {type} World!'
     json_ast = '["body", ["buffer", "Hello "], ["reference", ["key", "type"], ["filters"]], ["buffer", " World!"]]'
     json_context = u'{\n  "type": function(chunk) {\n    return chunk.map(function(chunk) {\n      dust.nextTick(function() {\n        chunk.end("Async");\n      });\n    });\n  }\n}'
     rendered = u'Hello Async World!'
+    context = {'type': async_key_func}
 
 
 class EmptyArray(AshesTest):

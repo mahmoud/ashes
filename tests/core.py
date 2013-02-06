@@ -36,9 +36,12 @@ class ATMeta(type):
 
     @property
     def context(cls):
-        cls_context = cls.__dict__.get('context')
-        if cls_context:
-            return cls_context
+        try:
+            return cls.__dict__['context']
+        except KeyError:
+            if cls.name == 'async_key':
+                print 'hi'
+            pass
         try:
             return json.loads(cls.json_context)
         except:
