@@ -5,6 +5,12 @@ import cgi
 import json
 import urllib
 
+import sys
+PY3 = (sys.version_info[0] == 3)
+if PY3:
+    unicode = str
+    basestring = str
+
 # need to add group for literals
 # switch to using word boundary for params section
 node_re = re.compile(r'({'
@@ -30,14 +36,14 @@ def strip_comments(text):
 
 def get_path_or_key(pork):
     if pork == '.':
-        pk = ('path', True, [])
+        pk = ['path', True, []]
     elif path_re.match(pork):
         f_local = pork.startswith('.')
         if f_local:
             pork = pork[1:]
-        pk = ('path', f_local, pork.split('.'))
+        pk = ['path', f_local, pork.split('.')]
     elif key_re.match(pork):
-        pk = ('key', pork)
+        pk = ['key', pork]
     else:
         raise ValueError('expected a path or key, not %r' % pork)
     return pk
@@ -237,7 +243,7 @@ class WhitespaceToken(object):
         disp = self.ws
         if len(disp) > 13:
             disp = disp[:10] + '...'
-        return u'WhitespaceToken(%r)' % disp
+        return 'WhitespaceToken(%r)' % disp
 
 
 def split_leading(text):
@@ -254,7 +260,7 @@ class BufferToken(object):
         disp = self.text
         if len(self.text) > 30:
             disp = disp[:27] + '...'
-        return u'BufferToken(%r)' % disp
+        return 'BufferToken(%r)' % disp
 
     def to_dust_ast(self):
         # It is hard to simulate the PEG parsing in this case,
@@ -347,7 +353,7 @@ class Section(object):
                 bodies.extend(b.to_dust_ast())
 
         return [[symbol,
-                [u'key', key],
+                ['key', key],
                 context,
                 params,
                 bodies]]
@@ -536,7 +542,10 @@ def _python_compile(source, name, global_env=None):
         code = compile(source, '<string>', 'single')
     except:
         raise
-    exec code in global_env
+    if PY3:
+        exec(code, global_env)
+    else:
+        exec("exec code in global_env")
     return global_env[name]
 
 
@@ -1169,7 +1178,7 @@ class Template(object):
 
         def tmp_cb(err, result):
             if err:
-                print 'Error on template %r: %r' % (self.name, err)
+                print('Error on template %r: %r' % (self.name, err))
                 raise Exception(err)
             else:
                 rendered.append(result)

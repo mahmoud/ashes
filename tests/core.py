@@ -39,8 +39,6 @@ class ATMeta(type):
         try:
             return cls.__dict__['context']
         except KeyError:
-            if cls.name == 'async_key':
-                print 'hi'
             pass
         try:
             return json.loads(cls.json_context)
@@ -74,14 +72,16 @@ class SkipTest(Exception):
 
 SYMBOLS = {'passed': '.', 'failed': 'X', 'skipped': '_', 'error': 'E'}
 
-class AshesTest(object):
+AshesTestBase = ATMeta('AshesTestBase', (object,), {})
+
+class AshesTest(AshesTestBase):
     template = None
     json_ast = None
     json_opt_ast = None
     json_context = None
     rendered = None
 
-    __metaclass__ = ATMeta
+    # __metaclass__ = ATMeta
 
     @classmethod
     def get_test_result(cls, env, lazy=False, raise_exc=False):

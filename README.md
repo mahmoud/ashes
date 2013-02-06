@@ -94,4 +94,5 @@ solutions.
 * Comments are parsed differently, but both Ashes and Dust simply
   strip them out.
 
-Ashes has been tested on Python 2.7.
+Ashes has been tested extensively on Python 2.7, and somewhat on PyPy
+1.9 and Python 3.2/3.3.

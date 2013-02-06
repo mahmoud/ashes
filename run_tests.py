@@ -1,4 +1,4 @@
-from __future__ import unicode_literals
+from __future__ import unicode_literals, print_function
 
 from pprint import pformat
 from collections import OrderedDict
@@ -11,14 +11,21 @@ DEFAULT_WIDTH = 70
 
 LEGEND = '. = passed, _ = skipped, X = failed, E = exception'
 
+import sys
+PY3 = (sys.version_info[0] == 3)
+if PY3:
+    unicode = str
+    basestring = str
+
 
 def get_line(title, items, twidth=20, talign='>', width=DEFAULT_WIDTH):
     if len(title) > twidth:
         title = title[:twidth - 3] + '...'
     rwidth = width - twidth
-    items = items or []
+    items = list(items or [])
     pw = rwidth / len(items)
     tmpl = '{title:{talign}{twidth}}' + ('{:^{pw}}' * len(items))
+    #print(title, talign, twidth, pw, items)
     return tmpl.format(title=title,
                        talign=talign,
                        twidth=twidth,
@@ -76,7 +83,7 @@ def get_single_report(name, op=None, verbose=None, debug=None):
     try:
         tres = [t for t in results if t.name.lower() == name.lower()][0]
     except IndexError:
-        print 'No test named: %r' % name
+        print('No test named: %r' % name)
         return
 
     lines = []
@@ -124,11 +131,11 @@ def main(width=DEFAULT_WIDTH):
     if not name:
         grid = get_grid()
         if grid:
-            print grid
+            print(grid)
     else:
         single_rep = get_single_report(name, args.op, args.verbose, args.debug)
         if single_rep:
-            print single_rep
+            print(single_rep)
 
 
 
