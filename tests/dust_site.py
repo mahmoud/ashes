@@ -193,11 +193,17 @@ class BaseTemplate(AshesTest):
     rendered = u'Start\nBase Title\nBase Content\nEnd'
 
 
+def async_iter_func(chunk, context, bodies, params):
+    return chunk.map(lambda chk: chk.render(bodies['block'], context).end())
+
+
 class AsyncIterator(AshesTest):
     template = u'{#numbers}{#delay}{.}{/delay}{@sep}, {/sep}{/numbers}'
     json_ast = '["body", ["#", ["key", "numbers"], ["context"], ["params"], ["bodies", ["param", ["literal", "block"], ["body", ["#", ["key", "delay"], ["context"], ["params"], ["bodies", ["param", ["literal", "block"], ["body", ["reference", ["path", true, []], ["filters"]]]]]], ["@", ["key", "sep"], ["context"], ["params"], ["bodies", ["param", ["literal", "block"], ["body", ["buffer", ", "]]]]]]]]]]'
     json_context = u'{\n  "numbers": [\n  3, 2, 1],\n  "delay": function(chunk, context, bodies) {\n    return chunk.map(function(chunk) {\n      setTimeout(function() {\n        chunk.render(bodies.block, context).end();\n      }, Math.ceil(Math.random() * 10));\n    });\n  }\n}'
     rendered = u'3, 2, 1'
+    context = {'numbers': [3, 2, 1],
+               'delay': async_iter_func}
 
 
 class ElseBlock(AshesTest):
