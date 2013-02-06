@@ -207,11 +207,29 @@ class ElseBlock(AshesTest):
     rendered = u'foo, not bar!'
 
 
+def context_func(chunk, context, bodies, *a, **kw):
+    items = context.current()
+    if items:
+        chunk.write('<ul>\n')
+        for i in items:
+            (chunk.write('<li>')
+             .render(bodies['block'], context.push(i))
+             .write('</li>\n'))
+        return chunk.write('</ul>')
+    elif 'else' in bodies:
+        return chunk.render(bodies['else'], context)
+    return chunk
+
+
 class Context(AshesTest):
     template = u'{#list:projects}{name}{:else}No Projects!{/list}'
     json_ast = '["body", ["#", ["key", "list"], ["context", ["key", "projects"]], ["params"], ["bodies", ["param", ["literal", "else"], ["body", ["buffer", "No Projects!"]]], ["param", ["literal", "block"], ["body", ["reference", ["key", "name"], ["filters"]]]]]]]'
     json_context = u'{\n  "list": function(chunk, context, bodies) {\n    var items = context.current(),\n        len = items.length;\n\n    if (len) {\n      chunk.write("<ul>\\n");\n      for (var i = 0; i < len; i++) {\n        chunk = chunk.write("<li>").render(bodies.block, context.push(items[i])).write("</li>\\n");\n      }\n      return chunk.write("</ul>");\n    } else if (bodies[\'else\']) {\n      return chunk.render(bodies[\'else\'], context);\n    }\n    return chunk;\n  },\n  "projects": [{\n    "name": "Mayhem"\n  },\n  {\n    "name": "Flash"\n  },\n  {\n    "name": "Thunder"\n  }]\n}'
     rendered = u'<ul>\n<li>Mayhem</li>\n<li>Flash</li>\n<li>Thunder</li>\n</ul>'
+    context = {'list': context_func,
+               'projects': [{'name': 'Mayhem'},
+                            {'name': 'Flash'},
+                            {'name': 'Thunder'}]}
 
 
 class ChildTemplate(AshesTest):
