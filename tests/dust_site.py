@@ -150,10 +150,11 @@ class InterpolatedParam(AshesTest):
 
 
 class EscapePragma(AshesTest):
-    template = u'{safe|s}{~n}{unsafe}'
-    json_ast = '["body", ["%", ["key", "esc"], ["context", ["key", "s"]], ["params"], ["bodies", ["param", ["literal", "block"], ["body", ["format", "\\n", "  "], ["reference", ["key", "unsafe"], ["filters"]], ["special", "n"], ["format", "\\n", "  "], ["%", ["key", "esc"], ["context", ["key", "h"]], ["params"], ["bodies", ["param", ["literal", "block"], ["body", ["format", "\\n", "    "], ["reference", ["key", "unsafe"], ["filters"]], ["format", "\\n", "  "]]]]], ["format", "\\n", ""]]]]]]'
+    template = u'{%esc:s}\n  {unsafe}{~n}\n  {%esc:h}\n    {unsafe}\n  {/esc}\n{/esc}'
+    json_ast = r'["body",["%",["key","esc"],["context",["key","s"]],["params"],["bodies",["param",["literal","block"],["body",["format","\n","  "],["reference",["key","unsafe"],["filters"]],["special","n"],["format","\n","  "],["%",["key","esc"],["context",["key","h"]],["params"],["bodies",["param",["literal","block"],["body",["format","\n","    "],["reference",["key","unsafe"],["filters"]],["format","\n","  "]]]]],["format","\n",""]]]]]]'
+    json_opt_ast = r'["body",["%",["key","esc"],["context",["key","s"]],["params"],["bodies",["param",["literal","block"],["body",["reference",["key","unsafe"],["filters"]],["buffer","\n"],["%",["key","esc"],["context",["key","h"]],["params"],["bodies",["param",["literal","block"],["body",["reference",["key","unsafe"],["filters"]]]]]]]]]]]'
     json_context = '{"unsafe": "<script>alert(\'Goodbye!\')</script>"}'
-    rendered = u"<script>alert('Goodbye!')</script>\n&lt;script&gt;alert('Goodbye!')&lt;/script&gt;"
+    rendered = '''<script>alert('Goodbye!')</script>\n&lt;script&gt;alert('Goodbye!')&lt;/script&gt;'''
 
 
 class Intro(AshesTest):

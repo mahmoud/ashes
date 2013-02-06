@@ -9,7 +9,7 @@ import urllib
 # switch to using word boundary for params section
 node_re = re.compile(r'({'
                      r'(?P<closing>\/)?'
-                     r'(?P<symbol>[\~\#\?\@\:\<\>\+\^])?'
+                     r'(?P<symbol>[\~\#\?\@\:\<\>\+\^\%])?'
                      r'(?P<refpath>[a-zA-Z0-9_\$\.]+|"[^"]+")'
                      r'(?:\:(?P<contpath>[a-zA-Z0-9\$\.]+))?'
                      r'(?P<filters>\|[a-z]+)*?'
@@ -671,7 +671,26 @@ class Compiler(object):
                                          self._node(node[3]))
 
     def _pragma(self, node):
-        raise NotImplemented
+        pr_name = node[1][1]
+        pragma = self.env.pragmas.get(pr_name)
+        if not pragma or not callable(pragma):
+            return ''  # TODO: raise?
+        raw_bodies = node[4]
+        bodies = {}
+        for rb in raw_bodies[1:]:
+            bodies[rb[1][1]] = rb[2]
+
+        raw_params = node[3]
+        params = {}
+        for rp in raw_params[1:]:
+            params[rp[1][1]] = rp[2][1]
+
+        try:
+            ctx = node[2][1][1]
+        except (IndexError, AttributeError):
+            ctx = None
+
+        return pragma(self, ctx, bodies, params)
 
     def _partial(self, node):
         if node[0] == 'body':
@@ -1088,6 +1107,29 @@ DEFAULT_FILTERS = {
     'uc': escape_uri_component}
 
 
+#########
+# Pragmas
+#########
+
+
+def esc_pragma(compiler, context, bodies, params):
+    old_auto = compiler.auto
+    if not context:
+        context = 'h'
+    if context == 's':
+        compiler.auto = ''
+    else:
+        compiler.auto = context
+    out = compiler._parts(bodies['block'])
+    compiler.auto = old_auto
+    return out
+
+
+DEFAULT_PRAGMAS = {
+    'esc': esc_pragma
+}
+
+
 ###########
 # Interface
 ###########
@@ -1170,7 +1212,8 @@ class AshesEnv(object):
                  filters=None,
                  helpers=None,
                  special_chars=None,
-                 optimizers=None):
+                 optimizers=None,
+                 pragmas=None):
         self.templates = {}
         self.filters = dict(DEFAULT_FILTERS)
         if filters:
@@ -1184,6 +1227,9 @@ class AshesEnv(object):
         self.optimizers = dict(DEFAULT_OPTIMIZERS)
         if optimizers:
             self.optimizers.update(optimizers)
+        self.pragmas = dict(DEFAULT_PRAGMAS)
+        if pragmas:
+            self.pragmas.update(pragmas)
 
     def register(self, template):
         try:
