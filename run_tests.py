@@ -23,9 +23,8 @@ def get_line(title, items, twidth=20, talign='>', width=DEFAULT_WIDTH):
         title = title[:twidth - 3] + '...'
     rwidth = width - twidth
     items = list(items or [])
-    pw = rwidth / len(items)
+    pw = int(rwidth / len(items))
     tmpl = '{title:{talign}{twidth}}' + ('{:^{pw}}' * len(items))
-    #print(title, talign, twidth, pw, items)
     return tmpl.format(title=title,
                        talign=talign,
                        twidth=twidth,
