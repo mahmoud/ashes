@@ -5,15 +5,12 @@
  * docs, of course
  * more tests (corner cases, negative cases, larger pages)
    * what happens if tags spans multiple lines?
- * pragmas
  * benchin'
    * `__slots__`?
  * keep track of unresolved symbols and proffer a blank schema for
    introspection/convenience?
  * handle comments better
  * line/column number for errors
- * rendering support for root-level recursive templates
- * Interpolated values in parameters
  * nosetests
  * Template loader (i.e., load templates from a directory)
  * LinkedIn helpers?
