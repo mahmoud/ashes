@@ -775,11 +775,15 @@ def escape_uri_component(text):
 def sep_helper(chunk, context, bodies):
     if context.stack.index == context.stack.of - 1:
         return chunk
-    return bodies.block(chunk, context)
+    if 'block' in bodies:
+        return bodies['block'](chunk, context)
+    return chunk
 
 
 def idx_helper(chunk, context, bodies):
-    return bodies.block(chunk, context.push(context.stack.index))
+    if 'block' in bodies:
+        return bodies['block'](chunk, context.push(context.stack.index))
+    return chunk
 
 
 DEFAULT_HELPERS = {'sep': sep_helper, 'idx': idx_helper}
