@@ -27,11 +27,11 @@ node_re = re.compile(r'({'
 key_re_str = '[a-zA-Z_$][0-9a-zA-Z_$]*'
 key_re = re.compile(key_re_str)
 path_re = re.compile('(' + key_re_str + ')?(\.' + key_re_str + ')+')
+comment_re = re.compile(r'\{!.+?!\}', flags=re.DOTALL)
 
 
-#comment_re = ''  # TODO
 def strip_comments(text):
-    return re.sub(r'\{!.+?!\}', '', text, flags=re.DOTALL)
+    return comment_re.sub('', text)
 
 
 def get_path_or_key(pork):
@@ -166,7 +166,6 @@ class PartialTag(Tag):
 def parse_inline(source):
     if not source:
         raise ValueError('empty inline token')
-    orig_source = source
     if source.startswith('"') and source.endswith('"'):
         source = source[1:-1]
     if not source:
