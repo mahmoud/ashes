@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import os
 import re
 import cgi
 import json
@@ -1189,7 +1190,7 @@ class Template(object):
 
     def render_chunk(self, chunk, context):
         if not self.render_func:
-            self.render_func = self._get_render_func(self.optimized)
+            self.render_func = self._get_render_func()
         return self.render_func(chunk, context)
 
     def _get_tokens(self):
@@ -1219,14 +1220,28 @@ class Template(object):
         return func
 
 
-class AshesEnv(object):
+class AshesException(Exception):
+    pass
+
+
+class TemplateNotFound(AshesException):
+    pass
+
+
+class ParseError(AshesException):
+    pass
+
+
+class BaseAshesEnv(object):
     def __init__(self,
-                 filters=None,
+                 loaders=None,
                  helpers=None,
+                 filters=None,
                  special_chars=None,
                  optimizers=None,
                  pragmas=None):
         self.templates = {}
+        self.loaders = list(loaders or [])
         self.filters = dict(DEFAULT_FILTERS)
         if filters:
             self.filters.update(filters)
@@ -1243,24 +1258,31 @@ class AshesEnv(object):
         if pragmas:
             self.pragmas.update(pragmas)
 
-    def register(self, template):
-        try:
-            if not template or not callable(template.render):
-                raise AttributeError()
-            self.templates[template.name] = template
-        except AttributeError:
-            raise ValueError('Invalid template: %r' % template)
-
     def render(self, name, model):
-        try:
-            template = self.templates[name]
-        except KeyError:
-            raise ValueError('No template named "%s"' % name)
-        return template.render(model, self)
+        tmpl = self.load(name)
+        return tmpl.render(model, self)
 
     def load(self, name):
-        # TODO: this function (and raise better exceptions)
+        if not name in self.templates:
+            template = self._load_template(name)
+            self.templates[name] = template
         return self.templates[name]
+
+    def _load_template(self, name):
+        for loader in self.loaders:
+            try:
+                source = loader.load(name)
+            except TemplateNotFound:
+                continue
+            else:
+                return source
+        raise TemplateNotFound(name)
+
+    def register(self, template, name=None):
+        if name is None:
+            name = template.name
+        self.templates[name] = template
+        return
 
     def filter_ast(self, ast, optimize=True):
         if optimize:
@@ -1283,9 +1305,56 @@ class AshesEnv(object):
     def load_chunk(self, name, chunk, context):
         try:
             tmpl = self.load(name)
-        except KeyError:
-            return chunk.set_error(Exception('Template not found "%s"' % name))
+        except TemplateNotFound as tnf:
+            return chunk.set_error(tnf)
         return tmpl.render_chunk(chunk, context)
+
+
+class AshesEnv(BaseAshesEnv):
+    """
+    A slightly more accessible Ashes environment, with more
+    user-friendly options exposed.
+    """
+    def __init__(self, paths=None, keep_whitespace=False, *a, **kw):
+        self.paths = list(paths or [])
+        self.keep_whitespace = keep_whitespace
+        super(AshesEnv, self).__init__(*a, **kw)
+
+        for path in self.paths:
+            self.loaders.append(TemplatePathLoader(path))
+
+    def filter_ast(self, ast, optimize=None):
+        optimize = not self.keep_whitespace  # preferences override
+        return super(AshesEnv, self).filter_ast(ast, optimize)
+
+
+DEFAULT_EXTENSIONS = ('.dust', '.html', '.xml')
+
+
+class TemplatePathLoader(object):
+    def __init__(self, root_path):
+        self.root_path = root_path
+
+    def load(self, path, env=None):
+        env = env or default_env
+        norm_path = os.path.normpath(path)
+        if path.startswith('../'):
+            raise ValueError('no traversal above loader root path: %r' % path)
+        abs_path = os.path.abspath(os.path.join(self.root_path, norm_path))
+        if os.path.isfile(abs_path):
+            with open(abs_path, 'r') as f:
+                source = f.read()
+        else:
+            raise TemplateNotFound(path)
+
+        template = Template(path, source, abs_path, env=env)
+        return template
+
+    def load_all(self, exts=None):
+        if exts is None:
+            exts = DEFAULT_EXTENSIONS
+        exts = list(['.' + e.lstrip('.') for e in exts])
+        # TODO walk dir, etc.
 
 
 ashes = default_env = AshesEnv()
