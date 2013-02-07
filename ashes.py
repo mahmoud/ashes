@@ -1265,7 +1265,7 @@ class BaseAshesEnv(object):
     def load(self, name):
         if not name in self.templates:
             template = self._load_template(name)
-            self.templates[name] = template
+            self.register(template)
         return self.templates[name]
 
     def _load_template(self, name):
@@ -1331,30 +1331,57 @@ class AshesEnv(BaseAshesEnv):
 DEFAULT_EXTENSIONS = ('.dust', '.html', '.xml')
 
 
+def walk_ext_matches(path, exts=None):
+    if exts is None:
+        exts = DEFAULT_EXTENSIONS
+    exts = list(['.' + e.lstrip('.') for e in exts])
+    matches = []
+    for root, _, filenames in os.walk(path):
+        for fn in filenames:
+            for ext in exts:
+                if fn.endswith(ext):
+                    matches.append(os.path.join(root, fn))
+    return matches
+
+
 class TemplatePathLoader(object):
     def __init__(self, root_path):
-        self.root_path = root_path
+        self.root_path = os.path.normpath(root_path)
 
     def load(self, path, env=None):
         env = env or default_env
         norm_path = os.path.normpath(path)
         if path.startswith('../'):
             raise ValueError('no traversal above loader root path: %r' % path)
-        abs_path = os.path.abspath(os.path.join(self.root_path, norm_path))
+        if not path.startswith(self.root_path):
+            norm_path = os.path.join(self.root_path, norm_path)
+        abs_path = os.path.abspath(norm_path)
         if os.path.isfile(abs_path):
             with open(abs_path, 'r') as f:
                 source = f.read()
         else:
             raise TemplateNotFound(path)
-
         template = Template(path, source, abs_path, env=env)
         return template
 
-    def load_all(self, exts=None):
-        if exts is None:
-            exts = DEFAULT_EXTENSIONS
-        exts = list(['.' + e.lstrip('.') for e in exts])
-        # TODO walk dir, etc.
+    def load_all(self, env, exts=None):
+        ret = []
+        tmpl_paths = walk_ext_matches(self.root_path, exts)
+        for tmpl_path in tmpl_paths:
+            ret.append(self.load(tmpl_path, env))
+        return ret
 
 
 ashes = default_env = AshesEnv()
+
+
+def _main():
+    try:
+        tpl = TemplatePathLoader('./_test_tmpls')
+        tpl.load_all(ashes)
+    except Exception as e:
+        import pdb;pdb.post_mortem()
+        raise
+
+if __name__ == '__main__':
+    _main()
