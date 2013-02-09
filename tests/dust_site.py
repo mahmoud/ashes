@@ -183,7 +183,8 @@ class EscapePragma(AshesTest):
 class Intro(AshesTest):
     template = '{#stream}{#delay}{.}{/delay}{/stream}'
     json_ast = '["body", ["#", ["key", "stream"], ["context"], ["params"], ["bodies", ["param", ["literal", "block"], ["body", ["#", ["key", "delay"], ["context"], ["params"], ["bodies", ["param", ["literal", "block"], ["body", ["reference", ["path", true, []], ["filters"]]]]]]]]]]]'
-    json_context = 'function() {\n  var d = 1;\n  return {\n    stream: function() {\n      return "asynchronous templates for the browser and node.js".split(\'\');\n    },\n    delay: function(chunk, context, bodies) {\n      return chunk.map(function(chunk) {\n        setTimeout(function() {\n          chunk.render(bodies.block, context).end();\n        }, d++ * 15);\n      });\n    }\n  }\n}'
+    #json_context = 'function() {\n  var d = 1;\n  return {\n    stream: function() {\n      return "asynchronous templates for the browser and node.js".split(\'\');\n    },\n    delay: function(chunk, context, bodies) {\n      return chunk.map(function(chunk) {\n        setTimeout(function() {\n          chunk.render(bodies.block, context).end();\n        }, d++ * 15);\n      });\n    }\n  }\n}'
+    rendered = ''
 
 
 class BaseTemplate(AshesTest):
