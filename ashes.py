@@ -1224,6 +1224,7 @@ class Template(object):
 
     def render_chunk(self, chunk, context):
         if not self.render_func:
+            # to support laziness for testing
             self.render_func = self._get_render_func()
         return self.render_func(chunk, context)
 
@@ -1455,12 +1456,32 @@ class TemplatePathLoader(object):
         return ret
 
 
+class FlatteningPathLoader(TemplatePathLoader):
+    """
+    I've seen this mode of using dust templates in a couple places,
+    but really it's lazy and too ambiguous. It increases the chances
+    of silent conflicts and makes it hard to tell which templates refer
+    to which just by looking at the template code.
+    """
+    def __init__(self, *a, **kw):
+        self.keep_ext = kw.pop('keep_ext', True)
+        super(FlatteningPathLoader, self).__init__(*a, **kw)
+
+    def load(self, *a, **kw):
+        tmpl = super(FlatteningPathLoader, self).load(*a, **kw)
+        name = os.path.basename(tmpl.name)
+        if not self.keep_ext:
+            name, ext = os.path.splitext(name)
+        tmpl.name = name
+        return tmpl
+
+
 ashes = default_env = AshesEnv()
 
 
 def _main():
     try:
-        tpl = TemplatePathLoader('./_test_tmpls')
+        tpl = FlatteningPathLoader('./_test_tmpls', keep_ext=False)
         ashes.loaders.append(tpl)
         ashes.load_all()
     except Exception as e:
