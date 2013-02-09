@@ -289,7 +289,7 @@ def get_tag(match, inline=False):
 def tokenize(source, inline=False):
     tokens = []
     com_nocom = comment_re.split(source)
-    line_counts = []
+    line_counts = [1]
     def _add_token(t):
         # i wish i had nonlocal so bad
         t.start_line = sum(line_counts)
@@ -1284,7 +1284,7 @@ class ParseError(AshesException):
         if self.line_no is not None:
             infos.append('line %s' % self.line_no)
         if infos:
-            msg += ' (%s)' % ', '.join(infos)
+            msg += ' (%s)' % ' - '.join(infos)
         return msg
 
 
