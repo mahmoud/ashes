@@ -52,7 +52,7 @@ class SyncKey(AshesTest):
 
 class Comments(AshesTest):
     template = '{!\n  Multiline\n  {#foo}{bar}{/foo}\n!}\n{!before!}Hello{!after!}'
-    #json_ast = '["body", ["comment", "\\n  Multiline\\n  {#foo}{bar}{/foo}\\n"], ["format", "\\n", ""], ["comment", "before"], ["buffer", "Hello"], ["comment", "after"]]'
+    json_ast = '["body", ["comment", "\\n  Multiline\\n  {#foo}{bar}{/foo}\\n"], ["format", "\\n", ""], ["comment", "before"], ["buffer", "Hello"], ["comment", "after"]]'
     json_context = '{}'
     rendered = 'Hello'
 

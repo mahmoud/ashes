@@ -295,8 +295,8 @@ def tokenize(source, inline=False):
     for cnc in com_nocom:
         if not cnc:
             continue
-        if cnc.startswith('{!'):
-            _add_token(CommentToken(cnc))
+        if cnc.startswith('{!') and cnc.endswith('!}'):
+            _add_token(CommentToken(cnc[2:-2]))
             continue
         prev_end = 0
         start = None
