@@ -28,33 +28,7 @@ node_re = re.compile(r'({'
 key_re_str = '[a-zA-Z_$][0-9a-zA-Z_$]*'
 key_re = re.compile(key_re_str)
 path_re = re.compile('(' + key_re_str + ')?(\.' + key_re_str + ')+')
-comment_re = re.compile(r'\{!.+?!\}', flags=re.DOTALL)
-
-"""
-Enhanced parsing plan:
-
-Stick with regexes for tokenization/lexing, but add the following features:
-  * line/column number for errors
-  * detection of a couple major classes of malformed tokens
-  * more flexible whitespace *within* tags (linebreaks)
-  * general enhancements to error messages
-
-Achieved via parsing in phases:
-  1. Tokenize into comment/non-comment blocks.
-     * Necessary to keep accurate track of lines/cols
-     * Detect unclosed comment blocks
-  2. Tokenize each non-comment block independently
-     * Look for candidate tags (start/end with "{" and "}")
-     * Detect malformed tokens
-  3. Flatten token lists and parse normally
-
-Bonus: keep comments in AST for dust compliance?
-"""
-
-
-def strip_comments(text):
-    return comment_re.sub('', text)
-
+comment_re = re.compile(r'(\{!.+?!\})', flags=re.DOTALL)
 
 def get_path_or_key(pork):
     if pork == '.':
@@ -71,16 +45,72 @@ def get_path_or_key(pork):
     return pk
 
 
+def split_leading(text):
+    leading_stripped = text.lstrip()
+    leading_ws = text[:len(text) - len(leading_stripped)]
+    return leading_ws, leading_stripped
+
+
+class Token(object):
+    def __init__(self, text):
+        self.text = text
+
+    def get_line_count(self):
+        # returns 0 if there's only one line, because the
+        # token hasn't increased the number of lines.
+        count = len(self.text.splitlines()) - 1
+        if self.text[-1] in ('\n', '\r'):
+            count += 1
+        return count
+
+    def __repr__(self):
+        cn = self.__class__.__name__
+        disp = self.text
+        if disp > 20:
+            disp = disp[:17] + '...'
+        return '%s(%r)' % (cn, disp)
+
+
+class CommentToken(Token):
+    def to_dust_ast(self):
+        return [['comment', self.text]]
+
+
+class BufferToken(Token):
+    def to_dust_ast(self):
+        # It is hard to simulate the PEG parsing in this case,
+        # especially while supporting universal newlines.
+        if not self.text:
+            return []
+        rev = []
+        remaining_lines = self.text.splitlines()
+        if self.text[-1] in ('\n', '\r'):
+            # kind of a bug in splitlines if you ask me.
+            remaining_lines.append('')
+        while remaining_lines:
+            line = remaining_lines.pop()
+            leading_ws, lstripped = split_leading(line)
+            if remaining_lines:
+                if lstripped:
+                    rev.append(['buffer', lstripped])
+                rev.append(['format', '\n', leading_ws])
+            else:
+                if line:
+                    rev.append(['buffer', line])
+        ret = list(reversed(rev))
+        return ret
+
+
 ALL_ATTRS = ('closing', 'symbol', 'refpath', 'contpath',
              'filters', 'params', 'selfclosing')
 
 
-class Tag(object):
+class Tag(Token):
     req_attrs = ()
     ill_attrs = ()
 
-    def __init__(self, **kw):
-        self.match_str = kw.pop('match_str')
+    def __init__(self, text, **kw):
+        super(Tag, self).__init__(text)
         self._attr_dict = kw
         self.set_attrs(kw)
 
@@ -116,15 +146,11 @@ class Tag(object):
             setattr(self, attr, attr_dict.get(attr, ''))
         return True
 
-    def __repr__(self):
-        cn = self.__class__.__name__
-        return '%s(%r)' % (cn, self.match_str)
-
     @classmethod
     def from_match(cls, match):
         kw = dict([(k, v) for k, v in match.groupdict().items()
                   if v is not None])
-        kw['match_str'] = match.group(0)
+        kw['text'] = match.group(0)
         obj = cls(**kw)
         obj.orig_match = match
         return obj
@@ -256,77 +282,39 @@ def get_tag(match, inline=False):
     return tag_type.from_match(match)
 
 
-class WhitespaceToken(object):
-    def __init__(self, ws=''):
-        self.ws = ws
-
-    def __repr__(self):
-        disp = self.ws
-        if len(disp) > 13:
-            disp = disp[:10] + '...'
-        return 'WhitespaceToken(%r)' % disp
-
-
-def split_leading(text):
-    leading_stripped = text.lstrip()
-    leading_ws = text[:len(text) - len(leading_stripped)]
-    return leading_ws, leading_stripped
-
-
-class BufferToken(object):
-    def __init__(self, text=''):
-        self.text = text
-
-    def __repr__(self):
-        disp = self.text
-        if len(self.text) > 30:
-            disp = disp[:27] + '...'
-        return 'BufferToken(%r)' % disp
-
-    def to_dust_ast(self):
-        # It is hard to simulate the PEG parsing in this case,
-        # especially while supporting universal newlines.
-        if not self.text:
-            return []
-        rev = []
-        remaining_lines = self.text.splitlines()
-        if self.text[-1] in ('\n', '\r'):
-            # kind of a bug in splitlines if you ask me.
-            remaining_lines.append('')
-        while remaining_lines:
-            line = remaining_lines.pop()
-            leading_ws, lstripped = split_leading(line)
-            if remaining_lines:
-                if lstripped:
-                    rev.append(['buffer', lstripped])
-                rev.append(['format', '\n', leading_ws])
-            else:
-                if line:
-                    rev.append(['buffer', line])
-        ret = list(reversed(rev))
-        return ret
-
-
 def tokenize(source, inline=False):
-    # TODO: line/column numbers
-    # removing comments
-    source = strip_comments(source)
     tokens = []
-    prev_end = 0
-    start = None
-    end = None
-    for match in node_re.finditer(source):
-        start, end = match.start(1), match.end(1)
-        if prev_end < start:
-            tokens.append(BufferToken(source[prev_end:start]))
-        prev_end = end
-        tag = get_tag(match, inline)
-        tokens.append(tag)
-    tail = source[prev_end:]
-    if tail:
-        tokens.append(BufferToken(tail))
+    com_nocom = comment_re.split(source)
+    line_counts = []
+    def _add_token(t):
+        # i wish i had nonlocal so bad
+        t.start_line = sum(line_counts)
+        line_counts.append(t.get_line_count())
+        t.end_line = sum(line_counts)
+        tokens.append(t)
+    for cnc in com_nocom:
+        if not cnc:
+            continue
+        if cnc.startswith('{!'):
+            _add_token(CommentToken(cnc))
+            continue
+        prev_end = 0
+        start = None
+        end = None
+        for match in node_re.finditer(cnc):
+            start, end = match.start(1), match.end(1)
+            if prev_end < start:
+                _add_token(BufferToken(cnc[prev_end:start]))
+            prev_end = end
+            _add_token(get_tag(match, inline))
+        tail = cnc[prev_end:]
+        if tail:
+            _add_token(BufferToken(tail))
+    #if not inline:
+    #    print zip([t.start_line for t in tokens], tokens)[-5:]
+    #    if not tokens:
+    #        import pdb;pdb.set_trace()
     return tokens
-
 
 #########
 # PARSING
