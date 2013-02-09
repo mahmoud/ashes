@@ -16,11 +16,12 @@ if PY3:
 # switch to using word boundary for params section
 node_re = re.compile(r'({'
                      r'(?P<closing>\/)?'
-                     r'(?P<symbol>[\~\#\?\@\:\<\>\+\^\%])?'
+                     r'(?:(?P<symbol>[\~\#\?\@\:\<\>\+\^\%])\s*)?'
                      r'(?P<refpath>[a-zA-Z0-9_\$\.]+|"[^"]+")'
                      r'(?:\:(?P<contpath>[a-zA-Z0-9\$\.]+))?'
                      r'(?P<filters>\|[a-z]+)*?'
-                     r'(?P<params> \w+\=(("[^"]*?")|([\w\.]+)))*?'
+                     r'(?P<params>(?:\s+\w+\=(("[^"]*?")|([\w\.]+)))*)?'
+                     r'\s*'
                      r'(?P<selfclosing>\/)?'
                      r'\})',
                      flags=re.MULTILINE)
@@ -29,6 +30,7 @@ key_re_str = '[a-zA-Z_$][0-9a-zA-Z_$]*'
 key_re = re.compile(key_re_str)
 path_re = re.compile('(' + key_re_str + ')?(\.' + key_re_str + ')+')
 comment_re = re.compile(r'(\{!.+?!\})', flags=re.DOTALL)
+
 
 def get_path_or_key(pork):
     if pork == '.':
@@ -66,7 +68,7 @@ class Token(object):
     def __repr__(self):
         cn = self.__class__.__name__
         disp = self.text
-        if disp > 20:
+        if len(disp) > 20:
             disp = disp[:17] + '...'
         return '%s(%r)' % (cn, disp)
 
@@ -148,8 +150,8 @@ class Tag(Token):
 
     @classmethod
     def from_match(cls, match):
-        kw = dict([(k, v) for k, v in match.groupdict().items()
-                  if v is not None])
+        kw = dict([(k, v.strip()) for k, v in match.groupdict().items()
+                  if v is not None and v.strip()])
         kw['text'] = match.group(0)
         obj = cls(**kw)
         obj.orig_match = match
@@ -213,7 +215,7 @@ class PartialTag(Tag):
 
 def parse_inline(source):
     if not source:
-        raise ValueError('empty inline token')
+        raise ParseError('empty inline token')
     if source.startswith('"') and source.endswith('"'):
         source = source[1:-1]
     if not source:
@@ -235,9 +237,11 @@ def inline_to_dust_ast(tokens):
 def params_to_kv(params_str):
     ret = []
     new_k, v = None, None
+    p_str = params_str.strip()
     k, _, tail = params_str.partition('=')
     while tail:
         tmp, _, tail = tail.partition('=')
+        tail = tail.strip()
         if not tail:
             v = tmp
         else:
@@ -276,9 +280,9 @@ def get_tag(match, inline=False):
     elif symbol == '>':
         tag_type = PartialTag
     else:
-        raise ValueError('invalid tag')
+        raise ParseError('invalid tag')
     if inline and tag_type not in (ReferenceTag, SpecialTag):
-        raise ValueError('invalid inline tag')
+        raise ParseError('invalid inline tag')
     return tag_type.from_match(match)
 
 
@@ -426,13 +430,13 @@ class ParseTree(object):
                     ss.append(new_s)
             elif type(token) == ClosingTag:
                 if len(ss) <= 1:
-                    raise ValueError('closing tag before opening tag: %r' % token)
+                    raise ParseError('closing tag before opening tag: %r' % token)
                 if token.refpath != ss[-1].start_tag.refpath:
-                    raise ValueError('nesting error')
+                    raise ParseError('nesting error')
                 ss.pop()
             elif type(token) == BlockTag:
                 if len(ss) <= 1:
-                    raise ValueError('cannot start blocks outside of a section')
+                    raise ParseError('cannot start blocks outside of a section')
                 new_b = Block(name=token.refpath)
                 ss[-1].add(new_b)
             else:
