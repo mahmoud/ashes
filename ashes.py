@@ -310,14 +310,14 @@ def tokenize(source, inline=False):
             if prev_end < start:
                 _add_token(BufferToken(cnc[prev_end:start]))
             prev_end = end
-            _add_token(get_tag(match, inline))
+            try:
+                _add_token(get_tag(match, inline))
+            except ParseError as pe:
+                pe.line_no = sum(line_counts)
+                raise
         tail = cnc[prev_end:]
         if tail:
             _add_token(BufferToken(tail))
-    #if not inline:
-    #    print zip([t.start_line for t in tokens], tokens)[-5:]
-    #    if not tokens:
-    #        import pdb;pdb.set_trace()
     return tokens
 
 #########
@@ -358,7 +358,11 @@ class Section(object):
         params = ['params']
         param_list = self.start_tag.param_list
         if param_list:
-            params.extend(params_to_dust_ast(param_list))
+            try:
+                params.extend(params_to_dust_ast(param_list))
+            except ParseError as pe:
+                pe.token = self
+                raise
 
         bodies = ['bodies']
         if self.blocks:
@@ -430,13 +434,17 @@ class ParseTree(object):
                     ss.append(new_s)
             elif type(token) == ClosingTag:
                 if len(ss) <= 1:
-                    raise ParseError('closing tag before opening tag: %r' % token)
+                    msg = 'closing tag before opening tag: %r' % token
+                    raise ParseError(msg, token=token)
                 if token.refpath != ss[-1].start_tag.refpath:
-                    raise ParseError('nesting error')
+                    msg = ('improperly nested tags: %r does not close %r' %
+                           (token, ss[-1].start_tag))
+                    raise ParseError(msg, token=token)
                 ss.pop()
             elif type(token) == BlockTag:
                 if len(ss) <= 1:
-                    raise ParseError('cannot start blocks outside of a section')
+                    msg = 'start block outside of a section: %r' % token
+                    raise ParseError(msg, token=token)
                 new_b = Block(name=token.refpath)
                 ss[-1].add(new_b)
             else:
@@ -1214,7 +1222,11 @@ class Template(object):
     def _get_ast(self, optimize=False, raw=False):
         if not self.source:
             return None
-        dast = ParseTree.from_source(self.source).to_dust_ast()
+        try:
+            dast = ParseTree.from_source(self.source).to_dust_ast()
+        except ParseError as pe:
+            pe.source_file = self.source_file
+            raise
         if raw:
             return dast
         return self.env.filter_ast(dast, optimize)
@@ -1242,7 +1254,38 @@ class TemplateNotFound(AshesException):
 
 
 class ParseError(AshesException):
-    pass
+    token = None
+    source_file = None
+
+    def __init__(self, message, line_no=None, token=None):
+        self.message = message
+        self.token = token
+        self._line_no = line_no
+
+        super(ParseError, self).__init__(self.__str__())
+
+    @property
+    def line_no(self):
+        if self._line_no:
+            return self._line_no
+        if getattr(self.token, 'start_line', None) is not None:
+            return self.token.start_line
+        return None
+
+    @line_no.setter
+    def set_line_no(self, val):
+        self._line_no = val
+
+    def __str__(self):
+        msg = self.message
+        infos = []
+        if self.source_file:
+            infos.append('in %s' % self.source_file)
+        if self.line_no is not None:
+            infos.append('line %s' % self.line_no)
+        if infos:
+            msg += ' (%s)' % ', '.join(infos)
+        return msg
 
 
 class BaseAshesEnv(object):
