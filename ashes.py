@@ -123,6 +123,13 @@ class Tag(Token):
         except AttributeError:
             return []
 
+    @property
+    def name(self):
+        try:
+            return self.refpath.strip().lstrip('.')
+        except (AttributeError, TypeError):
+            return None
+
     def set_attrs(self, attr_dict, raise_exc=True):
         cn = self.__class__.__name__
         all_attrs = getattr(self, 'all_attrs', ())
@@ -238,7 +245,7 @@ def params_to_kv(params_str):
     ret = []
     new_k, v = None, None
     p_str = params_str.strip()
-    k, _, tail = params_str.partition('=')
+    k, _, tail = p_str.partition('=')
     while tail:
         tmp, _, tail = tail.partition('=')
         tail = tail.strip()
@@ -324,12 +331,17 @@ def tokenize(source, inline=False):
 # PARSING
 #########
 
+
 class Section(object):
     def __init__(self, start_tag=None, blocks=None):
         if start_tag is None:
+            refpath = None
             name = '<root>'
         else:
-            name = start_tag.refpath
+            refpath = start_tag.refpath
+            name = start_tag.name
+
+        self.refpath = refpath
         self.name = name
         self.start_tag = start_tag
         self.blocks = blocks or []
@@ -348,7 +360,8 @@ class Section(object):
 
     def to_dust_ast(self):
         symbol = self.start_tag.symbol
-        key = self.start_tag.refpath
+
+        pork = get_path_or_key(self.refpath)
 
         context = ['context']
         contpath = self.start_tag.contpath
@@ -370,7 +383,7 @@ class Section(object):
                 bodies.extend(b.to_dust_ast())
 
         return [[symbol,
-                ['key', key],
+                pork,
                 context,
                 params,
                 bodies]]
@@ -436,7 +449,7 @@ class ParseTree(object):
                 if len(ss) <= 1:
                     msg = 'closing tag before opening tag: %r' % token
                     raise ParseError(msg, token=token)
-                if token.refpath != ss[-1].start_tag.refpath:
+                if token.name != ss[-1].name:
                     msg = ('improperly nested tags: %r does not close %r' %
                            (token, ss[-1].start_tag))
                     raise ParseError(msg, token=token)
@@ -1334,6 +1347,19 @@ class BaseAshesEnv(object):
                 return source
         raise TemplateNotFound(name)
 
+    def load_all(self, do_register=True, **kw):
+        all_tmpls = []
+        for loader in reversed(self.loaders):
+            # reversed so the first loader to have a template
+            # will take precendence on registration
+            if callable(getattr(loader, 'load_all', None)):
+                tmpls = loader.load_all(self, **kw)
+                all_tmpls.extend(tmpls)
+                if do_register:
+                    for t in tmpls:
+                        self.register(t)
+        return all_tmpls
+
     def register(self, template, name=None):
         if name is None:
             name = template.name
@@ -1401,8 +1427,9 @@ def walk_ext_matches(path, exts=None):
 
 
 class TemplatePathLoader(object):
-    def __init__(self, root_path):
+    def __init__(self, root_path, encoding='utf-8'):
         self.root_path = os.path.normpath(root_path)
+        self.encoding = encoding
 
     def load(self, path, env=None):
         env = env or default_env
@@ -1414,13 +1441,13 @@ class TemplatePathLoader(object):
         abs_path = os.path.abspath(norm_path)
         if os.path.isfile(abs_path):
             with open(abs_path, 'r') as f:
-                source = f.read()
+                source = f.read().decode(self.encoding)
         else:
             raise TemplateNotFound(path)
         template = Template(path, source, abs_path, env=env)
         return template
 
-    def load_all(self, env, exts=None):
+    def load_all(self, env, exts=None, **kw):
         ret = []
         tmpl_paths = walk_ext_matches(self.root_path, exts)
         for tmpl_path in tmpl_paths:
@@ -1434,10 +1461,13 @@ ashes = default_env = AshesEnv()
 def _main():
     try:
         tpl = TemplatePathLoader('./_test_tmpls')
-        tpl.load_all(ashes)
+        ashes.loaders.append(tpl)
+        ashes.load_all()
     except Exception as e:
         import pdb;pdb.post_mortem()
         raise
+    else:
+        import pdb;pdb.set_trace()
 
 if __name__ == '__main__':
     _main()
