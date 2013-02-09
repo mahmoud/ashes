@@ -30,6 +30,27 @@ key_re = re.compile(key_re_str)
 path_re = re.compile('(' + key_re_str + ')?(\.' + key_re_str + ')+')
 comment_re = re.compile(r'\{!.+?!\}', flags=re.DOTALL)
 
+"""
+Enhanced parsing plan:
+
+Stick with regexes for tokenization/lexing, but add the following features:
+  * line/column number for errors
+  * detection of a couple major classes of malformed tokens
+  * more flexible whitespace *within* tags (linebreaks)
+  * general enhancements to error messages
+
+Achieved via parsing in phases:
+  1. Tokenize into comment/non-comment blocks.
+     * Necessary to keep accurate track of lines/cols
+     * Detect unclosed comment blocks
+  2. Tokenize each non-comment block independently
+     * Look for candidate tags (start/end with "{" and "}")
+     * Detect malformed tokens
+  3. Flatten token lists and parse normally
+
+Bonus: keep comments in AST for dust compliance?
+"""
+
 
 def strip_comments(text):
     return comment_re.sub('', text)
