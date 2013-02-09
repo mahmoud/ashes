@@ -4,13 +4,10 @@
    (assignments to indexes > len(x) autocreate undefined elements)
  * docs, of course
  * more tests (corner cases, negative cases, larger pages)
-   * what happens if tags spans multiple lines?
  * benchin'
    * `__slots__`?
  * keep track of unresolved symbols and proffer a blank schema for
    introspection/convenience?
- * handle comments better
- * line/column number for errors
  * nosetests
  * Template loader (i.e., load templates from a directory)
  * LinkedIn helpers?
