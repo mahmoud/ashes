@@ -48,7 +48,7 @@ a what the test suite says about all of the examples on Dust's documentation:
          empty_array    .         .         _         .         .
                array    .         .         _         .         .
             partials    .         .         _         .         .
-               intro    .         .         _         .         E
+               intro    .         .         _         .         .
            recursion    .         .         _         .         .
               object    .         .         _         .         .
        force_current    .         .         _         .         .
@@ -57,14 +57,15 @@ a what the test suite says about all of the examples on Dust's documentation:
              context    .         .         _         .         .
       async_iterator    .         .         _         .         .
   interpolated_param    .         .         _         .         .
-            comments    .         _         _         .         .
+            comments    .         .         _         .         .
        escape_pragma    .         .         .         .         .
        base_template    .         .         _         .         .
           else_block    .         .         _         .         .
       child_template    .         .         _         .         .
          conditional    .         .         .         .         .
 ---------------------------------------------------------------------
-          (29 total)    29        28        2         29        28
+          (29 total)    29        29        2         29        29
+
 ```
 
 (NOTE: Optimization is fairly straightforward, so only two of the more
@@ -91,8 +92,9 @@ solutions.
 
 ### Other notes on compatibility
 
-* Comments are parsed differently, but both Ashes and Dust simply
-  strip them out.
+* Ashes uses a different parsing mechanism than dust, so on a few
+rare corner cases, like comments placed within string literals, the
+template behavior might differ.
 
 Ashes has been tested extensively on Python 2.7, and somewhat on PyPy
 1.9 and Python 3.2/3.3.
