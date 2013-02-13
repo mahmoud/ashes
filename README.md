@@ -27,7 +27,7 @@ directory as your project. And of course you can always `pip install ashes`.
 ## Compatibility
 
 Ashes has full support for every feature of the original Dust.js. Here's
-a what the test suite says about all of the examples on Dust's documentation:
+what the test suite says about all of the examples on Dust's documentation:
 
 ```
   . = passed, _ = skipped, X = failed, E = exception
