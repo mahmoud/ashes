@@ -1,4 +1,6 @@
 # TODO
+ * helpers for .keys(), .values(), .items()
+ * helper for first item of a sequence
  * remove unnecessary callback dynamics
  * stop using dicts to get around javascript's array behavior
    (assignments to indexes > len(x) autocreate undefined elements)
@@ -9,7 +11,6 @@
  * keep track of unresolved symbols and proffer a blank schema for
    introspection/convenience?
  * nosetests
- * Template loader (i.e., load templates from a directory)
  * LinkedIn helpers?
 
 # Notes
