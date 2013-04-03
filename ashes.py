@@ -1220,7 +1220,7 @@ class Template(object):
         def tmp_cb(err, result):
             if err:
                 print('Error on template %r: %r' % (self.name, err))
-                raise Exception(err)
+                raise RenderException(err)
             else:
                 rendered.append(result)
                 return result
@@ -1271,6 +1271,10 @@ class AshesException(Exception):
 
 
 class TemplateNotFound(AshesException):
+    pass
+
+
+class RenderException(AshesException):
     pass
 
 
