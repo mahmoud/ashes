@@ -5,6 +5,7 @@ import re
 import cgi
 import json
 import urllib
+import codecs
 
 import sys
 PY3 = (sys.version_info[0] == 3)
@@ -1401,14 +1402,23 @@ class AshesEnv(BaseAshesEnv):
     def __init__(self, paths=None, keep_whitespace=False, *a, **kw):
         self.paths = list(paths or [])
         self.keep_whitespace = keep_whitespace
+        exts = list(kw.pop('exts', DEFAULT_EXTENSIONS))
+
         super(AshesEnv, self).__init__(*a, **kw)
 
         for path in self.paths:
-            self.loaders.append(TemplatePathLoader(path))
+            tpl = TemplatePathLoader(path, exts)
+            self.loaders.append(tpl)
 
     def filter_ast(self, ast, optimize=None):
         optimize = not self.keep_whitespace  # preferences override
         return super(AshesEnv, self).filter_ast(ast, optimize)
+
+    def load_all(self):
+        ret = []
+        for loader in self.loaders:
+            ret.extend(loader.load_all())
+        return ret
 
 
 DEFAULT_EXTENSIONS = ('.dust', '.html', '.xml')
@@ -1428,9 +1438,10 @@ def walk_ext_matches(path, exts=None):
 
 
 class TemplatePathLoader(object):
-    def __init__(self, root_path, encoding='utf-8'):
+    def __init__(self, root_path, exts=None, encoding='utf-8'):
         self.root_path = os.path.normpath(root_path)
         self.encoding = encoding
+        self.exts = exts or dict(DEFAULT_EXTENSIONS)
 
     def load(self, path, env=None):
         env = env or default_env
@@ -1441,8 +1452,8 @@ class TemplatePathLoader(object):
             norm_path = os.path.join(self.root_path, norm_path)
         abs_path = os.path.abspath(norm_path)
         if os.path.isfile(abs_path):
-            with open(abs_path, 'r') as f:
-                source = f.read().decode(self.encoding)
+            with codecs.open(abs_path, 'r', self.encoding) as f:
+                source = f.read()
         else:
             raise TemplateNotFound(path)
         template = Template(path, source, abs_path, env=env)
@@ -1450,6 +1461,7 @@ class TemplatePathLoader(object):
 
     def load_all(self, env, exts=None, **kw):
         ret = []
+        exts = exts or self.exts
         tmpl_paths = walk_ext_matches(self.root_path, exts)
         for tmpl_path in tmpl_paths:
             ret.append(self.load(tmpl_path, env))
@@ -1484,11 +1496,14 @@ def _main():
         tpl = FlatteningPathLoader('./_test_tmpls', keep_ext=False)
         ashes.loaders.append(tpl)
         ashes.load_all()
+
+        rendereds = dict([(k, t.render({})) for k, t in ashes.templates.items()])
     except Exception as e:
         import pdb;pdb.post_mortem()
         raise
     else:
-        import pdb;pdb.set_trace()
+        pass
+        #import pdb;pdb.set_trace()
 
 if __name__ == '__main__':
     _main()
