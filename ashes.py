@@ -850,14 +850,23 @@ def _do_compare(chunk, context, bodies, params, cmp_op):
         # TODO: type aliases
     except KeyError:
         return chunk
-    cmp_type
-    # TODO: coerce
-    # TODO: tap key/value
-    if cmp_op(key, value):
+    cmp_type  # TODO: coerce
+    rkey = _resolve_value(key, chunk, context)
+    rvalue = _resolve_value(value, chunk, context)
+    if cmp_op(rkey, rvalue):
         return chunk.render(body, context)
     elif 'else' in bodies:
         return chunk.render(bodies['else'], context)
     return chunk
+
+
+def _resolve_value(item, chunk, context):
+    if not callable(item):
+        return item
+    try:
+        return chunk.tap_render(item, context)
+    except:
+        return None
 
 
 def _make_compare_helpers():
@@ -1083,6 +1092,17 @@ class Chunk(object):
     def render(self, body, context):
         return body(self, context)
 
+    def tap_render(self, body, context):
+        output = []
+
+        def tmp_tap(data):
+            if data:
+                output.append(data)
+            return ''
+        self.tap(tmp_tap)
+        self.render(body, context).untap()
+        return ''.join(output)
+
     def reference(self, elem, context, auto, filters=None):
         if callable(elem):
             # this whole callable thing is a pretty big TODO
@@ -1256,6 +1276,7 @@ class Template(object):
         rendered = []
 
         def tmp_cb(err, result):
+            # TODO: get rid of
             if err:
                 print('Error on template %r: %r' % (self.name, err))
                 raise RenderException(err)
@@ -1557,11 +1578,15 @@ ashes = default_env = AshesEnv()
 
 def _main():
     try:
-        tpl = FlatteningPathLoader('./_test_tmpls', keep_ext=False)
-        ashes.loaders.append(tpl)
-        ashes.load_all()
+        #tpl = FlatteningPathLoader('./_test_tmpls', keep_ext=False)
+        #ashes.loaders.append(tpl)
+        #ashes.load_all()
+        #rendereds = dict([(k, t.render({})) for k, t in ashes.templates.items()])
 
-        rendereds = dict([(k, t.render({})) for k, t in ashes.templates.items()])
+        tmpl = ('{@eq key="hello" value=hello}{hello}, world'
+                '{:else}oh well, world{/eq}')
+        ashes.register_source('hi', tmpl)
+        print ashes.render('hi', {'hello': 'hello'})
     except Exception as e:
         import pdb;pdb.post_mortem()
         raise
