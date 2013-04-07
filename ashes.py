@@ -818,6 +818,22 @@ def escape_uri_component(text):
 
 # Helpers
 
+def first_helper(chunk, context, bodies, params=None):
+    if context.stack.index > 0:
+        return chunk
+    if 'block' in bodies:
+        return bodies['block'](chunk, context)
+    return chunk
+
+
+def last_helper(chunk, context, bodies, params=None):
+    if context.stack.index < context.stack.of - 1:
+        return chunk
+    if 'block' in bodies:
+        return bodies['block'](chunk, context)
+    return chunk
+
+
 def sep_helper(chunk, context, bodies, params=None):
     if context.stack.index == context.stack.of - 1:
         return chunk
@@ -889,7 +905,9 @@ def _make_compare_helpers():
     return ret
 
 
-DEFAULT_HELPERS = {'sep': sep_helper,
+DEFAULT_HELPERS = {'first': first_helper,
+                   'last': last_helper,
+                   'sep': sep_helper,
                    'idx': idx_helper,
                    'idx_1': idx_1_helper,
                    'size': size_helper}
