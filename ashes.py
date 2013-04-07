@@ -227,7 +227,7 @@ def parse_inline(source):
     if source.startswith('"') and source.endswith('"'):
         source = source[1:-1]
     if not source:
-        return [BufferToken()]
+        return [BufferToken("")]
     tokens = tokenize(source, inline=True)
     return tokens
 
@@ -838,6 +838,16 @@ def idx_1_helper(chunk, context, bodies, params=None):
     return chunk
 
 
+def size_helper(chunk, context, bodies, params):
+    value = ''
+    try:
+        key = params['key']
+        value = str(len(key))
+    except (KeyError, TypeError):
+        pass
+    return chunk.write(value)
+
+
 def _do_compare(chunk, context, bodies, params, cmp_op):
     "utility function used by @eq, @gt, etc."
     params = params or {}
@@ -879,7 +889,10 @@ def _make_compare_helpers():
     return ret
 
 
-DEFAULT_HELPERS = {'sep': sep_helper, 'idx': idx_helper, 'idx_1': idx_1_helper}
+DEFAULT_HELPERS = {'sep': sep_helper,
+                   'idx': idx_helper,
+                   'idx_1': idx_1_helper,
+                   'size': size_helper}
 DEFAULT_HELPERS.update(_make_compare_helpers())
 
 
@@ -1577,6 +1590,8 @@ ashes = default_env = AshesEnv()
 
 
 def _main():
+    # TODO: accidentally unclosed tags may consume
+    # trailing buffers without warning
     try:
         #tpl = FlatteningPathLoader('./_test_tmpls', keep_ext=False)
         #ashes.loaders.append(tpl)
@@ -1584,7 +1599,8 @@ def _main():
         #rendereds = dict([(k, t.render({})) for k, t in ashes.templates.items()])
 
         tmpl = ('{@eq key="hello" value=hello}{hello}, world'
-                '{:else}oh well, world{/eq}')
+                '{:else}oh well, world{/eq} '
+                '{@size key=""/} characters')
         ashes.register_source('hi', tmpl)
         print ashes.render('hi', {'hello': 'hello'})
     except Exception as e:
