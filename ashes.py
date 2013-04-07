@@ -816,7 +816,7 @@ def escape_uri_component(text):
             .replace('&', '%26'))
 
 
-def sep_helper(chunk, context, bodies):
+def sep_helper(chunk, context, bodies, params=None):
     if context.stack.index == context.stack.of - 1:
         return chunk
     if 'block' in bodies:
@@ -824,13 +824,13 @@ def sep_helper(chunk, context, bodies):
     return chunk
 
 
-def idx_helper(chunk, context, bodies):
+def idx_helper(chunk, context, bodies, params=None):
     if 'block' in bodies:
         return bodies['block'](chunk, context.push(context.stack.index))
     return chunk
 
 
-def idx_1_helper(chunk, context, bodies):
+def idx_1_helper(chunk, context, bodies, params=None):
     if 'block' in bodies:
         return bodies['block'](chunk, context.push(context.stack.index + 1))
     return chunk
@@ -1119,7 +1119,7 @@ class Chunk(object):
         return context.env.load_chunk(elem, self, context)
 
     def helper(self, name, context, bodies, params=None):
-        return context.env.helpers[name](self, context, bodies)
+        return context.env.helpers[name](self, context, bodies, params)
 
     def capture(self, body, context, callback):
         def map_func(chunk):
@@ -1446,7 +1446,7 @@ class AshesEnv(BaseAshesEnv):
     def load_all(self):
         ret = []
         for loader in self.loaders:
-            ret.extend(loader.load_all())
+            ret.extend(loader.load_all(self))
         return ret
 
 
@@ -1470,7 +1470,7 @@ class TemplatePathLoader(object):
     def __init__(self, root_path, exts=None, encoding='utf-8'):
         self.root_path = os.path.normpath(root_path)
         self.encoding = encoding
-        self.exts = exts or dict(DEFAULT_EXTENSIONS)
+        self.exts = exts or list(DEFAULT_EXTENSIONS)
 
     def load(self, path, env=None):
         env = env or default_env
