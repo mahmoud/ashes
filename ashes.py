@@ -816,6 +816,8 @@ def escape_uri_component(text):
             .replace('&', '%26'))
 
 
+# Helpers
+
 def sep_helper(chunk, context, bodies, params=None):
     if context.stack.index == context.stack.of - 1:
         return chunk
@@ -836,7 +838,40 @@ def idx_1_helper(chunk, context, bodies, params=None):
     return chunk
 
 
+def _do_compare(chunk, context, bodies, params, cmp_op):
+    "utility function used by @eq, @gt, etc."
+    params = params or {}
+    try:
+        body = bodies['block']
+        key = params['key']
+        value = params['value']
+        cmp_type = params.get('type', 'repr')
+        # TODO: is repr() a good choice?
+        # TODO: type aliases
+    except KeyError:
+        return chunk
+    cmp_type
+    # TODO: coerce
+    # TODO: tap key/value
+    if cmp_op(key, value):
+        return chunk.render(body, context)
+    elif 'else' in bodies:
+        return chunk.render(bodies['else'], context)
+    return chunk
+
+
+def _make_compare_helpers():
+    from functools import partial
+    from operator import eq, ne, lt, le, gt, ge
+    CMP_MAP = {'eq': eq, 'ne': ne, 'gt': gt, 'lt': lt, 'gte': ge, 'lte': le}
+    ret = {}
+    for name, op in CMP_MAP.items():
+        ret[name] = partial(_do_compare, cmp_op=op)
+    return ret
+
+
 DEFAULT_HELPERS = {'sep': sep_helper, 'idx': idx_helper, 'idx_1': idx_1_helper}
+DEFAULT_HELPERS.update(_make_compare_helpers())
 
 
 class Context(object):
