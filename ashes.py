@@ -784,6 +784,10 @@ class Compiler(object):
 #########
 # Runtime
 #########
+
+# Escapes/filters
+
+
 def escape_html(text):
     text = unicode(text)
     # TODO: dust.js doesn't use this, but maybe we should: .replace("'", '&squot;')
@@ -871,14 +875,13 @@ def _do_compare(chunk, context, bodies, params, cmp_op):
         body = bodies['block']
         key = params['key']
         value = params['value']
-        cmp_type = params.get('type', 'repr')
-        # TODO: is repr() a good choice?
-        # TODO: type aliases
+        typestr = params.get('type', 'string')
     except KeyError:
         return chunk
-    cmp_type  # TODO: coerce
     rkey = _resolve_value(key, chunk, context)
     rvalue = _resolve_value(value, chunk, context)
+    crkey, crvalue = _coerce(rkey, typestr), _coerce(rvalue, typestr)
+    # TODO: False on TypeError/type mismatch
     if cmp_op(rkey, rvalue):
         return chunk.render(body, context)
     elif 'else' in bodies:
@@ -893,6 +896,24 @@ def _resolve_value(item, chunk, context):
         return chunk.tap_render(item, context)
     except:
         return None
+
+
+_COERCE_MAP = {
+    'number': float,
+    'string': unicode,  # TODO
+    'boolean': bool,  # TODO
+}  # Not implemented: date, context
+
+
+def _coerce(value, typestr):
+    coerce_func = _COERCE_MAP.get(typestr.lower())
+    if not coerce_func:
+        return value
+    try:
+        cv = coerce_func(value)
+    except (TypeError, ValueError):
+        return value
+    return cv
 
 
 def _make_compare_helpers():
@@ -912,6 +933,8 @@ DEFAULT_HELPERS = {'first': first_helper,
                    'idx_1': idx_1_helper,
                    'size': size_helper}
 DEFAULT_HELPERS.update(_make_compare_helpers())
+
+# Actual runtime objects
 
 
 class Context(object):
