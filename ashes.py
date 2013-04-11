@@ -859,13 +859,11 @@ def idx_1_helper(chunk, context, bodies, params=None):
 
 
 def size_helper(chunk, context, bodies, params):
-    value = ''
     try:
         key = params['key']
-        value = str(len(key))
+        return chunk.write(str(len(key)))
     except (KeyError, TypeError):
-        pass
-    return chunk.write(value)
+        return chunk
 
 
 def _do_compare(chunk, context, bodies, params, cmp_op):
@@ -881,8 +879,7 @@ def _do_compare(chunk, context, bodies, params, cmp_op):
     rkey = _resolve_value(key, chunk, context)
     rvalue = _resolve_value(value, chunk, context)
     crkey, crvalue = _coerce(rkey, typestr), _coerce(rvalue, typestr)
-    # TODO: False on TypeError/type mismatch
-    if cmp_op(rkey, rvalue):
+    if isinstance(crvalue, type(crkey)) and cmp_op(crkey, crvalue):
         return chunk.render(body, context)
     elif 'else' in bodies:
         return chunk.render(bodies['else'], context)
@@ -900,20 +897,22 @@ def _resolve_value(item, chunk, context):
 
 _COERCE_MAP = {
     'number': float,
-    'string': unicode,  # TODO
-    'boolean': bool,  # TODO
+    'string': unicode,
+    'boolean': bool,
 }  # Not implemented: date, context
 
 
 def _coerce(value, typestr):
-    coerce_func = _COERCE_MAP.get(typestr.lower())
-    if not coerce_func:
+    coerce_type = _COERCE_MAP.get(typestr.lower())
+    if not coerce_type or isinstance(value, coerce_type):
         return value
     try:
-        cv = coerce_func(value)
+        if isinstance(value, basestring):
+            return coerce_type(json.loads(value))
+        else:
+            return coerce_type(value)
     except (TypeError, ValueError):
         return value
-    return cv
 
 
 def _make_compare_helpers():
@@ -1639,11 +1638,11 @@ def _main():
         #ashes.load_all()
         #rendereds = dict([(k, t.render({})) for k, t in ashes.templates.items()])
 
-        tmpl = ('{@eq key="hello" value=hello}{hello}, world'
+        tmpl = ('{@eq key=hello value="true" type="string"}{hello}, world'
                 '{:else}oh well, world{/eq} '
                 '{@size key=""/} characters')
         ashes.register_source('hi', tmpl)
-        print ashes.render('hi', {'hello': 'hello'})
+        print ashes.render('hi', {'hello': True})
     except Exception as e:
         import pdb;pdb.post_mortem()
         raise
