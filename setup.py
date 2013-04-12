@@ -14,7 +14,7 @@ from setuptools import setup
 
 setup(
     name='ashes',
-    version='0.5.1',
+    version='0.5.2dev',
     license='BSD',
     author='Mahmoud Hashemi',
     author_email='mahmoudrhashemi@gmail.com',
