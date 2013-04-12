@@ -1501,8 +1501,9 @@ class BaseAshesEnv(object):
         self.templates[name] = template
         return
 
-    def register_source(self, name, tmpl_src):
-        tmpl = Template(name, tmpl_src, env=self)
+    def register_source(self, name, source, **kw):
+        kw['env'] = self
+        tmpl = Template(name, source, **kw)
         self.register(tmpl)
         return tmpl
 
@@ -1624,6 +1625,53 @@ class FlatteningPathLoader(TemplatePathLoader):
             name, ext = os.path.splitext(name)
         tmpl.name = name
         return tmpl
+
+try:
+    import bottle
+except ImportError:
+    pass
+else:
+    class AshesBottleTemplate(bottle.BaseTemplate):
+        extensions = list(bottle.BaseTemplate.extensions)
+        extensions.extend(['ash', 'ashes', 'dust'])
+
+        def prepare(self, **options):
+            if not self.source:
+                self.source = self._load_source(self.name)
+                if self.source is None:
+                    raise TemplateNotFound(self.name)
+
+            options['name'] = self.name
+            options['source'] = self.source
+            options['source_file'] = self.filename
+            for key in ('optimize', 'keep_source', 'env'):
+                if key in self.settings:
+                    options.setdefault(key, self.settings[key])
+            env = self.settings.get('env', default_env)
+
+            self.tpl = env.register_source(**options)
+
+        def _load_source(self, name):
+            fname = self.search(name, self.lookup)
+            if not fname:
+                return
+            with codecs.open(fname, "rb", self.encoding) as f:
+                return f.read()
+
+        def render(self, *a, **kw):
+            for dictarg in a:
+                kw.update(dictarg)
+            context = self.defaults.copy()
+            context.update(kw)
+            return self.tpl.render(context)
+
+    from functools import partial as _fp
+    ashes_bottle_template = _fp(bottle.template,
+                                template_adapter=AshesBottleTemplate)
+    ashes_bottle_view = _fp(bottle.view,
+                            template_adapter=AshesBottleTemplate)
+    del bottle
+    del _fp
 
 
 ashes = default_env = AshesEnv()
