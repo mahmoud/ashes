@@ -3,19 +3,53 @@ Ashes
 
 [Dust](http://akdubya.github.com/dustjs/) templating for Python.
 
-A quick example (which will work again soon):
+A quick example:
 
 ```python
->>> from ashes import ashes
->>> ashes.compile("Hello, {name}!", 'hello')
->>> ashes.render('hello', {'name': 'World'})
+>>> from ashes import AshesEnv
+>>> ashes_env = AshesEnv()
+
+# Register/render from source
+
+>>> ashes_env.register_source('hello', 'Hello, {name}!')
+>>> ashes_env.render('hello', {'name': 'World'})
 'Hello, World!'
->>> ashes.load('hella.html', 'hella')
->>> ashes.render('hella', {'names': ['Kurt', 'Alex']})
+
+# Or a file-based template (note: hella templates sold separately)
+
+>>> ashes_env2 = AshesEnv(['./templates'])
+>>> ashes_env2.render('hella.html', {'names': ['Kurt', 'Alex']})
 'Hella Kurt and Alex!'
 ```
 
-For more info, see the [Dust documentation](http://akdubya.github.com/dustjs/).
+There's also built-in [bottle.py](http://bottlepy.org/docs/dev/)
+support, which works exactly like bottle's own `template()` function
+and `view()` decorator.
+
+```python
+from ashes import ashes_bottle_template as template
+from ashes import ashes_bottle_view as view
+
+@route('/')
+def hello(name='World'):
+    return template('bottle_hello_template', name=name)
+
+@route('/dec')
+@view('bottle_hello_template')
+def hello_dec(name='World'):
+    return {'name': name}
+
+# Use debug=True to disable template caching for easier dev
+run(host='localhost', port=8080, reloader=True, debug=True)
+```
+
+If you've read [bottle's template
+docs](http://bottlepy.org/docs/dev/tutorial.html#templates), it'll be
+even dead-simpler, believe it or not.
+
+For more general information about the dust templating language, see
+the [Dust documentation](http://akdubya.github.com/dustjs/).
+
 
 ## Installation
 
