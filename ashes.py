@@ -1690,7 +1690,7 @@ def _main():
                 '{:else}oh well, world{/eq} '
                 '{@size key=""/} characters')
         ashes.register_source('hi', tmpl)
-        print ashes.render('hi', {'hello': True})
+        print(ashes.render('hi', {'hello': True}))
     except Exception as e:
         import pdb;pdb.post_mortem()
         raise
