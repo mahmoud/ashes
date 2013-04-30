@@ -1,4 +1,5 @@
 # TODO
+ * helpers to humanize numbers (add commas)
  * helpers for .keys(), .values(), .items()
  * helper for key access
  * remove unnecessary callback dynamics
