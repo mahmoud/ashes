@@ -298,6 +298,7 @@ def tokenize(source, inline=False):
     tokens = []
     com_nocom = comment_re.split(source)
     line_counts = [1]
+
     def _add_token(t):
         # i wish i had nonlocal so bad
         t.start_line = sum(line_counts)
@@ -906,11 +907,13 @@ def _coerce(value, typestr):
     coerce_type = _COERCE_MAP.get(typestr.lower())
     if not coerce_type or isinstance(value, coerce_type):
         return value
+    if isinstance(value, basestring):
+        try:
+            value = json.loads(value)
+        except (TypeError, ValueError):
+            pass
     try:
-        if isinstance(value, basestring):
-            return coerce_type(json.loads(value))
-        else:
-            return coerce_type(value)
+        return coerce_type(value)
     except (TypeError, ValueError):
         return value
 
@@ -1686,11 +1689,11 @@ def _main():
         #ashes.load_all()
         #rendereds = dict([(k, t.render({})) for k, t in ashes.templates.items()])
 
-        tmpl = ('{@eq key=hello value="true" type="string"}{hello}, world'
+        tmpl = ('{@eq key=hello value="True" type="boolean"}{hello}, world'
                 '{:else}oh well, world{/eq} '
                 '{@size key=""/} characters')
         ashes.register_source('hi', tmpl)
-        print(ashes.render('hi', {'hello': True}))
+        print(ashes.render('hi', {'hello': []}))
     except Exception as e:
         import pdb;pdb.post_mortem()
         raise
