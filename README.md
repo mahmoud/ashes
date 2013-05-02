@@ -1,6 +1,8 @@
 Ashes
 =====
 
+[![Build Status](https://travis-ci.org/mahmoud/ashes.png?branch=master)](https://travis-ci.org/mahmoud/ashes)
+
 [Dust](http://akdubya.github.com/dustjs/) templating for Python.
 
 A quick example:
