@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 import re
 import json
-from collections import OrderedDict, namedtuple
+from collections import namedtuple
 
 __all__ = ['AshesTest', 'json_rtrip', 'camel2under', 'under2camel']
 
@@ -72,6 +72,7 @@ class SkipTest(Exception):
 
 SYMBOLS = {'passed': '.', 'failed': 'X', 'skipped': '_', 'error': 'E'}
 
+# Python 3 removed __metaclass__, in case you were wondering
 AshesTestBase = ATMeta(str('AshesTestBase'), (object,), {})
 
 
@@ -81,8 +82,6 @@ class AshesTest(AshesTestBase):
     json_opt_ast = None
     json_context = None
     rendered = None
-
-    # __metaclass__ = ATMeta
 
     @classmethod
     def get_test_result(cls, env, lazy=False, raise_exc=False):

@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 from .core import AshesTest
 
+heading = 'Dust.js site refs'
 
 class Plain(AshesTest):
     template = 'Hello World!'
@@ -252,34 +253,3 @@ class Conditional(AshesTest):
     json_opt_ast = '["body", ["?", ["key", "tags"], ["context"], ["params"], ["bodies", ["param", ["literal", "else"], ["body", ["buffer", "No Tags!"]]], ["param", ["literal", "block"], ["body", ["buffer", "<ul>\\n"], ["#", ["key", "tags"], ["context"], ["params"], ["bodies", ["param", ["literal", "block"], ["body", ["buffer", "  <li>"], ["reference", ["path", true, []], ["filters"]], ["buffer", "</li>\\n"]]]]], ["buffer", "</ul>"]]]]], ["buffer", "\\n"], ["^", ["key", "likes"], ["context"], ["params"], ["bodies", ["param", ["literal", "else"], ["body", ["buffer", "<ul>\\n"], ["#", ["key", "likes"], ["context"], ["params"], ["bodies", ["param", ["literal", "block"], ["body", ["buffer", "  <li>"], ["reference", ["path", true, []], ["filters"]], ["buffer", "</li>\\n"]]]]], ["buffer", "</ul>"]]], ["param", ["literal", "block"], ["body", ["buffer", "No Likes!"]]]]]]'
     json_context = '{"likes": ["moe", "larry", "curly", "shemp"], "tags": []}'
     rendered = 'No Tags!\n<ul>\n  <li>moe</li>\n  <li>larry</li>\n  <li>curly</li>\n  <li>shemp</li>\n</ul>'
-
-
-class EQ(AshesTest):
-    template = 'The pen is{@eq key="liar_liar" value="enabled"} Blue{/eq}!'
-    json_context = '{"liar_liar": "enabled"}'
-    rendered = 'The pen is Blue!'
-
-class NE(AshesTest):
-    template = 'The pen is {@ne key="liar_liar" value="enabled"}Blue{:else}Black{/ne}!'
-    json_context = '{"liar_liar": "enabled"}'
-    rendered = 'The pen is Black!'
-
-class GT(AshesTest):
-    template = 'Mahmoud ate {@gt key="banana_count" value=2}hella{:else}a reasonable number of{/gt} bananas!'
-    json_context = '{"banana_count": 4}'
-    rendered = 'Mahmoud ate hella bananas!'
-
-class GTE(AshesTest):
-    template = 'Mahmoud ate {@gte key="banana_count" value=3}hella{:else}a reasonable number of{/gte} bananas!'
-    json_context = '{"banana_count": 2}'
-    rendered = 'Mahmoud ate a reasonable number of bananas!'
-
-class LT(AshesTest):
-    template = 'Kyle {@lt key="gym_memberships" value=3}does not even lift{:else}totally lifts{/lt}, bro.'
-    json_context = '{"gym_memberships": 2}'
-    rendered = 'Kyle does not even lift, bro.'
-
-class LTE(AshesTest):
-    template = 'Kyle {@lte key="gym_memberships" value=2}does not even lift{:else}totally lifts{/lte}, bro.'
-    json_context = '{"gym_memberships": 30}'
-    rendered = 'Kyle totally lifts, bro.'

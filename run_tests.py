@@ -4,9 +4,9 @@ from __future__ import unicode_literals, print_function
 from pprint import pformat
 from collections import OrderedDict
 
+import tests
 from ashes import AshesEnv, Template
-from tests import dust_site_tests
-from tests.core import OPS
+from tests import ALL_TEST_MODULES, OPS, AshesTest
 
 DEFAULT_WIDTH = 70
 
@@ -33,25 +33,31 @@ def get_line(title, items, twidth=20, talign='>', width=DEFAULT_WIDTH):
                        *items)
 
 
-def get_test_results(raise_on=None):
+def get_sorted_tests(module):
+    tests = [t for t in module.__dict__.values()
+             if hasattr(t, 'ast') and issubclass(t, AshesTest) and
+             t is not AshesTest]
+    return sorted(tests, key=lambda x: len(x.template or ''))
+
+
+def get_test_results(test_cases, raise_on=None):
     env = AshesEnv()
     ret = []
-    for tc in dust_site_tests:
+    for tc in test_cases:
         env.register(Template(tc.name, tc.template, env=env, lazy=True))
-    for tc in dust_site_tests:
+    for tc in test_cases:
         raise_exc = (tc.name == raise_on)
         ret.append(tc.get_test_result(env, raise_exc=raise_exc))
     return ret
 
 
-def get_grid(width=DEFAULT_WIDTH):
+def get_grid(test_results, title, width=DEFAULT_WIDTH):
     lines = ['', '  ' + LEGEND, '']
-    test_results = get_test_results()
 
     if test_results:
         test_count = len(test_results)
         col_names = [dt.op_name for dt in OPS]
-        headings = get_line('Dust.js site refs', col_names, talign='^')
+        headings = get_line(title, col_names, talign='^')
         lines.append(headings)
         rstripped_width = len(headings.rstrip())
         bar_str = '-' * (rstripped_width + 1)
@@ -75,16 +81,21 @@ def get_single_report(name, op=None, verbose=None, debug=None):
     raise_on = None
     if debug:
         raise_on = name
+    mod_name, _, test_name = name.rpartition('.')
+    test_module = getattr(tests, mod_name or 'dust_site')
+    lookup = dict([(k.lower(), v) for k, v in test_module.__dict__.items()])
     try:
-        results = get_test_results(raise_on)
-    except Exception as e:
-        import pdb;pdb.post_mortem()
-        raise
-    try:
-        tres = [t for t in results if t.name.lower() == name.lower()][0]
-    except IndexError:
+        test = lookup[test_name.lower()]
+    except KeyError:
         print('No test named: %r' % name)
         return
+    try:
+        tres = get_test_results([test], raise_on)[0]
+    except Exception as e:
+        print(e)
+        import pdb
+        pdb.post_mortem()
+        raise
 
     lines = []
     for op_name, result, result_ref, test_result in tres.results:
@@ -129,15 +140,17 @@ def main(width=DEFAULT_WIDTH):
     name = args.name
 
     if not name:
-        grid = get_grid()
-        if grid:
-            print(grid)
+        for test_mod in ALL_TEST_MODULES:
+            title = getattr(test_mod, 'heading', '')
+            tests = get_sorted_tests(test_mod)
+            test_results = get_test_results(tests)
+            grid = get_grid(test_results, title)
+            if grid:
+                print(grid)
     else:
         single_rep = get_single_report(name, args.op, args.verbose, args.debug)
         if single_rep:
             print(single_rep)
-
-
 
 
 if __name__ == '__main__':
