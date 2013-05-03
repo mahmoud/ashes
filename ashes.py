@@ -877,7 +877,7 @@ def _do_compare(chunk, context, bodies, params, cmp_op):
         typestr = params.get('type', 'string')
     except KeyError:
         return chunk
-    rkey = _resolve_value(context.get(key), chunk, context)
+    rkey = _resolve_value(key, chunk, context)
     rvalue = _resolve_value(value, chunk, context)
     crkey, crvalue = _coerce(rkey, typestr), _coerce(rvalue, typestr)
     if isinstance(crvalue, type(crkey)) and cmp_op(crkey, crvalue):
