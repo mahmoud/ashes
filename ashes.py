@@ -1684,22 +1684,17 @@ def _main():
     # TODO: accidentally unclosed tags may consume
     # trailing buffers without warning
     try:
-        #tpl = FlatteningPathLoader('./_test_tmpls', keep_ext=False)
-        #ashes.loaders.append(tpl)
-        #ashes.load_all()
-        #rendereds = dict([(k, t.render({})) for k, t in ashes.templates.items()])
-
-        tmpl = ('{@eq key=hello value="True" type="boolean"}{hello}, world'
-                '{:else}oh well, world{/eq} '
-                '{@size key=""/} characters')
+        tmpl = ('{@eq key=hello value="True" type="boolean"}'
+                '{hello}, world'
+                '{:else}'
+                'oh well, world'
+                '{/eq}'
+                ', {@size key=hello/} characters')
         ashes.register_source('hi', tmpl)
-        print(ashes.render('hi', {'hello': []}))
+        print(ashes.render('hi', {'hello': 'greetings'}))
     except Exception as e:
         import pdb;pdb.post_mortem()
         raise
-    else:
-        pass
-        #import pdb;pdb.set_trace()
 
 if __name__ == '__main__':
     _main()
