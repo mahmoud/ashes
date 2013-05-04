@@ -13,6 +13,13 @@ if PY3:
     unicode = str
     basestring = str
 
+__version__ = '0.5.2'
+__author__ = 'Mahmoud Hashemi'
+__contact__ = 'mahmoudrhashemi@gmail.com'
+__url__ = 'https://github.com/mahmoud/ashes'
+__license__ = 'BSD'
+
+
 # need to add group for literals
 # switch to using word boundary for params section
 node_re = re.compile(r'({'
