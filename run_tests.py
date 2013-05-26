@@ -4,8 +4,11 @@ from __future__ import unicode_literals, print_function
 from pprint import pformat
 try:
     from collections import OrderedDict
+    from argparse import ArgumentParser
 except ImportError:
+    # Python 2.6 stuff
     from tests.OrderedDict import OrderedDict
+    from tests.argparse import ArgumentParser
 
 import tests
 from ashes import AshesEnv, Template
@@ -125,7 +128,6 @@ def get_single_report(name, op=None, verbose=None, debug=None):
 
 
 def parse_args():
-    from argparse import ArgumentParser
     prs = ArgumentParser(description="command central for developing and"
                          " testing Ashes.")
     prs.add_argument('--name', help='see results for this test case')
