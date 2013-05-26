@@ -2,7 +2,10 @@
 from __future__ import unicode_literals, print_function
 
 from pprint import pformat
-from collections import OrderedDict
+try:
+    from collections import OrderedDict
+except ImportError:
+    from tests.OrderedDict import OrderedDict
 
 import tests
 from ashes import AshesEnv, Template
