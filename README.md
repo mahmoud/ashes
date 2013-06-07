@@ -3,7 +3,7 @@ Ashes
 
 [![Build Status](https://travis-ci.org/mahmoud/ashes.png?branch=master)](https://travis-ci.org/mahmoud/ashes)
 
-[Dust](http://akdubya.github.com/dustjs/) templating for Python.
+[Dust](http://akdubya.github.com/dustjs/) templating for Python 2 and 3.
 
 A quick example:
 
@@ -132,5 +132,5 @@ solutions.
 rare corner cases, like comments placed within string literals, the
 template behavior might differ.
 
-Ashes has been tested extensively on Python 2.7, and somewhat on PyPy
-1.9 and Python 3.2/3.3.
+Ashes has been tested extensively on Python 2.7, as well as 2.6, 3.2,
+3.3, and PyPy.
