@@ -240,8 +240,8 @@ def parse_inline(source):
 
 
 def inline_to_dust_ast(tokens):
-    if tokens and isinstance(tokens[0], BufferToken):
-        body = ['literal', tokens[0].text]
+    if tokens and all(isinstance(t, BufferToken) for t in tokens):
+        body = ['literal', ''.join(t.text for t in tokens)]
     else:
         body = ['body']
         for b in tokens:

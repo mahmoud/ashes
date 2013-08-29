@@ -110,10 +110,10 @@ class Escaped(AshesTest):
 
 
 class Partials(AshesTest):
-    template = '{>replace/} {>"plain"/} {>"{ref}"/}'
-    json_ast = '["body", ["partial", ["literal", "replace"], ["context"]], ["buffer", " "], ["partial", ["literal", "plain"], ["context"]], ["buffer", " "], ["partial", ["body", ["reference", ["key", "ref"], ["filters"]]], ["context"]]]'
-    json_context = '{"count": 42, "ref": "plain", "name": "Jim"}'
-    rendered = 'Hello Jim! You have 42 new messages. Hello World! Hello World!'
+    template = '{>replace/} {>"plain"/} {>"{ref}"/} {>"p{ref2}n"/}'
+    json_ast = '["body", ["partial", ["literal", "replace"], ["context"]], ["buffer", " "], ["partial", ["literal", "plain"], ["context"]], ["buffer", " "], ["partial", ["body", ["reference", ["key", "ref"], ["filters"]]], ["context"]], ["buffer", " "], ["partial", ["body", ["buffer", "p"], ["reference", ["key", "ref2"], ["filters"]], ["buffer", "n"]], ["context"]]]'
+    json_context = '{"count": 42, "ref": "plain", "ref2": "lai", "name": "Jim"}'
+    rendered = 'Hello Jim! You have 42 new messages. Hello World! Hello World! Hello World!'
 
 
 class Recursion(AshesTest):
