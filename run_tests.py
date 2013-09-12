@@ -86,8 +86,6 @@ def get_grid(test_results, title, width=DEFAULT_WIDTH):
 
 def get_single_report(name, op=None, verbose=None, debug=None):
     raise_on = None
-    if debug:
-        raise_on = name
     mod_name, _, test_name = name.rpartition('.')
     test_module = getattr(tests, mod_name or 'dust_site')
     lookup = dict([(k.lower(), v) for k, v in test_module.__dict__.items()])
@@ -96,6 +94,10 @@ def get_single_report(name, op=None, verbose=None, debug=None):
     except KeyError:
         print('No test named: %r' % name)
         return
+
+    if debug:
+        raise_on = test.name
+
     try:
         tres = get_test_results([test], raise_on)[0]
     except Exception as e:
