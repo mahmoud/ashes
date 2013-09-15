@@ -1485,7 +1485,7 @@ class BaseAshesEnv(object):
     def _load_template(self, name):
         for loader in self.loaders:
             try:
-                source = loader.load(name)
+                source = loader.load(name, env=self)
             except TemplateNotFound:
                 continue
             else:
