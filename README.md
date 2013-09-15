@@ -134,3 +134,19 @@ template behavior might differ.
 
 Ashes has been tested extensively on Python 2.7, as well as 2.6, 3.2,
 3.3, and PyPy.
+
+
+## Things to watch out for
+
+* Accidentally passing functions in as values to a
+  template. Dust/Ashes calls all functions referenced by the
+  template. If the function isn't of the right signature, you may see
+  a TypeError.
+
+* Leaving optimization enabled, especially when JavaScript is embedded
+  in the page. Dust-style optimization is meant for HTML/XML and is
+  nowhere near as smart as JavaScript/CSS minification suites. For
+  example, a mixed-mode page (HTML/JS/CSS all in one page) may appear
+  to work fine until the addition of a '//' single-line comment. When
+  Dust/Ashes turns this into a single line, the page from that point
+  on is treated as one long comment.
