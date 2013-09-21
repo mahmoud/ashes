@@ -471,6 +471,8 @@ class ParseTree(object):
                 ss[-1].add(new_b)
             else:
                 ss[-1].add(token)
+        if len(ss) > 1:
+            raise ParseError('unclosed tag: %r' % ss[-1].start_tag)
         return cls(root_sect.blocks[0])
 
     @classmethod
