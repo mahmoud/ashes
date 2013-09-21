@@ -456,23 +456,24 @@ class ParseTree(object):
                     ss.append(new_s)
             elif type(token) == ClosingTag:
                 if len(ss) <= 1:
-                    msg = 'closing tag before opening tag: %r' % token
+                    msg = 'closing tag before opening tag: %r' % token.text
                     raise ParseError(msg, token=token)
                 if token.name != ss[-1].name:
                     msg = ('improperly nested tags: %r does not close %r' %
-                           (token, ss[-1].start_tag))
+                           (token.text, ss[-1].start_tag.text))
                     raise ParseError(msg, token=token)
                 ss.pop()
             elif type(token) == BlockTag:
                 if len(ss) <= 1:
-                    msg = 'start block outside of a section: %r' % token
+                    msg = 'start block outside of a section: %r' % token.text
                     raise ParseError(msg, token=token)
                 new_b = Block(name=token.refpath)
                 ss[-1].add(new_b)
             else:
                 ss[-1].add(token)
         if len(ss) > 1:
-            raise ParseError('unclosed tag: %r' % ss[-1].start_tag)
+            raise ParseError('unclosed tag: %r' % ss[-1].start_tag.text,
+                             token=ss[-1].start_tag)
         return cls(root_sect.blocks[0])
 
     @classmethod
