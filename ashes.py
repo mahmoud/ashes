@@ -295,7 +295,7 @@ def get_tag(match, inline=False):
     elif symbol == '>':
         tag_type = PartialTag
     else:
-        raise ParseError('invalid tag')
+        raise ParseError('invalid tag symbol: %r' % symbol)
     if inline and tag_type not in (ReferenceTag, SpecialTag):
         raise ParseError('invalid inline tag')
     return tag_type.from_match(match)
