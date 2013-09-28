@@ -902,8 +902,10 @@ def _resolve_value(item, chunk, context):
         return item
     try:
         return chunk.tap_render(item, context)
-    except:
-        return None
+    except TypeError:
+        if getattr(context, 'is_strict', None):
+            raise
+        return item
 
 
 _COERCE_MAP = {
@@ -1166,15 +1168,24 @@ class Chunk(object):
                 output.append(data)
             return ''
         self.tap(tmp_tap)
-        self.render(body, context).untap()
+        try:
+            self.render(body, context)
+        finally:
+            self.untap()
         return ''.join(output)
 
     def reference(self, elem, context, auto, filters=None):
         if callable(elem):
-            # this whole callable thing is a pretty big TODO
-            elem = elem(self, context)
-            if isinstance(elem, Chunk):
-                return elem
+            # this whole callable thing is a quirky thing about dust
+            try:
+                elem = elem(self, context)
+            except TypeError:
+                if getattr(context, 'is_strict', None):
+                    raise
+                elem = repr(elem)
+            else:
+                if isinstance(elem, Chunk):
+                    return elem
         if is_empty(elem):
             return self
         else:
@@ -1183,9 +1194,15 @@ class Chunk(object):
 
     def section(self, elem, context, bodies, params=None):
         if callable(elem):
-            elem = elem(self, context, bodies, params)
-            if isinstance(elem, Chunk):
-                return elem
+            try:
+                elem = elem(self, context, bodies, params)
+            except TypeError:
+                if getattr(context, 'is_strict', None):
+                    raise
+                elem = repr(elem)
+            else:
+                if isinstance(elem, Chunk):
+                    return elem
         body = bodies.get('block')
         else_body = bodies.get('else')
         if params:
@@ -1273,6 +1290,10 @@ class Tap(object):
             value = tap.head(value)  # TODO: type errors?
             tap = tap.tail
         return value
+
+    def __repr__(self):
+        cn = self.__class__.__name__
+        return '%s(%r, %r)' % (cn, self.head, self.tail)
 
 
 DEFAULT_FILTERS = {
@@ -1554,6 +1575,7 @@ class AshesEnv(BaseAshesEnv):
     def __init__(self, paths=None, keep_whitespace=False, *a, **kw):
         self.paths = list(paths or [])
         self.keep_whitespace = keep_whitespace
+        self.is_strict = kw.pop('is_strict', False)
         exts = list(kw.pop('exts', DEFAULT_EXTENSIONS))
 
         super(AshesEnv, self).__init__(*a, **kw)
@@ -1702,7 +1724,7 @@ def _main():
                 '{/eq}'
                 ', {@size key=hello/} characters')
         ashes.register_source('hi', tmpl)
-        print(ashes.render('hi', {'hello': 'greetings'}))
+        print(ashes.render('hi', {'hello': lambda x: None}))
     except Exception as e:
         import pdb;pdb.post_mortem()
         raise
