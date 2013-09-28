@@ -48,7 +48,7 @@ def get_sorted_tests(module):
 
 
 def get_test_results(test_cases, raise_on=None):
-    env = AshesEnv()
+    env = AshesEnv(keep_whitespace=False)
     ret = []
     for tc in test_cases:
         env.register(Template(tc.name, tc.template, env=env, lazy=True))

@@ -1572,7 +1572,7 @@ class AshesEnv(BaseAshesEnv):
     A slightly more accessible Ashes environment, with more
     user-friendly options exposed.
     """
-    def __init__(self, paths=None, keep_whitespace=False, *a, **kw):
+    def __init__(self, paths=None, keep_whitespace=True, *a, **kw):
         self.paths = list(paths or [])
         self.keep_whitespace = keep_whitespace
         self.is_strict = kw.pop('is_strict', False)
