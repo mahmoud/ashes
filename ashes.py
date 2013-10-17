@@ -1058,13 +1058,17 @@ class Stub(object):
     def __init__(self, callback):
         self.head = Chunk(self)
         self.callback = callback
-        self.out = ''  # TODO: convert to list, use property and ''.join()
+        self._out = []
+
+    @property
+    def out(self):
+        return ''.join(self._out)
 
     def flush(self):
-        chunk = self.head
+        chunk =  self.head
         while chunk:
             if chunk.flushable:
-                self.out += chunk.data
+                self._out.append(chunk.data)
             elif chunk.error:
                 self.callback(chunk.error, '')
                 self.flush = lambda self: None
@@ -1121,19 +1125,20 @@ class Chunk(object):
         self.root = root
         self.next = next_chunk
         self.taps = taps
-        self.data = ''
+        self._data, self.data = [], ''
         self.flushable = False
         self.error = None
 
     def write(self, data):
         if self.taps:
             data = self.taps.go(data)
-        self.data += data
+        self._data.append(data)
         return self
 
     def end(self, data=None):
         if data:
             self.write(data)
+        self.data = ''.join(self._data)
         self.flushable = True
         self.root.flush()
         return self
@@ -1142,6 +1147,7 @@ class Chunk(object):
         cursor = Chunk(self.root, self.next, self.taps)
         branch = Chunk(self.root, cursor, self.taps)
         self.next = branch
+        self.data = ''.join(self._data)
         self.flushable = True
         callback(branch)
         return cursor
