@@ -69,6 +69,13 @@ Ashes is implemented as a single .py file, so installation can be as
 easy as downloading `ashes.py` above and putting it in the same
 directory as your project. And of course you can always `pip install ashes`.
 
+## Testimonials
+
+Ashes is currently used in production settings at PayPal and Rackspace.
+
+Additionally, it is part of `the Clastic web framework
+<https://github.com/mahmoud/clastic>`_ and used `in several
+Wikimedia-oriented projects <https://github.com/hatnote>`_.
 
 ## Compatibility
 
