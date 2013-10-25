@@ -77,6 +77,9 @@ Additionally, it is part of `the Clastic web framework
 <https://github.com/mahmoud/clastic>`_ and used `in several
 Wikimedia-oriented projects <https://github.com/hatnote>`_.
 
+If your company or project uses Ashes, feel free to submit an issue or
+pull request to get a link or shoutout added to this section.
+
 ## Compatibility
 
 Ashes has full support for every feature of the original Dust.js. Here's
