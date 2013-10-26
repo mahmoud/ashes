@@ -73,9 +73,9 @@ directory as your project. And of course you can always `pip install ashes`.
 
 Ashes is currently used in production settings at PayPal and Rackspace.
 
-Additionally, it is part of `the Clastic web framework
-<https://github.com/mahmoud/clastic>`_ and used `in several
-Wikimedia-oriented projects <https://github.com/hatnote>`_.
+Additionally, it is part of
+[the Clastic web framework](https://github.com/mahmoud/clastic) and
+used [in several Wikimedia-oriented projects](https://github.com/hatnote).
 
 If your company or project uses Ashes, feel free to submit an issue or
 pull request to get a link or shoutout added to this section.
