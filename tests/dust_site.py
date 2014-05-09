@@ -38,7 +38,7 @@ class Zero(AshesTest):
 
 class PartialContext(AshesTest):
     template = '{>replace:.profile/}'
-    json_ast = '["body", ["partial", ["literal", "replace"], ["context", ["path", true, ["profile"]]]]]'
+    json_ast = '["body", ["partial", ["literal", "replace"], ["context", ["path", true, ["profile"]]], ["params"]]]'
     json_context = '{"profile": {"count": 30, "name": "Mick"}}'
     rendered = 'Hello Mick! You have 30 new messages.'
 
@@ -111,14 +111,14 @@ class Escaped(AshesTest):
 
 class Partials(AshesTest):
     template = '{>replace/} {>"plain"/} {>"{ref}"/} {>"p{ref2}n"/}'
-    json_ast = '["body", ["partial", ["literal", "replace"], ["context"]], ["buffer", " "], ["partial", ["literal", "plain"], ["context"]], ["buffer", " "], ["partial", ["body", ["reference", ["key", "ref"], ["filters"]]], ["context"]], ["buffer", " "], ["partial", ["body", ["buffer", "p"], ["reference", ["key", "ref2"], ["filters"]], ["buffer", "n"]], ["context"]]]'
+    json_ast = '["body", ["partial", ["literal", "replace"], ["context"], ["params"]], ["buffer", " "], ["partial", ["literal", "plain"], ["context"], ["params"]], ["buffer", " "], ["partial", ["body", ["reference", ["key", "ref"], ["filters"]]], ["context"], ["params"]], ["buffer", " "], ["partial", ["body", ["buffer", "p"], ["reference", ["key", "ref2"], ["filters"]], ["buffer", "n"]], ["context"], ["params"]]]'
     json_context = '{"count": 42, "ref": "plain", "ref2": "lai", "name": "Jim"}'
     rendered = 'Hello Jim! You have 42 new messages. Hello World! Hello World! Hello World!'
 
 
 class Recursion(AshesTest):
     template = '{name}{~n}{#kids}{>recursion:./}{/kids}'
-    json_ast = '["body", ["reference", ["key", "name"], ["filters"]], ["special", "n"], ["#", ["key", "kids"], ["context"], ["params"], ["bodies", ["param", ["literal", "block"], ["body", ["partial", ["literal", "recursion"], ["context", ["path", true, []]]]]]]]]'
+    json_ast = '["body", ["reference", ["key", "name"], ["filters"]], ["special", "n"], ["#", ["key", "kids"], ["context"], ["params"], ["bodies", ["param", ["literal", "block"], ["body", ["partial", ["literal", "recursion"], ["context", ["path", true, []]], ["params"]]]]]]]'
     json_context = '{"kids": [{"kids": [{"name": "1.1.1"}], "name": "1.1"}], "name": "1"}'
     rendered = '1\n1.1\n1.1.1'
 
@@ -242,7 +242,7 @@ class Context(AshesTest):
 
 class ChildTemplate(AshesTest):
     template = '{^xhr}\n  {>base_template/}\n{:else}\n  {+main/}\n{/xhr}\n{<title}\n  Child Title\n{/title}\n{<main}\n  Child Content\n{/main}\n'
-    json_ast = '["body", ["^", ["key", "xhr"], ["context"], ["params"], ["bodies", ["param", ["literal", "else"], ["body", ["format", "\\n", "  "], ["+", ["key", "main"], ["context"], ["params"], ["bodies"]], ["format", "\\n", ""]]], ["param", ["literal", "block"], ["body", ["format", "\\n", "  "], ["partial", ["literal", "base_template"], ["context"]], ["format", "\\n", ""]]]]], ["format", "\\n", ""], ["<", ["key", "title"], ["context"], ["params"], ["bodies", ["param", ["literal", "block"], ["body", ["format", "\\n", "  "], ["buffer", "Child Title"], ["format", "\\n", ""]]]]], ["format", "\\n", ""], ["<", ["key", "main"], ["context"], ["params"], ["bodies", ["param", ["literal", "block"], ["body", ["format", "\\n", "  "], ["buffer", "Child Content"], ["format", "\\n", ""]]]]], ["format", "\\n", ""]]'
+    json_ast = '["body", ["^", ["key", "xhr"], ["context"], ["params"], ["bodies", ["param", ["literal", "else"], ["body", ["format", "\\n", "  "], ["+", ["key", "main"], ["context"], ["params"], ["bodies"]], ["format", "\\n", ""]]], ["param", ["literal", "block"], ["body", ["format", "\\n", "  "], ["partial", ["literal", "base_template"], ["context"], ["params"]], ["format", "\\n", ""]]]]], ["format", "\\n", ""], ["<", ["key", "title"], ["context"], ["params"], ["bodies", ["param", ["literal", "block"], ["body", ["format", "\\n", "  "], ["buffer", "Child Title"], ["format", "\\n", ""]]]]], ["format", "\\n", ""], ["<", ["key", "main"], ["context"], ["params"], ["bodies", ["param", ["literal", "block"], ["body", ["format", "\\n", "  "], ["buffer", "Child Content"], ["format", "\\n", ""]]]]], ["format", "\\n", ""]]'
     json_context = '{"xhr": false}'
     rendered = 'Start\nChild Title\nChild Content\nEnd'
 

@@ -218,14 +218,35 @@ class PartialTag(Tag):
         self.subtokens = parse_inline(self.refpath)
 
     def to_dust_ast(self):
+        """
+            2014.05.09
+                This brings compatibility to the more popular fork of Dust.js
+                from LinkedIn (v1.0)
+
+                Adding in `params` so `partials` function like sections.
+        """
         context = ['context']
         contpath = self.contpath
         if contpath:
             context.append(get_path_or_key(contpath))
+
+        params = ['params']
+        param_list = self.param_list
+        if param_list:
+            try:
+                params.extend(params_to_dust_ast(param_list))
+            except ParseError as pe:
+                pe.token = self
+                raise
+
+        ## tying to make this more standardized
         inline_body = inline_to_dust_ast(self.subtokens)
         return [['partial',
                  inline_body,
-                 context]]
+                 context,
+                 params,
+                 ]]
+
 
 
 def parse_inline(source):
@@ -578,7 +599,6 @@ ROOT_RENDER_TMPL = \
     return {root_func_name}(chk, ctx)
 '''
 
-
 def _python_compile(source, name, global_env=None):
     if global_env is None:
         global_env = {}
@@ -666,7 +686,6 @@ class Compiler(object):
             return self._section(node, stype)
         elif ntype in self.nodes:
             ntype = self.nodes[ntype]
-
         cfunc = getattr(self, '_' + ntype, None)
         if not callable(cfunc):
             raise TypeError('unsupported node type: "%r"', node[0])
@@ -748,11 +767,31 @@ class Compiler(object):
         return pragma(self, ctx, bodies, params)
 
     def _partial(self, node):
+        """
+            2014.05.09
+                This brings compatibility to the more popular fork of Dust.js
+                from LinkedIn (v1.0)
+
+                Adding in `params` so `partials` function like sections.
+                updating call to .partial() to include the kwargs
+                
+                dust.js reference :
+                compile.nodes = {
+                    partial: function(context, node) {
+                      return '.partial(' +
+                          compiler.compileNode(context, node[1]) +
+                          ',' + compiler.compileNode(context, node[2]) +
+                          ',' + compiler.compileNode(context, node[3]) + ')';
+                    },
+        """
         if node[0] == 'body':
             body_name = self._node(node[1])
             return '.partial(' + body_name + ', %s)' % self._node(node[2])
-        return '.partial(%s, %s)' % (self._node(node[1]),
-                                     self._node(node[2]))
+        return '.partial(%s, %s, %s)' % (self._node(node[1]),
+                                     self._node(node[2]),
+                                     self._node(node[3]),
+                                         )
+
 
     def _context(self, node):
         contpath = node[1:]
@@ -948,8 +987,25 @@ DEFAULT_HELPERS = {'first': first_helper,
                    'size': size_helper}
 DEFAULT_HELPERS.update(_make_compare_helpers())
 
-# Actual runtime objects
 
+def make_base(env, stack, global_vars=None):
+    """2014.05.09
+        This brings compatibility to the more popular fork of Dust.js
+        from LinkedIn (v1.0)
+        
+        adding this to try and create compatibility with Dust
+        
+        this is used for the non-activated alternative approach of rendering a 
+        partial with a custom context object
+        
+          dust.makeBase = function(global) {
+            return new Context(new Stack(), global);
+          };
+    """
+    return Context(env, stack, global_vars)
+
+
+# Actual runtime objects
 
 class Context(object):
     def __init__(self, env, stack, global_vars=None, blocks=None):
@@ -959,6 +1015,7 @@ class Context(object):
             global_vars = {}
         self.globals = global_vars
         self.blocks = blocks
+
 
     @classmethod
     def wrap(cls, env, context):
@@ -1256,11 +1313,73 @@ class Chunk(object):
             body(self, context)
         return self
 
-    def partial(self, elem, context, bodies=None):
-        if callable(elem):
-            cback = lambda name, chk: context.env.load_chunk(name, chk, context).end()
-            return self.capture(elem, context, cback)
-        return context.env.load_chunk(elem, self, context)
+    def partial(self, elem, context, params=None, ):
+        """
+            2014.05.09
+                This brings compatibility to the more popular fork of Dust.js
+                from LinkedIn (v1.0)
+
+                switched kwarg bodies to params; bodies don't seem to be used;
+                kwargs are needed.
+                
+                including two options. 
+        """
+        
+        if False :
+            """
+            2014.05.09
+            this approach is in line with the linkedin fork of dust.js
+            in this approach, we create a new partial context and run everything
+            with that partial context
+            
+            dust.js reference:
+                `Chunk.prototype.partial = function(elem, context, params)`
+                    var partialContext
+                    partialContext = dust.makeBase(context.global);
+                    partialContext.blocks = context.blocks
+                    if (context.stack && context.stack.tail){
+                      // grab the stack(tail) off of the previous context if we have it
+                      partialContext.stack = context.stack.tail;
+                    }
+                    if (params){
+                      //put params on
+                      partialContext = partialContext.push(params);
+                    }
+                    //reattach the head
+                    partialContext = partialContext.push(context.stack.head);
+            """
+
+            partialContext = make_base( context.env, context.stack )
+            partialContext.blocks = context.blocks
+        
+            if (partialContext.stack and partialContext.stack.tail):
+                # grab the stack(tail) off of the previous context if we have it
+                partialContext.stack = context.stack.tail
+
+            partialContext = context
+            if params:
+                partialContext = partialContext.push( params )
+
+            partialContext = partialContext.push(partialContext.stack.head);
+        
+            if callable(elem):
+                cback = lambda name, chk: context.env.load_chunk(name, chk, partialContext).end()
+                return self.capture(elem, partialContext, cback)
+
+            return partialContext.env.load_chunk(elem, self, partialContext)
+            
+        else:
+            """
+            2014.05.09
+            this approach just pushes the params onto the context
+            this is in line with how Chunk.section works above"""
+            if params:
+                context = context.push(params)
+            if callable(elem):
+                cback = lambda name, chk: context.env.load_chunk(name, chk, context).end()
+                return self.capture(elem, context, cback)
+            return context.env.load_chunk(elem, self, context)
+
 
     def helper(self, name, context, bodies, params=None):
         return context.env.helpers[name](self, context, bodies, params)
