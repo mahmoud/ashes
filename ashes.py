@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+import cgi
+import codecs
+import json
 import os
 import re
-import cgi
-import json
+import types
 import urllib
-import codecs
 
 import sys
 PY3 = (sys.version_info[0] == 3)
@@ -79,6 +80,14 @@ class Token(object):
         if len(disp) > 20:
             disp = disp[:17] + '...'
         return '%s(%r)' % (cn, disp)
+        
+class UndefinedValue(object):
+    
+    def __repr__(self):
+        return None
+        
+    def __str__(self):
+        return ''
 
 
 class CommentToken(Token):
@@ -1029,40 +1038,101 @@ When looking up a key, Dust searches the context stack from the bottom up. There
         if isinstance(context, cls):
             return context
         return cls(env, Stack(context))
+        
+        
+    def get(self, path, cur=False ):
+        """Retrieves the value `path` as a key from the context stack.
+        """
+        if isinstance( path, types.StringTypes ) :
+            if path[0] == '.' :
+                cur = True
+                path = path[1:]
+            path = path.split('.')
+        return self._get(cur, path);
 
-    def get(self, key):
-        """Retrieves the value at key from the context stack."""
-        ctx = self.stack
-        value = None
-        while ctx:
-            try:
-                value = ctx.head[key]
-            except (AttributeError, KeyError, TypeError):
-                ctx = ctx.tail
-            else:
-                return value
-        if value is None:
-            return self.globals.get(key)
-        else:
-            return value
 
     def get_path(self, cur, down):
+        return self._get(cur, down);
+
+
+    def _get(self, cur, down):
+        """
+           * Get a value from the context
+           * @method `_get`
+           * @param {boolean} `cur` Get only from the current context
+           * @param {array} `down` An array of each step in the path
+           * @private
+           * @return {string | object}
+        """
         ctx = self.stack
-        length = len(down)  # TODO: try/except?
-        if cur and not length:
-            return ctx.head  # aka implicit
-        try:
+        length = 0 if not down else len(down)  # TODO: try/except?
+        
+        if not length:
+            # wants nothing?  ok, send back the entire payload
+            return ctx.head
+
+        first_path_element = down[0]
+
+        value = UndefinedValue
+
+        ctxThis = None
+        if cur and ( length == 0 ):
+            ctxThis = ctx
             ctx = ctx.head
-        except AttributeError:
-            return None
-        for down_part in down:
-            try:
-                ctx = ctx[down_part]
-            except (AttributeError, TypeError):
-                break
-            except KeyError:
+        else:
+            if not cur:
+                # Search up the stack for the first_path_element value
+                while ctx :
+                    if isinstance(ctx.head,dict):
+                        ctxThis = ctx.head
+                        if first_path_element in ctx.head :
+                            value = ctx.head[ first_path_element ]
+                            break
+                    ctx = ctx.tail
+                if value != UndefinedValue :
+                    ctx = value
+                else:
+                    if first_path_element in self.globals :
+                        ctx = self.globals[first_path_element]
+                    else:
+                        ctx = UndefinedValue
+            else:
+                #if scope is limited by a leading dot, don't search up the tree
+                if first_path_element in ctx.head :
+                    ctx = ctx.head[first_path_element]
+                else:
+                    ctx = UndefinedValue
+                    
+            i = 1
+            while ctx and (ctx != UndefinedValue) and ( i < length ):
+                ctxThis = ctx
+                if down[i] in ctx:
+                    ctx = ctx[down[i]]
+                else:
+                    ctx = UndefinedValue
+                i+= 1
+            
+
+            ## UndefinedValue is a class, so it's callable.  
+            ## shortcircuit an exit here, so we get out of both issues
+            if ctx == UndefinedValue:
                 return None
-        return ctx
+
+            ## Return the ctx or a function wrapping the application of the context.
+            if callable(ctx):
+                return ctx
+                ## returning a lambda might not be necessary
+                ## the test are called with a CHUNK , such as:
+                ## { 'type': async_key_func }
+                ## def async_key_func(chunk, *a, **kw):
+                ##    return chunk.map(lambda chk: chk.end('Async'))
+                ## however there is no CHUNK available here.
+                ##
+                ## cback = lambda chunkRuntime, *a, **kw : ctx( chunkRuntime, *a, **kw )
+            else:
+                return ctx
+    
+
 
     def push(self, head, index=None, length=None):
         """Pushes an arbitrary value `head` onto the context stack and returns a new `Context` instance. Specify `index` and/or `length` to enable enumeration helpers."""

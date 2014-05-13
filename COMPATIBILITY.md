@@ -99,7 +99,7 @@ Release 1.2.3 - Perf Improvements for IE7
 
 Release 2.0.0 - Core Enhancements
 
-[?] PR-305 change the default getPath behaviour to walk up the context tree
+[PENDING:jvanasco] PR-305 change the default getPath behaviour to walk up the context tree
 [ ] GH-292,GH-266 support storing the current template name in the global context
 [NA] PR-295, upgrade jasmine-node to work with node 0.10
 [ ] PR-278, remove the strip option that was added in previous releases
@@ -110,10 +110,6 @@ Release 2.0.0 - Bug fixes
 
 [ ] PR-289, fix the CacheVM context across `dust.loadSource` calls for node.js
 
-
-Release 2.2.3
-
-[ ] PR-363, GH-340 - Remove old optimization to avoid looking at arrays in get.
 
 
 Release 2.0.2, (2.0.1)
@@ -142,3 +138,8 @@ Release 2.2.0
 Release 2.2.2
 
 [ ]  PR-368 - Add context.getTemplateName. This method now correctly returns the template name even for directly loaded templates being used as partials. For end users please use this api for getting the template name instead of ctx.templatename.
+
+Release 2.2.3
+
+[ ] PR-363, GH-340 - Remove old optimization to avoid looking at arrays in get.
+
