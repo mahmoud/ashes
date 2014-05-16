@@ -14,7 +14,7 @@ PY3 = (sys.version_info[0] == 3)
 if PY3:
     unicode, basestring = str, str
 
-__version__ = '0.6.1dev'
+__version__ = '0.7.0dev'
 __author__ = 'Mahmoud Hashemi'
 __contact__ = 'mahmoudrhashemi@gmail.com'
 __url__ = 'https://github.com/mahmoud/ashes'
@@ -80,14 +80,6 @@ class Token(object):
         if len(disp) > 20:
             disp = disp[:17] + '...'
         return '%s(%r)' % (cn, disp)
-
-class UndefinedValue(object):
-
-    def __repr__(self):
-        return None
-
-    def __str__(self):
-        return ''
 
 
 class CommentToken(Token):
@@ -844,8 +836,19 @@ class Compiler(object):
 # Runtime
 #########
 
-# Escapes/filters
 
+class UndefinedValueType(object):
+    def __repr__(self):
+        return self.__class__.__name__ + '()'
+
+    def __str__(self):
+        return ''
+
+
+UndefinedValue = UndefinedValueType()
+
+
+# Escapes/filters
 
 def escape_html(text):
     text = unicode(text)
@@ -1044,13 +1047,11 @@ When looking up a key, Dust searches the context stack from the bottom up. There
         self.globals = global_vars
         self.blocks = blocks
 
-
     @classmethod
     def wrap(cls, env, context):
         if isinstance(context, cls):
             return context
         return cls(env, Stack(context))
-
 
     def get(self, path, cur=False ):
         """Retrieves the value `path` as a key from the context stack.
@@ -1062,10 +1063,8 @@ When looking up a key, Dust searches the context stack from the bottom up. There
             path = path.split('.')
         return self._get(cur, path);
 
-
     def get_path(self, cur, down):
         return self._get(cur, down);
-
 
     def _get(self, cur, down):
         """
@@ -1124,10 +1123,7 @@ When looking up a key, Dust searches the context stack from the bottom up. There
                     ctx = UndefinedValue
                 i+= 1
 
-
-            ## UndefinedValue is a class, so it's callable.
-            ## shortcircuit an exit here, so we get out of both issues
-            if ctx == UndefinedValue:
+            if ctx is UndefinedValue:
                 return None
 
             ## Return the ctx or a function wrapping the application of the context.
