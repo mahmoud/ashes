@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+import cgi
+import codecs
+import json
 import os
 import re
-import cgi
-import json
+import types
 import urllib
-import codecs
 
 import sys
 PY3 = (sys.version_info[0] == 3)
@@ -79,6 +80,14 @@ class Token(object):
         if len(disp) > 20:
             disp = disp[:17] + '...'
         return '%s(%r)' % (cn, disp)
+        
+class UndefinedValue(object):
+    
+    def __repr__(self):
+        return None
+        
+    def __str__(self):
+        return ''
 
 
 class CommentToken(Token):
@@ -218,14 +227,35 @@ class PartialTag(Tag):
         self.subtokens = parse_inline(self.refpath)
 
     def to_dust_ast(self):
+        """
+            2014.05.09
+                This brings compatibility to the more popular fork of Dust.js
+                from LinkedIn (v1.0)
+
+                Adding in `params` so `partials` function like sections.
+        """
         context = ['context']
         contpath = self.contpath
         if contpath:
             context.append(get_path_or_key(contpath))
+
+        params = ['params']
+        param_list = self.param_list
+        if param_list:
+            try:
+                params.extend(params_to_dust_ast(param_list))
+            except ParseError as pe:
+                pe.token = self
+                raise
+
+        ## tying to make this more standardized
         inline_body = inline_to_dust_ast(self.subtokens)
         return [['partial',
                  inline_body,
-                 context]]
+                 context,
+                 params,
+                 ]]
+
 
 
 def parse_inline(source):
@@ -578,7 +608,6 @@ ROOT_RENDER_TMPL = \
     return {root_func_name}(chk, ctx)
 '''
 
-
 def _python_compile(source, name, global_env=None):
     if global_env is None:
         global_env = {}
@@ -666,7 +695,6 @@ class Compiler(object):
             return self._section(node, stype)
         elif ntype in self.nodes:
             ntype = self.nodes[ntype]
-
         cfunc = getattr(self, '_' + ntype, None)
         if not callable(cfunc):
             raise TypeError('unsupported node type: "%r"', node[0])
@@ -748,11 +776,31 @@ class Compiler(object):
         return pragma(self, ctx, bodies, params)
 
     def _partial(self, node):
+        """
+            2014.05.09
+                This brings compatibility to the more popular fork of Dust.js
+                from LinkedIn (v1.0)
+
+                Adding in `params` so `partials` function like sections.
+                updating call to .partial() to include the kwargs
+                
+                dust.js reference :
+                compile.nodes = {
+                    partial: function(context, node) {
+                      return '.partial(' +
+                          compiler.compileNode(context, node[1]) +
+                          ',' + compiler.compileNode(context, node[2]) +
+                          ',' + compiler.compileNode(context, node[3]) + ')';
+                    },
+        """
         if node[0] == 'body':
             body_name = self._node(node[1])
             return '.partial(' + body_name + ', %s)' % self._node(node[2])
-        return '.partial(%s, %s)' % (self._node(node[1]),
-                                     self._node(node[2]))
+        return '.partial(%s, %s, %s)' % (self._node(node[1]),
+                                     self._node(node[2]),
+                                     self._node(node[3]),
+                                         )
+
 
     def _context(self, node):
         contpath = node[1:]
@@ -948,11 +996,35 @@ DEFAULT_HELPERS = {'first': first_helper,
                    'size': size_helper}
 DEFAULT_HELPERS.update(_make_compare_helpers())
 
-# Actual runtime objects
 
+def make_base(env, stack, global_vars=None):
+    """`make_base( env, stack, global_vars=None )`
+        `env` and `stack` are required by the Python implementation.
+        `global_vars` is optional. set to global_vars.
+    
+    2014.05.09
+        This brings compatibility to the more popular fork of Dust.js
+        from LinkedIn (v1.0)
+        
+        adding this to try and create compatibility with Dust
+        
+        this is used for the non-activated alternative approach of rendering a 
+        partial with a custom context object
+        
+          dust.makeBase = function(global) {
+            return new Context(new Stack(), global);
+          };
+    """
+    return Context(env, stack, global_vars)
+
+
+# Actual runtime objects
 
 class Context(object):
     def __init__(self, env, stack, global_vars=None, blocks=None):
+        """The context is a special object that handles variable lookups and controls template behavior. It is the interface between your application logic and your templates. The context can be visualized as a stack of objects that grows as we descend into nested sections.
+
+When looking up a key, Dust searches the context stack from the bottom up. There is no need to merge helper functions into the template data; instead, create a base context onto which you can push your local template data."""
         self.env = env
         self.stack = stack
         if global_vars is None:
@@ -960,58 +1032,124 @@ class Context(object):
         self.globals = global_vars
         self.blocks = blocks
 
+
     @classmethod
     def wrap(cls, env, context):
         if isinstance(context, cls):
             return context
         return cls(env, Stack(context))
+        
+        
+    def get(self, path, cur=False ):
+        """Retrieves the value `path` as a key from the context stack.
+        """
+        if isinstance( path, types.StringTypes ) :
+            if path[0] == '.' :
+                cur = True
+                path = path[1:]
+            path = path.split('.')
+        return self._get(cur, path);
 
-    def get(self, key):
-        ctx = self.stack
-        value = None
-        while ctx:
-            try:
-                value = ctx.head[key]
-            except (AttributeError, KeyError, TypeError):
-                ctx = ctx.tail
-            else:
-                return value
-        if value is None:
-            return self.globals.get(key)
-        else:
-            return value
 
     def get_path(self, cur, down):
+        return self._get(cur, down);
+
+
+    def _get(self, cur, down):
+        """
+           * Get a value from the context
+           * @method `_get`
+           * @param {boolean} `cur` Get only from the current context
+           * @param {array} `down` An array of each step in the path
+           * @private
+           * @return {string | object}
+        """
         ctx = self.stack
-        length = len(down)  # TODO: try/except?
-        if cur and not length:
-            return ctx.head  # aka implicit
-        try:
+        length = 0 if not down else len(down)  # TODO: try/except?
+        
+        if not length:
+            # wants nothing?  ok, send back the entire payload
+            return ctx.head
+
+        first_path_element = down[0]
+
+        value = UndefinedValue
+
+        ctxThis = None
+        if cur and ( length == 0 ):
+            ctxThis = ctx
             ctx = ctx.head
-        except AttributeError:
-            return None
-        for down_part in down:
-            try:
-                ctx = ctx[down_part]
-            except (AttributeError, TypeError):
-                break
-            except KeyError:
+        else:
+            if not cur:
+                # Search up the stack for the first_path_element value
+                while ctx :
+                    if isinstance(ctx.head,dict):
+                        ctxThis = ctx.head
+                        if first_path_element in ctx.head :
+                            value = ctx.head[ first_path_element ]
+                            break
+                    ctx = ctx.tail
+                if value != UndefinedValue :
+                    ctx = value
+                else:
+                    if first_path_element in self.globals :
+                        ctx = self.globals[first_path_element]
+                    else:
+                        ctx = UndefinedValue
+            else:
+                #if scope is limited by a leading dot, don't search up the tree
+                if first_path_element in ctx.head :
+                    ctx = ctx.head[first_path_element]
+                else:
+                    ctx = UndefinedValue
+                    
+            i = 1
+            while ctx and (ctx != UndefinedValue) and ( i < length ):
+                ctxThis = ctx
+                if down[i] in ctx:
+                    ctx = ctx[down[i]]
+                else:
+                    ctx = UndefinedValue
+                i+= 1
+            
+
+            ## UndefinedValue is a class, so it's callable.  
+            ## shortcircuit an exit here, so we get out of both issues
+            if ctx == UndefinedValue:
                 return None
-        return ctx
+
+            ## Return the ctx or a function wrapping the application of the context.
+            if callable(ctx):
+                return ctx
+                ## returning a lambda might not be necessary
+                ## the test are called with a CHUNK , such as:
+                ## { 'type': async_key_func }
+                ## def async_key_func(chunk, *a, **kw):
+                ##    return chunk.map(lambda chk: chk.end('Async'))
+                ## however there is no CHUNK available here.
+                ##
+                ## cback = lambda chunkRuntime, *a, **kw : ctx( chunkRuntime, *a, **kw )
+            else:
+                return ctx
+    
+
 
     def push(self, head, index=None, length=None):
+        """Pushes an arbitrary value `head` onto the context stack and returns a new `Context` instance. Specify `index` and/or `length` to enable enumeration helpers."""
         return Context(self.env,
                        Stack(head, self.stack, index, length),
                        self.globals,
                        self.blocks)
 
     def rebase(self, head):
+        """Returns a new context instance consisting only of the value at `head`, plus any previously defined global object."""
         return Context(self.env,
                        Stack(head),
                        self.globals,
                        self.blocks)
 
     def current(self):
+        """Returns the head of the context stack."""
         return self.stack.head
 
     def get_block(self, key):
@@ -1122,6 +1260,7 @@ def is_empty(obj):
 
 class Chunk(object):
     def __init__(self, root, next_chunk=None, taps=None):
+        """A Chunk is a Dust primitive for controlling the flow of the template. Depending upon the behaviors defined in the context, templates may output one or more chunks during rendering. A handler that writes to a chunk directly must return the modified chunk."""
         self.root = root
         self.next = next_chunk
         self.taps = taps
@@ -1130,12 +1269,14 @@ class Chunk(object):
         self.error = None
 
     def write(self, data):
+        """Writes data to this chunk's buffer"""
         if self.taps:
             data = self.taps.go(data)
         self._data.append(data)
         return self
 
     def end(self, data=None):
+        """Writes data to this chunk's buffer and marks it as flushable. This method must be called on any chunks created via chunk.map. Do not call this method on a handler's main chunk -- dust.render and dust.stream take care of this for you."""
         if data:
             self.write(data)
         self.data = ''.join(self._data)
@@ -1144,6 +1285,7 @@ class Chunk(object):
         return self
 
     def map(self, callback):
+        """Creates a new chunk and passes it to `callback`. Use map to wrap asynchronous functions and to partition the template for streaming.  chunk.map tells Dust to manufacture a new chunk, reserving a slot in the output stream before continuing on to render the rest of the template. You must (eventually) call chunk.end() on a mapped chunk to weave its content back into the stream."""
         cursor = Chunk(self.root, self.next, self.taps)
         branch = Chunk(self.root, cursor, self.taps)
         self.next = branch
@@ -1153,6 +1295,7 @@ class Chunk(object):
         return cursor
 
     def tap(self, tap):
+        """Convenience methods for applying filters to a stream. """
         if self.taps:
             self.taps = self.taps.push(tap)
         else:
@@ -1160,13 +1303,16 @@ class Chunk(object):
         return self
 
     def untap(self):
+        """Convenience methods for applying filters to a stream. """
         self.taps = self.taps.tail
         return self
 
     def render(self, body, context):
+        """Renders a template block, such as a default block or an else block. Basically equivalent to body(chunk, context)."""
         return body(self, context)
 
     def tap_render(self, body, context):
+        """docstring needed"""
         output = []
 
         def tmp_tap(data):
@@ -1181,6 +1327,7 @@ class Chunk(object):
         return ''.join(output)
 
     def reference(self, elem, context, auto, filters=None):
+        """These methods implement Dust's default behavior for keys, sections, blocks, partials and context helpers. While it is unlikely you'll need to modify these methods or invoke them from within handlers, the source code may be a useful point of reference for developers."""
         if callable(elem):
             # this whole callable thing is a quirky thing about dust
             try:
@@ -1199,6 +1346,7 @@ class Chunk(object):
             return self.write(filtered)
 
     def section(self, elem, context, bodies, params=None):
+        """These methods implement Dust's default behavior for keys, sections, blocks, partials and context helpers. While it is unlikely you'll need to modify these methods or invoke them from within handlers, the source code may be a useful point of reference for developers."""
         if callable(elem):
             try:
                 elem = elem(self, context, bodies, params)
@@ -1233,6 +1381,7 @@ class Chunk(object):
             return chunk
 
     def exists(self, elem, context, bodies, params=None):
+        """These methods implement Dust's default behavior for keys, sections, blocks, partials and context helpers. While it is unlikely you'll need to modify these methods or invoke them from within handlers, the source code may be a useful point of reference for developers."""
         if not is_empty(elem):
             if bodies.get('block'):
                 return bodies['block'](self, context)
@@ -1241,6 +1390,7 @@ class Chunk(object):
         return self
 
     def notexists(self, elem, context, bodies, params=None):
+        """These methods implement Dust's default behavior for keys, sections, blocks, partials and context helpers. While it is unlikely you'll need to modify these methods or invoke them from within handlers, the source code may be a useful point of reference for developers."""
         if is_empty(elem):
             if bodies.get('block'):
                 return bodies['block'](self, context)
@@ -1249,6 +1399,7 @@ class Chunk(object):
         return self
 
     def block(self, elem, context, bodies, params=None):
+        """These methods implement Dust's default behavior for keys, sections, blocks, partials and context helpers. While it is unlikely you'll need to modify these methods or invoke them from within handlers, the source code may be a useful point of reference for developers."""
         body = bodies.get('block')
         if elem:
             body = elem
@@ -1256,16 +1407,81 @@ class Chunk(object):
             body(self, context)
         return self
 
-    def partial(self, elem, context, bodies=None):
-        if callable(elem):
-            cback = lambda name, chk: context.env.load_chunk(name, chk, context).end()
-            return self.capture(elem, context, cback)
-        return context.env.load_chunk(elem, self, context)
+    def partial(self, elem, context, params=None, ):
+        """These methods implement Dust's default behavior for keys, sections, blocks, partials and context helpers. While it is unlikely you'll need to modify these methods or invoke them from within handlers, the source code may be a useful point of reference for developers.
+
+            2014.05.09
+                This brings compatibility to the more popular fork of Dust.js
+                from LinkedIn (v1.0)
+
+                switched kwarg bodies to params; bodies don't seem to be used;
+                kwargs are needed.
+                
+                including two options. 
+        """
+        
+        if False :
+            """
+            2014.05.09
+            this approach is in line with the linkedin fork of dust.js
+            in this approach, we create a new partial context and run everything
+            with that partial context
+            
+            dust.js reference:
+                `Chunk.prototype.partial = function(elem, context, params)`
+                    var partialContext
+                    partialContext = dust.makeBase(context.global);
+                    partialContext.blocks = context.blocks
+                    if (context.stack && context.stack.tail){
+                      // grab the stack(tail) off of the previous context if we have it
+                      partialContext.stack = context.stack.tail;
+                    }
+                    if (params){
+                      //put params on
+                      partialContext = partialContext.push(params);
+                    }
+                    //reattach the head
+                    partialContext = partialContext.push(context.stack.head);
+            """
+
+            partialContext = make_base( context.env, context.stack )
+            partialContext.blocks = context.blocks
+        
+            if (partialContext.stack and partialContext.stack.tail):
+                # grab the stack(tail) off of the previous context if we have it
+                partialContext.stack = context.stack.tail
+
+            partialContext = context
+            if params:
+                partialContext = partialContext.push( params )
+
+            partialContext = partialContext.push(partialContext.stack.head);
+        
+            if callable(elem):
+                cback = lambda name, chk: context.env.load_chunk(name, chk, partialContext).end()
+                return self.capture(elem, partialContext, cback)
+
+            return partialContext.env.load_chunk(elem, self, partialContext)
+            
+        else:
+            """
+            2014.05.09
+            this approach just pushes the params onto the context
+            this is in line with how Chunk.section works above"""
+            if params:
+                context = context.push(params)
+            if callable(elem):
+                cback = lambda name, chk: context.env.load_chunk(name, chk, context).end()
+                return self.capture(elem, context, cback)
+            return context.env.load_chunk(elem, self, context)
+
 
     def helper(self, name, context, bodies, params=None):
+        """These methods implement Dust's default behavior for keys, sections, blocks, partials and context helpers. While it is unlikely you'll need to modify these methods or invoke them from within handlers, the source code may be a useful point of reference for developers."""
         return context.env.helpers[name](self, context, bodies, params)
 
     def capture(self, body, context, callback):
+        """docstring needed"""
         def map_func(chunk):
             def stub_cb(err, out):
                 if err:
@@ -1277,6 +1493,7 @@ class Chunk(object):
         return self.map(map_func)
 
     def set_error(self, error):
+        """Sets an error on this chunk and immediately flushes the output."""
         self.error = error
         self.root.flush()
         return self
