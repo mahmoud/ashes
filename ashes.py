@@ -25,7 +25,7 @@ __license__ = 'BSD'
 # switch to using word boundary for params section
 node_re = re.compile(r'({'
                      r'(?P<closing>\/)?'
-                     r'(?:(?P<symbol>[\~\#\?\@\:\<\>\+\^\%])\s*)?'
+                     r'(?:(?P<symbol>[\~\#\?\@\:\<\>\+\^\%`])\s*)?'
                      r'(?P<refpath>[a-zA-Z0-9_\$\.]+|"[^"]+")'
                      r'(?:\:(?P<contpath>[a-zA-Z0-9\$\.]+))?'
                      r'(?P<filters>\|[a-z]+)*?'
@@ -80,12 +80,12 @@ class Token(object):
         if len(disp) > 20:
             disp = disp[:17] + '...'
         return '%s(%r)' % (cn, disp)
-        
+
 class UndefinedValue(object):
-    
+
     def __repr__(self):
         return None
-        
+
     def __str__(self):
         return ''
 
@@ -783,7 +783,7 @@ class Compiler(object):
 
                 Adding in `params` so `partials` function like sections.
                 updating call to .partial() to include the kwargs
-                
+
                 dust.js reference :
                 compile.nodes = {
                     partial: function(context, node) {
@@ -877,6 +877,13 @@ def escape_uri_component(text):
             .replace('?', '%3F')
             .replace('=', '%3D')
             .replace('&', '%26'))
+
+
+def comma_num(val):
+    try:
+        return '{0:,}'.format(val)
+    except ValueError:
+        return str(val)
 
 
 # Helpers
@@ -1001,16 +1008,16 @@ def make_base(env, stack, global_vars=None):
     """`make_base( env, stack, global_vars=None )`
         `env` and `stack` are required by the Python implementation.
         `global_vars` is optional. set to global_vars.
-    
+
     2014.05.09
         This brings compatibility to the more popular fork of Dust.js
         from LinkedIn (v1.0)
-        
+
         adding this to try and create compatibility with Dust
-        
-        this is used for the non-activated alternative approach of rendering a 
+
+        this is used for the non-activated alternative approach of rendering a
         partial with a custom context object
-        
+
           dust.makeBase = function(global) {
             return new Context(new Stack(), global);
           };
@@ -1022,9 +1029,14 @@ def make_base(env, stack, global_vars=None):
 
 class Context(object):
     def __init__(self, env, stack, global_vars=None, blocks=None):
-        """The context is a special object that handles variable lookups and controls template behavior. It is the interface between your application logic and your templates. The context can be visualized as a stack of objects that grows as we descend into nested sections.
+        """The context is a special object that handles variable lookups and
+controls template behavior. It is the interface between your
+application logic and your templates. The context can be visualized as
+a stack of objects that grows as we descend into nested sections.
 
-When looking up a key, Dust searches the context stack from the bottom up. There is no need to merge helper functions into the template data; instead, create a base context onto which you can push your local template data."""
+When looking up a key, Dust searches the context stack from the bottom up. There is no need to merge helper functions into the template data; instead, create a base context onto which you can push your local template data.
+
+        """
         self.env = env
         self.stack = stack
         if global_vars is None:
@@ -1038,8 +1050,8 @@ When looking up a key, Dust searches the context stack from the bottom up. There
         if isinstance(context, cls):
             return context
         return cls(env, Stack(context))
-        
-        
+
+
     def get(self, path, cur=False ):
         """Retrieves the value `path` as a key from the context stack.
         """
@@ -1066,7 +1078,7 @@ When looking up a key, Dust searches the context stack from the bottom up. There
         """
         ctx = self.stack
         length = 0 if not down else len(down)  # TODO: try/except?
-        
+
         if not length:
             # wants nothing?  ok, send back the entire payload
             return ctx.head
@@ -1102,7 +1114,7 @@ When looking up a key, Dust searches the context stack from the bottom up. There
                     ctx = ctx.head[first_path_element]
                 else:
                     ctx = UndefinedValue
-                    
+
             i = 1
             while ctx and (ctx != UndefinedValue) and ( i < length ):
                 ctxThis = ctx
@@ -1111,9 +1123,9 @@ When looking up a key, Dust searches the context stack from the bottom up. There
                 else:
                     ctx = UndefinedValue
                 i+= 1
-            
 
-            ## UndefinedValue is a class, so it's callable.  
+
+            ## UndefinedValue is a class, so it's callable.
             ## shortcircuit an exit here, so we get out of both issues
             if ctx == UndefinedValue:
                 return None
@@ -1131,7 +1143,7 @@ When looking up a key, Dust searches the context stack from the bottom up. There
                 ## cback = lambda chunkRuntime, *a, **kw : ctx( chunkRuntime, *a, **kw )
             else:
                 return ctx
-    
+
 
 
     def push(self, head, index=None, length=None):
@@ -1416,17 +1428,17 @@ class Chunk(object):
 
                 switched kwarg bodies to params; bodies don't seem to be used;
                 kwargs are needed.
-                
-                including two options. 
+
+                including two options.
         """
-        
+
         if False :
             """
             2014.05.09
             this approach is in line with the linkedin fork of dust.js
             in this approach, we create a new partial context and run everything
             with that partial context
-            
+
             dust.js reference:
                 `Chunk.prototype.partial = function(elem, context, params)`
                     var partialContext
@@ -1446,7 +1458,7 @@ class Chunk(object):
 
             partialContext = make_base( context.env, context.stack )
             partialContext.blocks = context.blocks
-        
+
             if (partialContext.stack and partialContext.stack.tail):
                 # grab the stack(tail) off of the previous context if we have it
                 partialContext.stack = context.stack.tail
@@ -1456,13 +1468,13 @@ class Chunk(object):
                 partialContext = partialContext.push( params )
 
             partialContext = partialContext.push(partialContext.stack.head);
-        
+
             if callable(elem):
                 cback = lambda name, chk: context.env.load_chunk(name, chk, partialContext).end()
                 return self.capture(elem, partialContext, cback)
 
             return partialContext.env.load_chunk(elem, self, partialContext)
-            
+
         else:
             """
             2014.05.09
@@ -1523,7 +1535,8 @@ DEFAULT_FILTERS = {
     'h': escape_html,
     'j': escape_js,
     'u': escape_uri,
-    'uc': escape_uri_component}
+    'uc': escape_uri_component,
+    'cn': comma_num}
 
 
 #########
@@ -1951,6 +1964,10 @@ def _main():
     except Exception as e:
         import pdb;pdb.post_mortem()
         raise
+
+    ae = AshesEnv(filters={'cn': comma_num})
+    ae.register_source('cn_tmpl', 'comma_numd: {thing|cn}')
+    print(ae.render('cn_tmpl', {'thing': 21000}))
 
 if __name__ == '__main__':
     _main()
