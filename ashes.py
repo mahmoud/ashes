@@ -25,7 +25,7 @@ __license__ = 'BSD'
 # switch to using word boundary for params section
 node_re = re.compile(r'({'
                      r'(?P<closing>\/)?'
-                     r'(?:(?P<symbol>[\~\#\?\@\:\<\>\+\^\%`])\s*)?'
+                     r'(?:(?P<symbol>[\~\#\?\@\:\<\>\+\^\%])\s*)?'
                      r'(?P<refpath>[a-zA-Z0-9_\$\.]+|"[^"]+")'
                      r'(?:\:(?P<contpath>[a-zA-Z0-9\$\.]+))?'
                      r'(?P<filters>\|[a-z]+)*?'
@@ -38,7 +38,7 @@ node_re = re.compile(r'({'
 key_re_str = '[a-zA-Z_$][0-9a-zA-Z_$]*'
 key_re = re.compile(key_re_str)
 path_re = re.compile('(' + key_re_str + ')?(\.' + key_re_str + ')+')
-comment_re = re.compile(r'(\{!.+?!\})', flags=re.DOTALL)
+comment_re = re.compile(r'(\{!.+?!\})|(\{`.+?`\})', flags=re.DOTALL)
 
 
 def get_path_or_key(pork):
@@ -85,6 +85,11 @@ class Token(object):
 class CommentToken(Token):
     def to_dust_ast(self):
         return [['comment', self.text]]
+
+
+class RawToken(Token):
+    def to_dust_ast(self):
+        return [['raw', self.text]]
 
 
 class BufferToken(Token):
@@ -217,7 +222,7 @@ class PartialTag(Tag):
     def to_dust_ast(self):
         """
             2014.05.09
-                This brings compatibility to the more popular fork of Dust.js
+                This brings compatibility to the more popular fork of Dust.js
                 from LinkedIn (v1.0)
 
                 Adding in `params` so `partials` function like sections.
@@ -299,6 +304,8 @@ def get_tag(match, inline=False):
     symbol = groups['symbol']
     closing = groups['closing']
     refpath = groups['refpath']
+    if symbol and len(symbol) > 1:
+        import pdb;pdb.set_trace()
     if closing:
         tag_type = ClosingTag
     elif symbol is None and refpath is not None:
@@ -332,8 +339,11 @@ def tokenize(source, inline=False):
     for cnc in com_nocom:
         if not cnc:
             continue
-        if cnc.startswith('{!') and cnc.endswith('!}'):
+        elif cnc.startswith('{!') and cnc.endswith('!}'):
             _add_token(CommentToken(cnc[2:-2]))
+            continue
+        elif cnc.startswith('{`') and cnc.endswith('`}'):
+            _add_token(RawToken(cnc[2:-2]))
             continue
         prev_end = 0
         start = None
@@ -514,7 +524,7 @@ DEFAULT_OPTIMIZERS = {
     'format': 'nullify',
     'comment': 'nullify'}
 
-for nsym in ('buffer', 'filters', 'key', 'path', 'literal'):
+for nsym in ('buffer', 'filters', 'key', 'path', 'literal', 'raw'):
     DEFAULT_OPTIMIZERS[nsym] = 'noop'
 
 for nsym in ('#', '?', '^', '<', '+', '@', '%', 'reference',
@@ -699,6 +709,9 @@ class Compiler(object):
         for part in body[1:]:
             parts.append(self._node(part))
         return ''.join(parts)
+
+    def _raw(self, node):
+        return '.write(%r)' % node[1]
 
     def _buffer(self, node):
         return '.write(%s)' % escape(node[1])
@@ -1999,14 +2012,17 @@ def _main():
                 '{/eq}'
                 ', {@size key=hello/} characters')
         ashes.register_source('hi', tmpl)
-        print(ashes.render('hi', {'hello': lambda x: None}))
+        #print(ashes.render('hi', {'hello': lambda x: None}))
     except Exception as e:
         import pdb;pdb.post_mortem()
         raise
 
     ae = AshesEnv(filters={'cn': comma_num})
     ae.register_source('cn_tmpl', 'comma_numd: {thing|cn}')
-    print(ae.render('cn_tmpl', {'thing': 21000}))
+    #print(ae.render('cn_tmpl', {'thing': 21000}))
+    ae.register_source('tmpl', '{`{ok}thing`}')
+    print(ae.render('tmpl', {'thing': 21000}))
+
 
 if __name__ == '__main__':
     _main()
