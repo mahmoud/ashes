@@ -605,6 +605,7 @@ ROOT_RENDER_TMPL = \
     return {root_func_name}(chk, ctx)
 '''
 
+
 def _python_compile(source, name, global_env=None):
     if global_env is None:
         global_env = {}
@@ -1096,16 +1097,13 @@ class Context(object):
 
         value = UndefinedValue
 
-        ctx_this = None
         if cur and not length:
-            ctx_this = ctx
             ctx = ctx.head
         else:
             if not cur:
                 # Search up the stack for the first_path_element value
                 while ctx:
                     if isinstance(ctx.head, dict):
-                        ctx_this = ctx.head
                         if first_path_element in ctx.head:
                             value = ctx.head[first_path_element]
                             break
@@ -1126,7 +1124,6 @@ class Context(object):
 
             i = 1
             while ctx and ctx is not UndefinedValue and i < length:
-                ctx_this = ctx
                 if down[i] in ctx:
                     ctx = ctx[down[i]]
                 else:
@@ -1135,18 +1132,6 @@ class Context(object):
 
             if ctx is UndefinedValue:
                 return None
-
-            # Return the ctx or a function wrapping the application of the context.
-            if callable(ctx):
-                return ctx
-                # returning a lambda might not be necessary
-                # the test are called with a CHUNK , such as:
-                # { 'type': async_key_func }
-                # def async_key_func(chunk, *a, **kw):
-                #    return chunk.map(lambda chk: chk.end('Async'))
-                # however there is no CHUNK available here.
-                #
-                # cback = lambda chunkRuntime, *a, **kw : ctx( chunkRuntime, *a, **kw )
             else:
                 return ctx
 
@@ -1394,7 +1379,11 @@ class Chunk(object):
             return self.write(filtered)
 
     def section(self, elem, context, bodies, params=None):
-        """These methods implement Dust's default behavior for keys, sections, blocks, partials and context helpers. While it is unlikely you'll need to modify these methods or invoke them from within handlers, the source code may be a useful point of reference for developers."""
+        """\
+        These methods implement Dust's default behavior for keys, sections,
+        blocks, partials and context helpers. While it is unlikely you'll need
+        to modify these methods or invoke them from within handlers, the
+        source code may be a useful point of reference for developers."""
         if callable(elem):
             try:
                 elem = elem(self, context, bodies, params)
