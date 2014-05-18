@@ -859,7 +859,8 @@ UndefinedValue = UndefinedValueType()
 
 def escape_html(text):
     text = unicode(text)
-    # TODO: dust.js doesn't use this, but maybe we should: .replace("'", '&squot;')
+    # TODO: dust.js doesn't use this, but maybe we should:
+    # .replace("'", '&squot;')
     return cgi.escape(text, True)
 
 
@@ -1466,63 +1467,13 @@ class Chunk(object):
         to modify these methods or invoke them from within handlers, the
         source code may be a useful point of reference for developers.
         """
-
-        if False:
-            # TODO: remove
-            """
-            2014.05.09
-            this approach is in line with the linkedin fork of
-            dust.js in this approach, we create a new partial context
-            and run everything with that partial context
-
-            dust.js reference:
-                `Chunk.prototype.partial = function(elem, context, params)`
-                    var partialContext
-                    partialContext = dust.makeBase(context.global);
-                    partialContext.blocks = context.blocks
-                    if (context.stack && context.stack.tail){
-                      // grab the stack(tail) off of the previous context if we have it
-                      partialContext.stack = context.stack.tail;
-                    }
-                    if (params){
-                      //put params on
-                      partialContext = partialContext.push(params);
-                    }
-                    //reattach the head
-                    partialContext = partialContext.push(context.stack.head);
-
-            """
-
-            partial_ctx = make_base(context.env, context.stack)
-            partial_ctx.blocks = context.blocks
-
-            if partial_ctx.stack and partial_ctx.stack.tail:
-                # grab the stack(tail) off of the previous context if we have it
-                partial_ctx.stack = context.stack.tail
-
-            partial_ctx = context
-            if params:
-                partial_ctx = partial_ctx.push(params)
-
-            partial_ctx = partial_ctx.push(partial_ctx.stack.head)
-
-            if callable(elem):
-                cback = lambda name, chk: context.env.load_chunk(name, chk, partial_ctx).end()
-                return self.capture(elem, partial_ctx, cback)
-
-            return partial_ctx.env.load_chunk(elem, self, partial_ctx)
-
-        else:
-            """
-            2014.05.09
-            this approach just pushes the params onto the context
-            this is in line with how Chunk.section works above"""
-            if params:
-                context = context.push(params)
-            if callable(elem):
-                cback = lambda name, chk: context.env.load_chunk(name, chk, context).end()
-                return self.capture(elem, context, cback)
-            return context.env.load_chunk(elem, self, context)
+        if params:
+            context = context.push(params)
+        if callable(elem):
+            _env = context.env
+            cback = lambda name, chk: _env.load_chunk(name, chk, context).end()
+            return self.capture(elem, context, cback)
+        return context.env.load_chunk(elem, self, context)
 
     def helper(self, name, context, bodies, params=None):
         """\
