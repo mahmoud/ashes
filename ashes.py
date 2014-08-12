@@ -304,8 +304,6 @@ def get_tag(match, inline=False):
     symbol = groups['symbol']
     closing = groups['closing']
     refpath = groups['refpath']
-    if symbol and len(symbol) > 1:
-        import pdb;pdb.set_trace()
     if closing:
         tag_type = ClosingTag
     elif symbol is None and refpath is not None:
@@ -950,10 +948,12 @@ def _do_compare(chunk, context, bodies, params, cmp_op):
         body = bodies['block']
         key = params['key']
         value = params['value']
-        typestr = params.get('type', 'string')
+        typestr = params.get('type')
     except KeyError:
         return chunk
     rkey = _resolve_value(key, chunk, context)
+    if not typestr:
+        typestr = _COERCE_REV_MAP.get(type(rkey), 'string')
     rvalue = _resolve_value(value, chunk, context)
     crkey, crvalue = _coerce(rkey, typestr), _coerce(rvalue, typestr)
     if isinstance(crvalue, type(crkey)) and cmp_op(crkey, crvalue):
@@ -979,6 +979,9 @@ _COERCE_MAP = {
     'string': unicode,
     'boolean': bool,
 }  # Not implemented: date, context
+_COERCE_REV_MAP = dict([(v, k) for k, v in _COERCE_MAP.items()])
+_COERCE_REV_MAP[int] = 'number'
+_COERCE_REV_MAP[long] = 'number'
 
 
 def _coerce(value, typestr):
