@@ -54,7 +54,7 @@ class ne_var(AshesTest):
 
 class gt_var(AshesTest):
     template = 'Mahmoud ate {@gt key=banana_count value=2}hella{:else}a reasonable number of{/gt} bananas for dinner!'
-    json_context = '{"banana_count": 4}'
+    json_context = '{"banana_count": 10}'
     rendered = 'Mahmoud ate hella bananas for dinner!'
 
 
@@ -65,8 +65,8 @@ class gte_var(AshesTest):
 
 
 class lt_var(AshesTest):
-    template = 'Kyle {@lt key=gym_memberships value=3}does not even lift{:else}totally lifts{/lt}, bro.'
-    json_context = '{"gym_memberships": 2}'
+    template = 'Kyle {@lt key=gym_memberships value=2}does not even lift{:else}totally lifts{/lt}, bro.'
+    json_context = '{"gym_memberships": 10}'
     rendered = 'Kyle does not even lift, bro.'
 
 
