@@ -981,7 +981,10 @@ _COERCE_MAP = {
 }  # Not implemented: date, context
 _COERCE_REV_MAP = dict([(v, k) for k, v in _COERCE_MAP.items()])
 _COERCE_REV_MAP[int] = 'number'
-_COERCE_REV_MAP[long] = 'number'
+try:
+    _COERCE_REV_MAP[long] = 'number'
+except NameError:
+    pass
 
 
 def _coerce(value, typestr):
