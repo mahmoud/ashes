@@ -30,13 +30,13 @@ class gte_const(AshesTest):
 
 
 class lt_const(AshesTest):
-    template = 'Kyle {@lt key="2" value=3}does not even lift{:else}totally lifts{/lt}, bro.'
+    template = 'Kyle {@lt key=2 value=3}does not even lift{:else}totally lifts{/lt}, bro.'
     json_context = '{}'
     rendered = 'Kyle does not even lift, bro.'
 
 
 class lte_const(AshesTest):
-    template = 'Kyle {@lte key="3" value=2}does not even lift{:else}totally lifts{/lte}, bro.'
+    template = 'Kyle {@lte key=3 value=2}does not even lift{:else}totally lifts{/lte}, bro.'
     json_context = '{}'
     rendered = 'Kyle totally lifts, bro.'
 
@@ -65,7 +65,7 @@ class gte_var(AshesTest):
 
 
 class lt_var(AshesTest):
-    template = 'Kyle {@lt key=gym_memberships value=2}does not even lift{:else}totally lifts{/lt}, bro.'
+    template = 'Kyle {@lt key=gym_memberships value=200}does not even lift{:else}totally lifts{/lt}, bro.'
     json_context = '{"gym_memberships": 10}'
     rendered = 'Kyle does not even lift, bro.'
 
