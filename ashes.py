@@ -15,7 +15,7 @@ PY3 = (sys.version_info[0] == 3)
 if PY3:
     unicode, basestring = str, str
 
-__version__ = '0.7.1'
+__version__ = '0.7.2dev'
 __author__ = 'Mahmoud Hashemi'
 __contact__ = 'mahmoudrhashemi@gmail.com'
 __url__ = 'https://github.com/mahmoud/ashes'
