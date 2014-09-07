@@ -1645,6 +1645,13 @@ class Template(object):
             return Compiler(self.env)._gen_python(ast)
         return func
 
+    def __repr__(self):
+        cn = self.__class__.__name__
+        name, source_file = self.name, self.source_file
+        if not source_file:
+            return '<%s name=%r>' % (cn, name)
+        return '<%s name=%r source_file=%r>' % (cn, name, source_file)
+
 
 class AshesException(Exception):
     pass
