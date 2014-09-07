@@ -7,6 +7,7 @@ import cgi
 import sys
 import json
 import codecs
+import pprint
 import urllib
 
 
@@ -28,7 +29,7 @@ node_re = re.compile(r'({'
                      r'(?:(?P<symbol>[\~\#\?\@\:\<\>\+\^\%])\s*)?'
                      r'(?P<refpath>[a-zA-Z0-9_\$\.]+|"[^"]+")'
                      r'(?:\:(?P<contpath>[a-zA-Z0-9\$\.]+))?'
-                     r'(?P<filters>\|[a-z]+)*?'
+                     r'(?P<filters>[\|a-z]+)*?'
                      r'(?P<params>(?:\s+\w+\=(("[^"]*?")|([\w\.]+)))*)?'
                      r'\s*'
                      r'(?P<selfclosing>\/)?'
@@ -895,6 +896,21 @@ def comma_num(val):
         return str(val)
 
 
+def pp_filter(val):
+    return pprint.pformat(val)
+
+
+JSON_PP_INDENT = 2
+
+
+def ppjson_filter(val):
+    "A best-effort pretty-printing filter, based on the JSON module"
+    try:
+        return json.dumps(val, indent=JSON_PP_INDENT, sort_keys=True)
+    except TypeError:
+        return unicode(val)
+
+
 # Helpers
 
 def first_helper(chunk, context, bodies, params=None):
@@ -1534,7 +1550,9 @@ DEFAULT_FILTERS = {
     'j': escape_js,
     'u': escape_uri,
     'uc': escape_uri_component,
-    'cn': comma_num}
+    'cn': comma_num,
+    'pp': pp_filter,
+    'ppjson': ppjson_filter}
 
 
 #########
@@ -1975,6 +1993,10 @@ def _main():
     #print(ae.render('cn_tmpl', {'thing': 21000}))
     ae.register_source('tmpl', '{`{ok}thing`}')
     print(ae.render('tmpl', {'thing': 21000}))
+
+    ae.register_source('tmpl2', '{test|pp}')
+    out = ae.render('tmpl2', {'test': ['<hi>'] * 10})
+    print(out)
 
 
 if __name__ == '__main__':
