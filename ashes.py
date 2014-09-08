@@ -1547,6 +1547,7 @@ class Tap(object):
 
 DEFAULT_FILTERS = {
     'h': escape_html,
+    's': unicode,
     'j': escape_js,
     'u': escape_uri,
     'uc': escape_uri_component,
@@ -1810,8 +1811,16 @@ class BaseAshesEnv(object):
 
     def apply_filters(self, string, auto, filters):
         filters = filters or []
-        if auto and 's' not in filters and auto not in filters:
-            filters = filters + [auto]
+        if not filters:
+            if auto:
+                filters = ['s', auto]
+            else:
+                filters = ['s']
+        elif filters[-1] != 's':
+            if auto and auto not in filters:
+                filters += ['s', auto]
+            else:
+                filters += ['s']
         for f in filters:
             filt_fn = self.filters.get(f)
             if filt_fn:
@@ -1994,7 +2003,7 @@ def _main():
     ae.register_source('tmpl', '{`{ok}thing`}')
     print(ae.render('tmpl', {'thing': 21000}))
 
-    ae.register_source('tmpl2', '{test|pp}')
+    ae.register_source('tmpl2', '{test|s}')
     out = ae.render('tmpl2', {'test': ['<hi>'] * 10})
     print(out)
 
