@@ -2092,9 +2092,9 @@ def _main():
     ae.register_source('tmpl3', '{@iterate sort="desc" sort_key=1 key=lol}'
                        '{$key}: {$value} ({$type}) ({$0}: {$1}){~n}{/iterate}')
     out = ae.render('tmpl3', {'lol': {'uno': 1, 'dos': 2}})
-    print out
+    print(out)
     out = ae.render('tmpl3', {'lol': [(1, 2, 3), (4, 5, 6)]})
-    print out
+    print(out)
 
 
 if __name__ == '__main__':
