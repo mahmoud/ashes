@@ -982,7 +982,6 @@ def _sort_iterate_items(items, sort_key, direction):
             sort_key = int(sort_key)
         except:
             sort_key = 0
-    print('-', items, sort_key, reverse)
     return sorted(items, key=lambda x: x[sort_key], reverse=reverse)
 
 
@@ -1005,7 +1004,10 @@ def iterate_helper(chunk, context, bodies, params):
         items = target
         is_dict = False
     if sort:
-        items = _sort_iterate_items(items, sort_key, direction=sort)
+        try:
+            items = _sort_iterate_items(items, sort_key, direction=sort)
+        except:
+            return chunk  # log error
     if is_dict:
         for key, value in items:
             body(chunk, context.push({'$key': key,
@@ -1015,7 +1017,7 @@ def iterate_helper(chunk, context, bodies, params):
                                       '$1': value}))
     else:
         # all this is for iterating over tuples and the like
-        for values in target:
+        for values in items:
             try:
                 key = values[0]
             except:
@@ -2090,7 +2092,7 @@ def _main():
     print(out)
 
     ae.register_source('tmpl3', '{@iterate sort="desc" sort_key=1 key=lol}'
-                       '{$key}: {$value} ({$type}) ({$0}: {$1}){~n}{/iterate}')
+                       '{$0}: {$1}{~n}{/iterate}')
     out = ae.render('tmpl3', {'lol': {'uno': 1, 'dos': 2}})
     print(out)
     out = ae.render('tmpl3', {'lol': [(1, 2, 3), (4, 5, 6)]})
