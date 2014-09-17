@@ -8,7 +8,7 @@ import sys
 import json
 import codecs
 import pprint
-import urllib
+import string
 
 
 PY3 = (sys.version_info[0] == 3)
@@ -853,8 +853,44 @@ class UndefinedValueType(object):
 
 UndefinedValue = UndefinedValueType()
 
+# Prerequisites for escape_url_path
+
+
+def _make_quote_map(allowed_chars):
+    ret = {}
+    for i, c in zip(range(256), str(bytearray(range(256)))):
+        ret[c] = c if c in allowed_chars else '%{0:02X}'.format(i)
+    return ret
+
+# The unreserved URI characters (per RFC 3986)
+_UNRESERVED_CHARS = (frozenset(string.uppercase)
+                     | frozenset(string.lowercase)
+                     | frozenset(string.digits)
+                     | frozenset('-._~'))
+_RESERVED_CHARS = frozenset(":/?#[]@!$&'()*+,;=")
+_PCT_ENCODING = (frozenset('%')
+                 | frozenset(string.digits)
+                 | frozenset(string.uppercase[:6])
+                 | frozenset(string.lowercase[:6]))
+_ALLOWED_CHARS = _UNRESERVED_CHARS | _RESERVED_CHARS | _PCT_ENCODING
+
+_PATH_QUOTE_MAP = _make_quote_map(_ALLOWED_CHARS - set('?#'))
+
+
+def escape_uri_path(text, to_bytes=True):
+    if not to_bytes:
+        return u''.join([_PATH_QUOTE_MAP.get(c, c) for c in text])
+    try:
+        bytestr = text.encode('utf-8')
+    except UnicodeDecodeError:
+        bytestr = text
+    except:
+        raise ValueError('expected text or UTF-8 encoded bytes, not %r' % text)
+    return ''.join([_PATH_QUOTE_MAP[b] for b in bytestr])
+
 
 # Escapes/filters
+
 
 def escape_html(text):
     text = unicode(text)
@@ -877,12 +913,8 @@ def escape_js(text):
             .replace('\t', '\\t'))
 
 
-def escape_uri(text):
-    return urllib.quote(text)
-
-
 def escape_uri_component(text):
-    return (escape_uri(text)
+    return (escape_uri_path(text)
             .replace('/', '%2F')
             .replace('?', '%3F')
             .replace('=', '%3D')
@@ -1633,7 +1665,7 @@ DEFAULT_FILTERS = {
     'h': escape_html,
     's': unicode,
     'j': escape_js,
-    'u': escape_uri,
+    'u': escape_uri_path,
     'uc': escape_uri_component,
     'cn': comma_num,
     'pp': pp_filter,
