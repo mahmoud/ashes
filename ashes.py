@@ -863,15 +863,12 @@ def _make_quote_map(allowed_chars):
     return ret
 
 # The unreserved URI characters (per RFC 3986)
-_UNRESERVED_CHARS = (frozenset(string.uppercase)
-                     | frozenset(string.lowercase)
+_UNRESERVED_CHARS = (frozenset(string.ascii_letters)
                      | frozenset(string.digits)
                      | frozenset('-._~'))
 _RESERVED_CHARS = frozenset(":/?#[]@!$&'()*+,;=")
 _PCT_ENCODING = (frozenset('%')
-                 | frozenset(string.digits)
-                 | frozenset(string.uppercase[:6])
-                 | frozenset(string.lowercase[:6]))
+                 | frozenset(string.hexdigits))
 _ALLOWED_CHARS = _UNRESERVED_CHARS | _RESERVED_CHARS | _PCT_ENCODING
 
 _PATH_QUOTE_MAP = _make_quote_map(_ALLOWED_CHARS - set('?#'))
