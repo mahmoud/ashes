@@ -876,7 +876,7 @@ _PATH_QUOTE_MAP = _make_quote_map(_ALLOWED_CHARS - set('?#'))
 
 def escape_uri_path(text, to_bytes=True):
     if not to_bytes:
-        return u''.join([_PATH_QUOTE_MAP.get(c, c) for c in text])
+        return unicode().join([_PATH_QUOTE_MAP.get(c, c) for c in text])
     try:
         bytestr = text.encode('utf-8')
     except UnicodeDecodeError:
