@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 from .core import AshesTest
 
-heading = 'New features'
+heading = 'new_features'
 
 
 class raw_text(AshesTest):
