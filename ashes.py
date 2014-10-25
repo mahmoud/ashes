@@ -1954,6 +1954,8 @@ class AshesEnv(BaseAshesEnv):
     user-friendly options exposed.
     """
     def __init__(self, paths=None, keep_whitespace=True, *a, **kw):
+        if isinstance(paths, basestring):
+            paths = [paths]
         self.paths = list(paths or [])
         self.keep_whitespace = keep_whitespace
         self.is_strict = kw.pop('is_strict', False)
@@ -1968,12 +1970,6 @@ class AshesEnv(BaseAshesEnv):
     def filter_ast(self, ast, optimize=None):
         optimize = not self.keep_whitespace  # preferences override
         return super(AshesEnv, self).filter_ast(ast, optimize)
-
-    def load_all(self):
-        ret = []
-        for loader in self.loaders:
-            ret.extend(loader.load_all(self))
-        return ret
 
 
 DEFAULT_EXTENSIONS = ('.dust', '.html', '.xml')
@@ -2011,7 +2007,8 @@ class TemplatePathLoader(object):
                 source = f.read()
         else:
             raise TemplateNotFound(path)
-        template = Template(path, source, abs_path, env=env)
+        template_name = os.path.relpath(abs_path, self.root_path)
+        template = Template(template_name, source, abs_path, env=env)
         return template
 
     def load_all(self, env, exts=None, **kw):
