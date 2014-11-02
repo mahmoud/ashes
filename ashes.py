@@ -1724,6 +1724,17 @@ class Template(object):
         if not keep_source:
             self.source = None
 
+    @classmethod
+    def from_path(cls, path, name=None, encoding='utf-8', **kw):
+        abs_path = os.path.abspath(name)
+        if not os.path.isfile(abs_path):
+            raise TemplateNotFound(abs_path)
+        with codecs.open(abs_path, 'r', encoding) as f:
+            source = f.read()
+        if not name:
+            name = path
+        return cls(name=name, source=source, source_file=abs_path, **kw)
+
     def render(self, model, env=None):
         env = env or self.env
         rendered = []
@@ -1908,11 +1919,25 @@ class BaseAshesEnv(object):
         self.templates[name] = template
         return
 
-    def register_source(self, name, source, **kw):
+    def register_path(self, path, name=None, **kw):
+        """\
+        Reads in, compiles, and registers a single template from a specific
+        path to a file containing the dust source code.
+        """
         kw['env'] = self
-        tmpl = Template(name, source, **kw)
-        self.register(tmpl)
-        return tmpl
+        ret = Template.from_path(path=path, name=name, **kw)
+        self.register(ret)
+        return ret
+
+    def register_source(self, name, source, **kw):
+        """\
+        Compiles and registers a single template from source code
+        string. Assumes caller already decoded the source string.
+        """
+        kw['env'] = self
+        ret = Template(name=name, source=source, **kw)
+        self.register(ret)
+        return ret
 
     def filter_ast(self, ast, optimize=True):
         if optimize:
@@ -1946,6 +1971,9 @@ class BaseAshesEnv(object):
         except TemplateNotFound as tnf:
             return chunk.set_error(tnf)
         return tmpl.render_chunk(chunk, context)
+
+    def __iter__(self):
+        return self.templates.itervalues()
 
 
 class AshesEnv(BaseAshesEnv):
@@ -2002,13 +2030,11 @@ class TemplatePathLoader(object):
         if not path.startswith(self.root_path):
             norm_path = os.path.join(self.root_path, norm_path)
         abs_path = os.path.abspath(norm_path)
-        if os.path.isfile(abs_path):
-            with codecs.open(abs_path, 'r', self.encoding) as f:
-                source = f.read()
-        else:
-            raise TemplateNotFound(path)
         template_name = os.path.relpath(abs_path, self.root_path)
-        template = Template(template_name, source, abs_path, env=env)
+        return Template.from_path(name=template_name,
+                                  path=abs_path,
+                                  encoding=self.encoding,
+                                  env=env)
         return template
 
     def load_all(self, env, exts=None, **kw):
