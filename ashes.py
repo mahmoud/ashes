@@ -1844,6 +1844,8 @@ class ParseError(AshesException):
 
 
 class BaseAshesEnv(object):
+    template_type = Template
+
     def __init__(self,
                  loaders=None,
                  helpers=None,
@@ -1925,7 +1927,7 @@ class BaseAshesEnv(object):
         path to a file containing the dust source code.
         """
         kw['env'] = self
-        ret = Template.from_path(path=path, name=name, **kw)
+        ret = self.template_type.from_path(path=path, name=name, **kw)
         self.register(ret)
         return ret
 
@@ -1935,7 +1937,7 @@ class BaseAshesEnv(object):
         string. Assumes caller already decoded the source string.
         """
         kw['env'] = self
-        ret = Template(name=name, source=source, **kw)
+        ret = self.template_type(name=name, source=source, **kw)
         self.register(ret)
         return ret
 
@@ -2031,10 +2033,11 @@ class TemplatePathLoader(object):
             norm_path = os.path.join(self.root_path, norm_path)
         abs_path = os.path.abspath(norm_path)
         template_name = os.path.relpath(abs_path, self.root_path)
-        return Template.from_path(name=template_name,
-                                  path=abs_path,
-                                  encoding=self.encoding,
-                                  env=env)
+        template_type = env.template_type
+        return template_type.from_path(name=template_name,
+                                       path=abs_path,
+                                       encoding=self.encoding,
+                                       env=env)
         return template
 
     def load_all(self, env, exts=None, **kw):
