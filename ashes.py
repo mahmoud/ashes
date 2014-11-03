@@ -1726,7 +1726,7 @@ class Template(object):
 
     @classmethod
     def from_path(cls, path, name=None, encoding='utf-8', **kw):
-        abs_path = os.path.abspath(name)
+        abs_path = os.path.abspath(path)
         if not os.path.isfile(abs_path):
             raise TemplateNotFound(abs_path)
         with codecs.open(abs_path, 'r', encoding) as f:
