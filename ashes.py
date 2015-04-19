@@ -14,7 +14,9 @@ import fnmatch
 
 PY3 = (sys.version_info[0] == 3)
 if PY3:
-    unicode, basestring = str, str
+    unicode, string_types = str, (str, bytes)
+else:
+    string_types = (str, unicode)
 
 __version__ = '0.7.4dev'
 __author__ = 'Mahmoud Hashemi'
@@ -1124,7 +1126,7 @@ def _coerce(value, typestr):
     coerce_type = _COERCE_MAP.get(typestr.lower())
     if not coerce_type or isinstance(value, coerce_type):
         return value
-    if isinstance(value, basestring):
+    if isinstance(value, string_types):
         try:
             value = json.loads(value)
         except (TypeError, ValueError):
@@ -1395,7 +1397,7 @@ class Stream(object):
 
 
 def is_scalar(obj):
-    return not hasattr(obj, '__iter__') or isinstance(obj, basestring)
+    return not hasattr(obj, '__iter__') or isinstance(obj, string_types)
 
 
 def is_empty(obj):
@@ -1989,7 +1991,7 @@ class AshesEnv(BaseAshesEnv):
     user-friendly options exposed.
     """
     def __init__(self, paths=None, keep_whitespace=True, *a, **kw):
-        if isinstance(paths, basestring):
+        if isinstance(paths, string_types):
             paths = [paths]
         self.paths = list(paths or [])
         self.keep_whitespace = keep_whitespace
@@ -2015,13 +2017,13 @@ def iter_find_files(directory, patterns, ignored=None):
 
     (from osutils.py in the boltons package)
     """
-    if isinstance(patterns, basestring):
+    if isinstance(patterns, string_types):
         patterns = [patterns]
     pats_re = re.compile('|'.join([fnmatch.translate(p) for p in patterns]))
 
     if not ignored:
         ignored = []
-    elif isinstance(ignored, basestring):
+    elif isinstance(ignored, string_types):
         ignored = [ignored]
     ign_re = re.compile('|'.join([fnmatch.translate(p) for p in ignored]))
     for root, dirs, files in os.walk(directory):
