@@ -1665,9 +1665,16 @@ class Tap(object):
         return '%s(%r, %r)' % (cn, self.head, self.tail)
 
 
+def to_unicode(obj):
+    try:
+        return unicode(obj)
+    except UnicodeDecodeError:
+        return unicode(obj, encoding='utf8')
+
+
 DEFAULT_FILTERS = {
     'h': escape_html,
-    's': unicode,
+    's': to_unicode,
     'j': escape_js,
     'u': escape_uri_path,
     'uc': escape_uri_component,
