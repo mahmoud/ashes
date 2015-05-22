@@ -882,6 +882,7 @@ _PATH_QUOTE_MAP = _make_quote_map(_ALLOWED_CHARS - set('?#'))
 
 
 def escape_uri_path(text, to_bytes=True):
+    text = to_unicode(text)
     if not to_bytes:
         return unicode().join([_PATH_QUOTE_MAP.get(c, c) for c in text])
     try:
@@ -897,14 +898,14 @@ def escape_uri_path(text, to_bytes=True):
 
 
 def escape_html(text):
-    text = unicode(text)
+    text = to_unicode(text)
     # TODO: dust.js doesn't use this, but maybe we should:
     # .replace("'", '&squot;')
     return cgi.escape(text, True)
 
 
 def escape_js(text):
-    text = unicode(text)
+    text = to_unicode(text)
     return (text
             .replace('\\', '\\\\')
             .replace('"', '\\"')
@@ -918,7 +919,7 @@ def escape_js(text):
 
 
 def escape_uri_component(text):
-    return (escape_uri_path(text)
+    return (escape_uri_path(text)  # calls to_unicode for us
             .replace('/', '%2F')
             .replace('?', '%3F')
             .replace('=', '%3D')
@@ -929,7 +930,7 @@ def comma_num(val):
     try:
         return '{0:,}'.format(val)
     except ValueError:
-        return str(val)
+        return to_unicode(val)
 
 
 def pp_filter(val):
@@ -950,7 +951,7 @@ def ppjson_filter(val):
     try:
         return json.dumps(val, indent=JSON_PP_INDENT, sort_keys=True)
     except TypeError:
-        return unicode(val)
+        return to_unicode(val)
 
 
 # Helpers
@@ -994,7 +995,7 @@ def idx_1_helper(chunk, context, bodies, params=None):
 def size_helper(chunk, context, bodies, params):
     try:
         key = params['key']
-        return chunk.write(str(len(key)))
+        return chunk.write(unicode(len(key)))
     except (KeyError, TypeError):
         return chunk
 
