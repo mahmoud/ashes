@@ -873,15 +873,16 @@ def _make_quote_map(allowed_chars):
 _UNRESERVED_CHARS = (frozenset(string.ascii_letters)
                      | frozenset(string.digits)
                      | frozenset('-._~'))
-_RESERVED_CHARS = frozenset(":/?#[]@!$&'()*+,;=")
-_PCT_ENCODING = (frozenset('%')
-                 | frozenset(string.hexdigits))
-_ALLOWED_CHARS = _UNRESERVED_CHARS | _RESERVED_CHARS | _PCT_ENCODING
+_RESERVED_CHARS = frozenset(":/?#[]@!$&'()*+,;=")  # not used
+_PATH_RESERVED_CHARS = frozenset("?#")  # not used
 
-_PATH_QUOTE_MAP = _make_quote_map(_ALLOWED_CHARS - set('?#'))
+_PATH_QUOTE_MAP = _make_quote_map(_UNRESERVED_CHARS | set('/?=&:'))
+
+# Escapes/filters
 
 
 def escape_uri_path(text, to_bytes=True):
+    # actually meant to run on path + query args + fragment
     text = to_unicode(text)
     if not to_bytes:
         return unicode().join([_PATH_QUOTE_MAP.get(c, c) for c in text])
@@ -894,7 +895,12 @@ def escape_uri_path(text, to_bytes=True):
     return ''.join([_PATH_QUOTE_MAP[b] for b in bytestr])
 
 
-# Escapes/filters
+def escape_uri_component(text):
+    return (escape_uri_path(text)  # calls to_unicode for us
+            .replace('/', '%2F')
+            .replace('?', '%3F')
+            .replace('=', '%3D')
+            .replace('&', '%26'))
 
 
 def escape_html(text):
@@ -916,14 +922,6 @@ def escape_js(text):
             .replace('\n', '\\n')
             .replace('\f', '\\f')
             .replace('\t', '\\t'))
-
-
-def escape_uri_component(text):
-    return (escape_uri_path(text)  # calls to_unicode for us
-            .replace('/', '%2F')
-            .replace('?', '%3F')
-            .replace('=', '%3D')
-            .replace('&', '%26'))
 
 
 def comma_num(val):
@@ -2189,6 +2187,9 @@ def _main():
     print(out)
     out = ae.render('tmpl3', {'lol': [(1, 2, 3), (4, 5, 6)]})
     print(out)
+
+    print(escape_uri_path("https://en.wikipedia.org/wiki/Asia's_Next_Top_Model_(cycle_3)"))
+    print(escape_uri_component("https://en.wikipedia.org/wiki/Asia's_Next_Top_Model_(cycle_3)"))
 
 
 if __name__ == '__main__':
