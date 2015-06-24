@@ -1555,8 +1555,17 @@ class Chunk(object):
         else:
             chunk = self
             length = len(elem)
-            for i, el in enumerate(elem):
-                chunk = body(chunk, context.push(el, i, length))
+            head = context.stack.head
+            try:
+                head['$len'] = length
+                for i, el in enumerate(elem):
+                    head['$idx'] = i
+                    head['$idx_1'] = i + 1
+                    chunk = body(chunk, context.push(el, i, length))
+            finally:
+                head.pop('$len', None)
+                head.pop('$idx', None)
+                head.pop('$idx_1', None)
             return chunk
 
     def exists(self, elem, context, bodies, params=None):
@@ -2182,7 +2191,7 @@ def _main():
     print(out)
 
     ae.register_source('tmpl3', '{@iterate sort="desc" sort_key=1 key=lol}'
-                       '{$0}: {$1}{~n}{/iterate}')
+                       '{$idx} - {$0}: {$1}{~n}{/iterate}')
     out = ae.render('tmpl3', {'lol': {'uno': 1, 'dos': 2}})
     print(out)
     out = ae.render('tmpl3', {'lol': [(1, 2, 3), (4, 5, 6)]})
@@ -2190,6 +2199,10 @@ def _main():
 
     print(escape_uri_path("https://en.wikipedia.org/wiki/Asia's_Next_Top_Model_(cycle_3)"))
     print(escape_uri_component("https://en.wikipedia.org/wiki/Asia's_Next_Top_Model_(cycle_3)"))
+    print('')
+    ae.register_source('tmpl4', '{#iterable}{$idx_1}/{$len}: {.}{@sep}, {/sep}{/iterable}')
+    out = ae.render('tmpl4', {'iterable': range(100, 108)})
+    print(out)
 
 
 if __name__ == '__main__':
