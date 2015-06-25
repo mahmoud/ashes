@@ -681,7 +681,9 @@ def _python_compile(source, name, global_env=None):
     
 
 def compile_python_string(python_string):
-    """utility function"""
+    """utility function
+    used to compile python string functions for template loading
+    """
     return _python_compile(python_string, 'render')
 
 
@@ -1974,7 +1976,11 @@ class BaseAshesEnv(object):
         return _ast
 
     def generate_python_string(self, name, optimize=True):
-        """generates the Python string representation for a template."""
+        """generates the Python string representation for a template.
+        register it back with `load_template_python_string`
+        it is MUCH FASTER to first compile it with `compile_python_string()` 
+        then register with `cls.load_template_python_compiled`
+        """
         _template = self._load_template(name)
         _python = _template._get_render_func(optimize=True, ret_str=True)
         return _python
@@ -1989,7 +1995,7 @@ class BaseAshesEnv(object):
 
     def load_template_python_string(self, name, python_string, optimized=True):
         """registers the Python string representation for a template.
-            this has little saves.  better to `load_template_python_compiled`
+            this has little saves.  better to `cls.load_template_python_compiled`
         """
         template = self.template_type(name, '', lazy=True, optimize=optimized)
         compiler = Compiler(template.env)
@@ -1998,8 +2004,9 @@ class BaseAshesEnv(object):
         return template
 
     def load_template_python_compiled(self, name, python_compiled, optimized=True):
-        """registers the Python string representation for a template.
-            this has little saves.  better to `load_template_python_compiled`
+        """registers the compiled Python string representation for a template.
+        see `cls.generate_python_string` to generate the string
+        see `compile_python_string` to compile
         """
         template = self.template_type(name, '', lazy=True, optimize=optimized)
         template.render_func = python_compiled
