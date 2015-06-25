@@ -49,6 +49,57 @@ path_re = re.compile('(' + key_re_str + ')?(\.' + key_re_str + ')+')
 comment_re = re.compile(r'(\{!.+?!\})|(\{`.+?`\})', flags=re.DOTALL)
 
 
+# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+#   START REMOVE FOR RELEASE
+# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+""" This bit is about testing timed functions
+
+This is not for production.  It should be removed, along with calls to the 
+`@timeit` decorator 
+"""
+import time
+
+timeditems = {}
+
+
+def timeit(method):
+    """decorator method for timing an internal function
+    saves to `timeditems` package var
+    statistics available via `ashes.print_timed`
+    """
+
+    def timed(*args, **kw):
+        ts = time.time()
+        result = method(*args, **kw)
+        te = time.time()
+        if method.__name__ not in timeditems:
+            timeditems[method.__name__] = []
+        timeditems[method.__name__].append( te-ts )
+        return result
+    return timed
+
+
+def print_timed():
+    """displays timing statisics
+    """
+    for k in timeditems.keys():
+        ttl = sum(timeditems[k])
+        avg = float(ttl)/len(timeditems[k]) 
+        print "%s\n\t-- ttl=%s\n\t-- avg=%s\n\t-- its=%s" % ( k, ttl, avg, len(timeditems[k]) )
+
+# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+#   END REMOVE FOR RELEASE
+# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+
+
 def get_path_or_key(pork):
     if pork == '.':
         pk = ['path', True, []]
@@ -612,6 +663,7 @@ ROOT_RENDER_TMPL = \
 '''
 
 
+@timeit
 def _python_compile(source, name, global_env=None):
     if global_env is None:
         global_env = {}
@@ -626,6 +678,11 @@ def _python_compile(source, name, global_env=None):
     else:
         exec("exec code in global_env")
     return global_env[name]
+    
+
+def compile_python_string(python_string):
+    """utility function"""
+    return _python_compile(python_string, 'render')
 
 
 class Compiler(object):
@@ -652,10 +709,12 @@ class Compiler(object):
         self.index = 0
         self.auto = 'h'  # TODO
 
+    @timeit
     def compile(self, ast, name='render'):
         python_source = self._gen_python(ast)
         return _python_compile(python_source, name)
 
+    @timeit
     def _gen_python(self, ast):  # ast to init?
         lines = []
         c_node = self._node(ast)
@@ -1739,7 +1798,7 @@ class Template(object):
             env = default_env
         self.env = env
 
-        if lazy:  # lazy is really only for testing
+        if lazy:  # lazy is really only for testing OR loading via ast/python
             self.render_func = None
             return
         self.render_func = self._get_render_func(optimize)
@@ -1756,7 +1815,7 @@ class Template(object):
         if not name:
             name = path
         return cls(name=name, source=source, source_file=abs_path, **kw)
-
+        
     def render(self, model, env=None):
         env = env or self.env
         rendered = []
@@ -1785,6 +1844,7 @@ class Template(object):
             return None
         return tokenize(self.source)
 
+    @timeit
     def _get_ast(self, optimize=False, raw=False):
         if not self.source:
             return None
@@ -1797,17 +1857,24 @@ class Template(object):
             return dast
         return self.env.filter_ast(dast, optimize)
 
+    @timeit
     def _get_render_func(self, optimize=True, ret_str=False):
         # switching over to optimize=True by default because it
         # makes the output easier to read and more like dust's docs
         ast = self._get_ast(optimize)
         if not ast:
             return None
-        compiler = Compiler(self.env)
-        func = compiler.compile(ast)
         if ret_str:
             # for testing/dev purposes
             return Compiler(self.env)._gen_python(ast)
+        func = self._ast_to_render_func(ast)
+        return func
+    
+    def _ast_to_render_func(self, ast):
+        # making this a shared function between 
+        # `_get_render_func` and ast loaders
+        compiler = Compiler(self.env)
+        func = compiler.compile(ast)
         return func
 
     def __repr__(self):
@@ -1895,9 +1962,49 @@ class BaseAshesEnv(object):
             self.pragmas.update(pragmas)
         self.auto_reload = auto_reload
 
+    @timeit
     def render(self, name, model):
         tmpl = self.load(name)
         return tmpl.render(model, self)
+        
+    def generate_ast(self, name, optimize=True):
+        """generates the AST for a template."""
+        _template = self._load_template(name)
+        _ast = _template._get_ast(optimize=optimize)
+        return _ast
+
+    def generate_python_string(self, name, optimize=True):
+        """generates the Python string representation for a template."""
+        _template = self._load_template(name)
+        _python = _template._get_render_func(optimize=True, ret_str=True)
+        return _python
+    
+    def load_template_ast(self, name, ast, optimized=True):
+        """registers the AST for a template."""
+        # the empty string argument is for `source`
+        template = self.template_type(name, '', lazy=True, optimize=optimized)
+        template.render_func = template._ast_to_render_func(ast)
+        self.register(template)
+        return template
+
+    def load_template_python_string(self, name, python_string, optimized=True):
+        """registers the Python string representation for a template.
+            this has little saves.  better to `load_template_python_compiled`
+        """
+        template = self.template_type(name, '', lazy=True, optimize=optimized)
+        compiler = Compiler(template.env)
+        template.render_func = _python_compile(python_string, name='render')
+        self.register(template)
+        return template
+
+    def load_template_python_compiled(self, name, python_compiled, optimized=True):
+        """registers the Python string representation for a template.
+            this has little saves.  better to `load_template_python_compiled`
+        """
+        template = self.template_type(name, '', lazy=True, optimize=optimized)
+        template.render_func = python_compiled
+        self.register(template)
+        return template
 
     def load(self, name):
         try:
