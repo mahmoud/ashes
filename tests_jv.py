@@ -20,8 +20,8 @@ PRINT_SAMPLE = False
 # ==============================================================================
 
 
-
 # test the baseline
+
 
 @tests_jv_utils.timeit
 def test_baseline():
@@ -35,7 +35,8 @@ def test_baseline():
 _sample = None
 for i in range(0, ITERATIONS):
     test_baseline()
-    
+
+
 if PRINT_SAMPLE:
     print "========================"
     print "Normal method"
@@ -55,6 +56,7 @@ ashesEnv = ashes.AshesEnv(loaders=(ashesLoader, ))
 ast__oranges = ashesEnv.generate_ast('oranges.dust')
 ast__apples = ashesEnv.generate_ast('apples.dust')
 
+
 @tests_jv_utils.timeit
 def test_ast():
     ashesLoader = ashes.TemplatePathLoader('tests_jv-templates')
@@ -65,9 +67,11 @@ def test_ast():
     if PRINT_SAMPLE and i == 0:
         _sample = templated
 
+
 _sample = None
 for i in range(0, ITERATIONS):
     test_ast()
+
 
 if PRINT_SAMPLE:
     print "========================"
@@ -83,12 +87,14 @@ if PRINT_SAMPLE:
 
 # test a loaded python_string method
 
+
 ashesLoader = ashes.TemplatePathLoader('tests_jv-templates')
 ashesEnv = ashes.AshesEnv(loaders=(ashesLoader, ))
 python_string__oranges = ashesEnv.generate_python_string('oranges.dust')
 python_string__apples = ashesEnv.generate_python_string('apples.dust')
 python_function__oranges = ashes.compile_python_string(python_string__oranges)
 python_function__apples = ashes.compile_python_string(python_string__apples)
+
 
 @tests_jv_utils.timeit
 def test_python_string():
@@ -100,9 +106,11 @@ def test_python_string():
     if PRINT_SAMPLE and i == 0:
         _sample = templated
 
+
 _sample = None
 for i in range(0, ITERATIONS):
     test_python_string()
+
 
 if PRINT_SAMPLE:
     print "========================"
@@ -122,9 +130,11 @@ def test_python_compiled():
     if PRINT_SAMPLE and i == 0:
         _sample = templated
 
+
 _sample = None
 for i in range(0, ITERATIONS):
     test_python_compiled()
+
 
 if PRINT_SAMPLE:
     print "========================"

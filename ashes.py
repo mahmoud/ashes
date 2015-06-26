@@ -249,7 +249,7 @@ class PartialTag(Tag):
                 pe.token = self
                 raise
 
-        ## tying to make this more standardized
+        # tying to make this more standardized
         inline_body = inline_to_dust_ast(self.subtokens)
         return [['partial',
                  inline_body,
@@ -626,7 +626,7 @@ def _python_compile(source, name, global_env=None):
     else:
         exec("exec code in global_env")
     return global_env[name]
-    
+
 
 def compile_python_string(python_string):
     """utility function
@@ -1265,7 +1265,8 @@ class Context(object):
                 else:
                     ctx = value
             else:
-                #if scope is limited by a leading dot, don't search up the tree
+                #  if scope is limited by a leading dot,
+                #  don't search up the tree
                 if first_path_element in ctx.head:
                     ctx = ctx.head[first_path_element]
                 else:
@@ -1338,7 +1339,7 @@ class Stack(object):
         self.tail = tail
         self.index = index or 0
         self.of = length or 1
-        #self.is_object = is_scalar(head)
+        #  self.is_object = is_scalar(head)
 
     def __repr__(self):
         return 'Stack(%r, %r, %r, %r)' % (self.head,
@@ -1760,8 +1761,8 @@ class Template(object):
         args:
             ``path``
         kwargs:
-            ``name`` default ``None``.  
-            ``encoding`` default ``utf-8``.  
+            ``name`` default ``None``.
+            ``encoding`` default ``utf-8``.
         """
         abs_path = os.path.abspath(path)
         if not os.path.isfile(abs_path):
@@ -1779,7 +1780,7 @@ class Template(object):
         args:
             ``ast``
         kwargs:
-            ``name`` default ``None``.  
+            ``name`` default ``None``.
         """
         template = cls(name=name, source='', lazy=True, **kw)
         template.render_func = template._ast_to_render_func(ast)
@@ -1792,7 +1793,7 @@ class Template(object):
         args:
             ``python_string``
         kwargs:
-            ``name`` default ``None``.  
+            ``name`` default ``None``.
         """
         template = cls(name=name, source='', lazy=True, **kw)
         compiler = Compiler(template.env)
@@ -1806,34 +1807,34 @@ class Template(object):
         args:
             ``python_compiled``
         kwargs:
-            ``name`` default ``None``.  
+            ``name`` default ``None``.
         """
         template = cls(name=name, source='', lazy=True, **kw)
         template.render_func = python_compiled
         return template
-        
+
     def to_ast(self, optimize=True, raw=False):
         """Generates the AST for a given template.
-        
+
         kwargs:
-            ``optimize`` default ``True``.  
-            ``raw`` default ``False``.  
-        
+            ``optimize`` default ``True``.
+            ``raw`` default ``False``.
+
         Note: this is just a public function for `_get_ast`
         """
         return self._get_ast(optimize=optimize, raw=raw)
-        
+
     def to_python_string(self, optimize=True):
         """Generates the Python string representation for a template.
 
         kwargs:
-            ``optimize`` default ``True``.  
+            ``optimize`` default ``True``.
 
         Note: this is just a public function for `_get_render_func`
         """
         python_string = self._get_render_func(optimize=optimize, ret_str=True)
         return python_string
-        
+
     def render(self, model, env=None):
         env = env or self.env
         rendered = []
@@ -1885,9 +1886,9 @@ class Template(object):
             return Compiler(self.env)._gen_python(ast)
         func = self._ast_to_render_func(ast)
         return func
-    
+
     def _ast_to_render_func(self, ast):
-        # making this a shared function between 
+        # making this a shared function between
         # `_get_render_func` and ast loaders
         compiler = Compiler(self.env)
         func = compiler.compile(ast)
@@ -1981,16 +1982,16 @@ class BaseAshesEnv(object):
     def render(self, name, model):
         tmpl = self.load(name)
         return tmpl.render(model, self)
-        
+
     def generate_ast(self, name, optimize=True):
         """Generates the AST for a given template.
-        This works by first loading the template (via normal means) then 
+        This works by first loading the template (via normal means) then
         calling the template's ``to_ast()`` method.
-        
+
         args:
             ``name``  template name
         kwargs:
-            ``optimize`` default ``True``.  
+            ``optimize`` default ``True``.
             passed to ``to_ast()`` method of the template.
         """
         template = self.load(name)
@@ -1999,32 +2000,32 @@ class BaseAshesEnv(object):
 
     def generate_python_string(self, name, optimize=True):
         """Generates the Python string representation of a template.
-        This works by first loading the template (via normal means) then 
+        This works by first loading the template (via normal means) then
         calling the template's ``to_python_string`` method.
 
         You can register a string back with ``load_template_python_string``
-        Note: If you are in a somewhat persistant environment, it is much 
-        faster to first compile the string with ``ashes.compile_python_string`` 
+        Note: If you are in a somewhat persistant environment, it is much
+        faster to first compile the string with ``ashes.compile_python_string``
         then register with ``load_template_python_compiled``
 
         args:
             ``name``  template name
         kwargs:
-            ``optimize`` default ``True``.  
+            ``optimize`` default ``True``.
             passed to ``to_python_string()`` method of the template.
         """
         template = self.load(name)
         python_string = template.to_python_string(optimize=optimize)
         return python_string
-    
+
     def load_template_ast(self, name, ast, optimized=True):
         """Loads and registers a template via the AST representation.
-        
+
         args:
             ``name``  template name
             ``ast``  template ast (via ``generate_ast``)
         kwargs:
-            ``optimized`` default ``True``.  
+            ``optimized`` default ``True``.
             passed to ``__init__()`` method of the template as ``optimize``.
         """
         template = self.template_type(name, source='', lazy=True, optimize=optimized)
@@ -2034,8 +2035,8 @@ class BaseAshesEnv(object):
 
     def load_template_python_string(self, name, python_string, optimized=True):
         """Loads and registers a template via the python string representation.
-        
-        This offers a slight performance boost to ``load_template_ast`` but is 
+
+        This offers a slight performance boost to ``load_template_ast`` but is
         not nearly as efficient as caching and providing the compiled python as
         supported in ``load_template_python_compiled``
 
@@ -2043,7 +2044,7 @@ class BaseAshesEnv(object):
             ``name``  template name
             ``python_string``  template string (via ``generate_python_string``)
         kwargs:
-            ``optimized`` default ``True``.  
+            ``optimized`` default ``True``.
             passed to ``__init__()`` method of the template as ``optimize``.
         """
         template = self.template_type(name, '', lazy=True, optimize=optimized)
@@ -2060,10 +2061,10 @@ class BaseAshesEnv(object):
 
         args:
             ``name``  template name
-            ``python_compiled`` template 
-              via ``generate_python_string`` and ``ashes.compile_python_string`` 
+            ``python_compiled`` template
+              via ``generate_python_string`` and ``ashes.compile_python_string``
         kwargs:
-            ``optimized`` default ``True``.  
+            ``optimized`` default ``True``.
             passed to ``__init__()`` method of the template as ``optimize``.
         """
         template = self.template_type(name, '', lazy=True, optimize=optimized)
@@ -2357,14 +2358,14 @@ def _main():
                 '{/eq}'
                 ', {@size key=hello/} characters')
         ashes.register_source('hi', tmpl)
-        #print(ashes.render('hi', {'hello': lambda x: None}))
+        #  print(ashes.render('hi', {'hello': lambda x: None}))
     except Exception as e:
-        import pdb;pdb.post_mortem()
+        import pdb; pdb.post_mortem()
         raise
 
     ae = AshesEnv(filters={'cn': comma_num})
     ae.register_source('cn_tmpl', 'comma_numd: {thing|cn}')
-    #print(ae.render('cn_tmpl', {'thing': 21000}))
+    #  print(ae.render('cn_tmpl', {'thing': 21000}))
     ae.register_source('tmpl', '{`{ok}thing`}')
     print(ae.render('tmpl', {'thing': 21000}))
 
