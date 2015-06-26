@@ -631,6 +631,9 @@ def _python_compile(source, name, global_env=None):
 def compile_python_string(python_string):
     """utility function
     used to compile python string functions for template loading
+    
+    args:
+        ``python_string``
     """
     return _python_compile(python_string, 'render')
 
@@ -1888,8 +1891,9 @@ class Template(object):
         return func
 
     def _ast_to_render_func(self, ast):
-        # making this a shared function between
-        # `_get_render_func` and ast loaders
+        """this was part of ``_get_render_func`` but is better implemented
+        as an separate function so that AST can be directly loaded.
+        """
         compiler = Compiler(self.env)
         func = compiler.compile(ast)
         return func
