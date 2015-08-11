@@ -37,7 +37,7 @@ node_re = re.compile(r'({'
                      r'(?P<refpath>[a-zA-Z0-9_\$\.]+|"[^"]+")'
                      r'(?:\:(?P<contpath>[a-zA-Z0-9\$\.]+))?'
                      r'(?P<filters>[\|a-z]+)*?'
-                     r'(?P<params>(?:\s+\w+\=(("[^"]*?")|([\w\.]+)))*)?'
+                     r'(?P<params>(?:\s+\w+\=(("[^"]*?")|([$\w\.]+)))*)?'
                      r'\s*'
                      r'(?P<selfclosing>\/)?'
                      r'\})',
@@ -2175,7 +2175,7 @@ def _main():
                 '{/eq}'
                 ', {@size key=hello/} characters')
         ashes.register_source('hi', tmpl)
-        #print(ashes.render('hi', {'hello': lambda x: None}))
+        print(ashes.render('hi', {'hello': 'ayy'}))
     except Exception as e:
         import pdb;pdb.post_mortem()
         raise
