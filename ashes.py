@@ -1027,11 +1027,13 @@ def iterate_helper(chunk, context, bodies, params):
     sort_key = params.get('sort_key')
     target = params.get('key')
     if not body or not target:
-        return chunk  # log error
+        context.env.log('warn', 'helper.iterate', 'empty block or target')
+        return chunk
     try:
         iter(target)
     except:
-        return chunk  # log error
+        context.env.log('warn', 'helper.iterate', 'non-iterable target')
+        return chunk
     try:
         items = target.items()
         is_dict = True
@@ -1042,7 +1044,8 @@ def iterate_helper(chunk, context, bodies, params):
         try:
             items = _sort_iterate_items(items, sort_key, direction=sort)
         except:
-            return chunk  # log error
+            context.env.log('warn', 'helper.iterate', 'failed to sort target')
+            return chunk
     if is_dict:
         for key, value in items:
             body(chunk, context.push({'$key': key,
@@ -1069,6 +1072,8 @@ def iterate_helper(chunk, context, bodies, params):
                 for i, value in enumerate(values):
                     new_scope['$%s' % i] = value
             except TypeError:
+                context.env.log('warn', 'helper.iterate',
+                                'unable to enumerate values')
                 return chunk
             else:
                 body(chunk, context.push(new_scope))
@@ -1084,6 +1089,8 @@ def _do_compare(chunk, context, bodies, params, cmp_op):
         value = params['value']
         typestr = params.get('type')
     except KeyError:
+        context.env.log('warn', 'helper.compare',
+                        'comparison missing key/value')
         return chunk
     rkey = _resolve_value(key, chunk, context)
     if not typestr:
@@ -1823,7 +1830,10 @@ class AshesException(Exception):
 
 
 class TemplateNotFound(AshesException):
-    pass
+    def __init__(self, name):
+        self.name = name
+        super(TemplateNotFound, self).__init__('could not find template: %r'
+                                               % name)
 
 
 class RenderException(AshesException):
@@ -1894,6 +1904,9 @@ class BaseAshesEnv(object):
         if pragmas:
             self.pragmas.update(pragmas)
         self.auto_reload = auto_reload
+
+    def log(self, level, name, message):
+        return  # print(level, '-', name, '-', message)
 
     def render(self, name, model):
         tmpl = self.load(name)
@@ -1993,6 +2006,8 @@ class BaseAshesEnv(object):
         try:
             tmpl = self.load(name)
         except TemplateNotFound as tnf:
+            context.env.log('error', 'load_chunk',
+                            'TemplateNotFound error: %r' % tnf.name)
             return chunk.set_error(tnf)
         return tmpl.render_chunk(chunk, context)
 
