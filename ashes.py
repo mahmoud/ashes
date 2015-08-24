@@ -650,7 +650,7 @@ class Compiler(object):
         self.blocks = {}
         self.block_str = ''
         self.index = 0
-        self.auto = 'h'  # TODO
+        self.auto = self.env.autoescape_filter
 
     def compile(self, ast, name='render'):
         python_source = self._gen_python(ast)
@@ -1877,6 +1877,7 @@ class ParseError(AshesException):
 
 class BaseAshesEnv(object):
     template_type = Template
+    autoescape_filter = 'h'
 
     def __init__(self,
                  loaders=None,
