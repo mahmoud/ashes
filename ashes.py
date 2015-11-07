@@ -1265,7 +1265,7 @@ class Context(object):
                 else:
                     ctx = value
             else:
-                #if scope is limited by a leading dot, don't search up the tree
+                # if scope is limited by a leading dot, don't search up tree
                 if first_path_element in ctx.head:
                     ctx = ctx.head[first_path_element]
                 else:
@@ -1554,25 +1554,20 @@ class Chunk(object):
 
         if not body or elem is None:
             return self
-        if is_scalar(elem) or hasattr(elem, 'keys'):  # haaack
-            if elem is True:
-                return body(self, context)
-            else:
-                return body(self, context.push(elem))
+        if elem is True:
+            return body(self, context)
+        elif isinstance(elem, dict) or is_scalar(elem):
+            return body(self, context.push(elem))
         else:
             chunk = self
             length = len(elem)
             head = context.stack.head
-            try:
-                head['$len'] = length
-                for i, el in enumerate(elem):
-                    head['$idx'] = i
-                    head['$idx_1'] = i + 1
-                    chunk = body(chunk, context.push(el, i, length))
-            finally:
-                head.pop('$len', None)
-                head.pop('$idx', None)
-                head.pop('$idx_1', None)
+            for i, el in enumerate(elem):
+                new_ctx = context.push(el, i, length)
+                new_ctx.globals.update({'$len': length,
+                                        '$idx': i,
+                                        '$idx_1': i + 1})
+                chunk = body(chunk, new_ctx)
             return chunk
 
     def exists(self, elem, context, bodies, params=None):
@@ -1983,7 +1978,8 @@ class BaseAshesEnv(object):
         else:
             optimizers = UNOPT_OPTIMIZERS
         optimizer = Optimizer(optimizers, self.special_chars)
-        return optimizer.optimize(ast)
+        ret = optimizer.optimize(ast)
+        return ret
 
     def apply_filters(self, string, auto, filters):
         filters = filters or []
@@ -2213,12 +2209,24 @@ def _main():
     out = ae.render('tmpl3', {'lol': [(1, 2, 3), (4, 5, 6)]})
     print(out)
 
-    print(escape_uri_path("https://en.wikipedia.org/wiki/Asia's_Next_Top_Model_(cycle_3)"))
-    print(escape_uri_component("https://en.wikipedia.org/wiki/Asia's_Next_Top_Model_(cycle_3)"))
-    print('')
-    ae.register_source('tmpl4', '{#iterable}{$idx_1}/{$len}: {.}{@sep}, {/sep}{/iterable}')
-    out = ae.render('tmpl4', {'iterable': range(100, 108)})
-    print(out)
+    #print(escape_uri_path("https://en.wikipedia.org/wiki/Asia's_Next_Top_Model_(cycle_3)"))
+    #print(escape_uri_component("https://en.wikipedia.org/wiki/Asia's_Next_Top_Model_(cycle_3)"))
+    #print('')
+    #ae.register_source('tmpl4', '{#iterable}{$idx_1}/{$len}: {.}{@sep}, {/sep}{/iterable}')
+    #out = ae.render('tmpl4', {'iterable': range(100, 108)})
+    #print(out)
+
+    tmpl = '''\
+    {#.}
+    row{~n}
+    {#.}
+    {.}{~n}
+    {/.}
+    {/.}'''
+    ashes.keep_whitespace = False
+    ashes.autoescape_filter = ''
+    ashes.register_source('nested_lists', tmpl)
+    print(ashes.render('nested_lists', [[1, 2], [3, 4]]))
 
 
 if __name__ == '__main__':
