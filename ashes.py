@@ -865,8 +865,10 @@ UndefinedValue = UndefinedValueType()
 
 def _make_quote_map(allowed_chars):
     ret = {}
-    for i, c in zip(range(256), str(bytearray(range(256)))):
-        ret[c] = c if c in allowed_chars else '%{0:02X}'.format(i)
+    for i in range(256):
+        c = chr(i)
+        esc_c = c if c in allowed_chars else '%{0:02X}'.format(i)
+        ret[i] = ret[c] = esc_c
     return ret
 
 # The unreserved URI characters (per RFC 3986)
@@ -2209,12 +2211,12 @@ def _main():
     out = ae.render('tmpl3', {'lol': [(1, 2, 3), (4, 5, 6)]})
     print(out)
 
-    #print(escape_uri_path("https://en.wikipedia.org/wiki/Asia's_Next_Top_Model_(cycle_3)"))
-    #print(escape_uri_component("https://en.wikipedia.org/wiki/Asia's_Next_Top_Model_(cycle_3)"))
-    #print('')
-    #ae.register_source('tmpl4', '{#iterable}{$idx_1}/{$len}: {.}{@sep}, {/sep}{/iterable}')
-    #out = ae.render('tmpl4', {'iterable': range(100, 108)})
-    #print(out)
+    print(escape_uri_path("https://en.wikipedia.org/wiki/Asia's_Next_Top_Model_(cycle_3)"))
+    print(escape_uri_component("https://en.wikipedia.org/wiki/Asia's_Next_Top_Model_(cycle_3)"))
+    print('')
+    ae.register_source('tmpl4', '{#iterable}{$idx_1}/{$len}: {.}{@sep}, {/sep}{/iterable}')
+    out = ae.render('tmpl4', {'iterable': range(100, 108)})
+    print(out)
 
     tmpl = '''\
     {#.}
