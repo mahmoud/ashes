@@ -1,5 +1,5 @@
 # TODO
- * helpers to humanize numbers (add commas)
+
  * helpers for .keys(), .values(), .items()
  * helper for key access
  * remove unnecessary callback dynamics
@@ -12,6 +12,10 @@
  * keep track of unresolved symbols and proffer a blank schema for
    introspection/convenience?
  * nosetests
+
+* CLI usage:
+  * `ashes --whitespace-option path/to/template.html:path/to/model.json`
+  * `ashes path/to/template/to/validate`
 
 # Notes
  * Javascript implicitly disregards extra arguments passed
