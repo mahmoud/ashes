@@ -2231,6 +2231,10 @@ def _main():
     print(ashes.render('nested_lists', [[1, 2], [3, 4]]))
 
 
+class CLIError(ValueError):
+    pass
+
+
 def _simple_render(template_path, template_literal, env_path_list,
                    model_path, model_literal,
                    trim_whitespace, filter, no_filter,
@@ -2241,14 +2245,16 @@ def _simple_render(template_path, template_literal, env_path_list,
     if filter in env.filters:
         env.autoescape_filter = filter
     else:
-        raise ValueError('unexpected filter %r, expected one of %r'
-                         % (filter, env.filters))
+        raise CLIError('unexpected filter %r, expected one of %r'
+                       % (filter, env.filters))
     if no_filter:
         env.autoescape_filter = ''
 
     if template_literal:
         tmpl_obj = env.register_source('_literal_template', template_literal)
     else:
+        if not template_path:
+            raise CLIError('expected template or template literal')
         try:
             tmpl_obj = env.load(template_path)
         except (KeyError, TemplateNotFound):
@@ -2257,7 +2263,7 @@ def _simple_render(template_path, template_literal, env_path_list,
     if model_literal:
         model = json.loads(model_literal)
     elif not model_path:
-        model = {}
+        raise CLIError('expected model or model literal')
     elif model_path == '-':
         model = json.load(sys.stdin)
     else:
@@ -2278,12 +2284,13 @@ def main():
     # using optparse for backwards compat with 2.6 (and earlier, maybe)
     from optparse import OptionParser
 
-    prs = OptionParser(description="render a template using a JSON input")
+    prs = OptionParser(description="render a template using a JSON input",
+                       version='ashes %s' % (__version__,))
     ao = prs.add_option
     ao('--env-path',
        help="paths to search for templates, separate paths with :")
     ao('--filter', default='h',
-       help="autoescape values with this filter, default 'h' for HTML")
+       help="autoescape values with this filter, defaults to 'h' for HTML")
     ao('--no-filter', action="store_true",
        help="disables default HTML-escaping filter, overrides --filter")
     ao('--trim-whitespace', action="store_true",
@@ -2301,17 +2308,16 @@ def main():
     ao('-T', '--template-literal',
        help="the literal string of the template, overrides template")
     ao('--verbose', help="emit extra output on stderr")
-    ao('--version', action='store_true', help='print version and exit')
 
     opts, _ = prs.parse_args()
     kwargs = dict(opts.__dict__)
 
-    if opts.version:
-        print(__version__)
-        return
-    kwargs.pop('version')
     kwargs['env_path_list'] = (kwargs.pop('env_path') or '').split(':')
-    _simple_render(**kwargs)
+    try:
+        _simple_render(**kwargs)
+    except CLIError as clie:
+        err_msg = '%s; use --help option for more info.' % (clie.args[0],)
+        prs.error(err_msg)
     return
 
 
