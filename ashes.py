@@ -2231,26 +2231,28 @@ def _main():
     print(ashes.render('nested_lists', [[1, 2], [3, 4]]))
 
 
-def simple_render(template_path, template_literal, env_path_list,
-                  model_path, model_literal,
-                  trim_whitespace, filter, no_filter,
-                  output_path, output_encoding, verbose):
+def _simple_render(template_path, template_literal, env_path_list,
+                   model_path, model_literal,
+                   trim_whitespace, filter, no_filter,
+                   output_path, output_encoding, verbose):
     # TODO: default value (placeholder for missing values)
-    ashes_env = AshesEnv(env_path_list)
-    ashes_env.keep_whitespace = not trim_whitespace
-    if filter not in ashes_env.filters:
+    env = AshesEnv(env_path_list)
+    env.keep_whitespace = not trim_whitespace
+    if filter in env.filters:
+        env.autoescape_filter = filter
+    else:
         raise ValueError('unexpected filter %r, expected one of %r'
-                         % (filter, ashes_env.filters))
+                         % (filter, env.filters))
     if no_filter:
-        ashes_env.autoescape_filter = ''
+        env.autoescape_filter = ''
 
     if template_literal:
-        tmpl_obj = ashes_env.register_source('_template_literal', template_literal)
+        tmpl_obj = env.register_source('_literal_template', template_literal)
     else:
         try:
-            tmpl_obj = ashes_env.load(template_path)
+            tmpl_obj = env.load(template_path)
         except (KeyError, TemplateNotFound):
-            tmpl_obj = ashes_env.register_path(template_path)
+            tmpl_obj = env.register_path(template_path)
 
     if model_literal:
         model = json.loads(model_literal)
@@ -2273,42 +2275,43 @@ def simple_render(template_path, template_literal, env_path_list,
 
 
 def main():
-    from argparse import ArgumentParser
+    # using optparse for backwards compat with 2.6 (and earlier, maybe)
+    from optparse import OptionParser
 
-    prs = ArgumentParser(description="render a template using a JSON input")
-    add_arg = prs.add_argument
-    add_arg('--env-path',
-            help="paths to search for templates, separate paths with :")
-    add_arg('--filter', default='h',
-            help="autoescape values with this filter, default 'h' for HTML")
-    add_arg('--no-filter', action="store_true",
-            help="disables default HTML-escaping filter, overrides --filter")
-    add_arg('--trim-whitespace', action="store_true",
-            help="removes whitespace on template load")
-    add_arg('-m', '--model', dest='model_path',
-            help="path to the JSON model file, default - for stdin")
-    add_arg('-M', '--model-literal',
-            help="the literal string of the JSON model, overrides model")
-    add_arg('-o', '--output', dest='output_path', default='-',
-            help="path to the output file, default - for stdout")
-    add_arg('--output-encoding', default='utf-8',
-            help="encoding for the output, default utf-8")
-    add_arg('-t', '--template', dest='template_path',
-            help="path of template to render, absolute or relative to env-path")
-    add_arg('-T', '--template-literal',
-            help="the literal string of the template, overrides template")
-    add_arg('--verbose')
-    add_arg('--version', action='store_true', help='print version and exit')
+    prs = OptionParser(description="render a template using a JSON input")
+    ao = prs.add_option
+    ao('--env-path',
+       help="paths to search for templates, separate paths with :")
+    ao('--filter', default='h',
+       help="autoescape values with this filter, default 'h' for HTML")
+    ao('--no-filter', action="store_true",
+       help="disables default HTML-escaping filter, overrides --filter")
+    ao('--trim-whitespace', action="store_true",
+       help="removes whitespace on template load")
+    ao('-m', '--model', dest='model_path',
+       help="path to the JSON model file, default - for stdin")
+    ao('-M', '--model-literal',
+       help="the literal string of the JSON model, overrides model")
+    ao('-o', '--output', dest='output_path', default='-',
+       help="path to the output file, default - for stdout")
+    ao('--output-encoding', default='utf-8',
+       help="encoding for the output, default utf-8")
+    ao('-t', '--template', dest='template_path',
+       help="path of template to render, absolute or relative to env-path")
+    ao('-T', '--template-literal',
+       help="the literal string of the template, overrides template")
+    ao('--verbose', help="emit extra output on stderr")
+    ao('--version', action='store_true', help='print version and exit')
 
-    args = prs.parse_args()
-    kwargs = dict(args._get_kwargs())
+    opts, _ = prs.parse_args()
+    kwargs = dict(opts.__dict__)
 
-    if args.version:
+    if opts.version:
         print(__version__)
         return
     kwargs.pop('version')
     kwargs['env_path_list'] = (kwargs.pop('env_path') or '').split(':')
-    simple_render(**kwargs)
+    _simple_render(**kwargs)
     return
 
 
