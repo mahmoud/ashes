@@ -17,6 +17,8 @@
   * `ashes --whitespace-option path/to/template.html:path/to/model.json`
   * `ashes path/to/template/to/validate`
 
+* URL escaping, are hashes supposed to be filtered?
+
 # Notes
  * Javascript implicitly disregards extra arguments passed
  to a function, so a lot of dust.js's functions were weird

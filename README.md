@@ -4,6 +4,8 @@ Ashes
 [![Build Status](https://travis-ci.org/mahmoud/ashes.png?branch=master)](https://travis-ci.org/mahmoud/ashes)
 
 [Dust](http://akdubya.github.com/dustjs/) templating for Python 2 and 3.
+Also the most convenient, portable, and powerful [command-line
+templating utility](#command-line-interface).
 
 A quick example:
 
@@ -61,6 +63,68 @@ ashes_env = AshesEnv(keep_whitespace=False)  # optimize away whitespace
 
 For more general information about the dust templating language, see
 the [Dust documentation](http://akdubya.github.com/dustjs/).
+
+
+# Command-line interface
+
+The ashes command-line interface serves two purposes. First, it makes
+it easy to experiment with and test ashes features and behavior,
+especially thanks to the inline "literal" options, demonstrated
+below.
+
+```sh
+# using ashes to pretty-print JSON
+$ python ashes.py --no-filter -T '{.|ppjson}' -M '{"x": {"y": [1,2,3]}}'
+{
+  "x": {
+      "y": [
+        1,
+        2,
+        3,
+      ]
+   }
+}
+```
+
+Secondly, thanks to the compact, single-file implementation,
+ashes can replace rusty sed and awk scripts, wherever Python 2.7-3.x
+is available. Use ashes for generating shell scripts and much more.
+
+Templates can be files or passed at the command line. Models, the
+input data to the template, are passed in as JSON, either as a command
+line option, or through stdin, enabling piping from web
+requests. Several other options exist, see the help output below.
+
+```
+$ python ashes.py --help
+Usage: ashes.py [options]
+
+render a template using a JSON input
+
+Options:
+  --version             show program's version number and exit
+  -h, --help            show this help message and exit
+  --env-path=ENV_PATH   paths to search for templates, separate paths with :
+  --filter=FILTER       autoescape values with this filter, defaults to 'h'
+                        for HTML
+  --no-filter           disables default HTML-escaping filter, overrides
+                        --filter
+  --trim-whitespace     removes whitespace on template load
+  -m MODEL_PATH, --model=MODEL_PATH
+                        path to the JSON model file, default - for stdin
+  -M MODEL_LITERAL, --model-literal=MODEL_LITERAL
+                        the literal string of the JSON model, overrides model
+  -o OUTPUT_PATH, --output=OUTPUT_PATH
+                        path to the output file, default - for stdout
+  --output-encoding=OUTPUT_ENCODING
+                        encoding for the output, default utf-8
+  -t TEMPLATE_PATH, --template=TEMPLATE_PATH
+                        path of template to render, absolute or relative to
+                        env-path
+  -T TEMPLATE_LITERAL, --template-literal=TEMPLATE_LITERAL
+                        the literal string of the template, overrides template
+  --verbose=VERBOSE     emit extra output on stderr
+```
 
 
 ## Installation
