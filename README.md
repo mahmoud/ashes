@@ -126,12 +126,21 @@ Options:
   --verbose=VERBOSE     emit extra output on stderr
 ```
 
+On systems with `ashes` installed, this interface is accessible
+through the `ashes` command.
+
+```
+$ ashes --trim-whitespace --template script.sh.dust --model data.json --output script.sh
+```
 
 ## Installation
 
 Ashes is implemented as a single .py file, so installation can be as
 easy as downloading `ashes.py` above and putting it in the same
-directory as your project. And of course you can always `pip install ashes`.
+directory as your project.
+
+And as always, `pip install ashes`. Installing the package has the
+added benefit of installing the `ashes` command.
 
 ## Testimonials
 

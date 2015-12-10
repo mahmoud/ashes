@@ -29,6 +29,7 @@ setup(
     py_modules=('ashes',),
     scripts=('ashes.py',),
     platforms='any',
+    entry_points={'console_scripts': ['ashes = ashes:main']},
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
