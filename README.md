@@ -130,7 +130,7 @@ On systems with `ashes` installed, this interface is accessible
 through the `ashes` command.
 
 ```
-$ ashes --trim-whitespace --template script.sh.dust --model data.json --output script.sh
+$ ashes --trim-whitespace --no-filter --template script.sh.dust --model data.json --output script.sh
 ```
 
 ## Installation
