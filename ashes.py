@@ -878,7 +878,7 @@ _UNRESERVED_CHARS = (frozenset(string.ascii_letters)
 _RESERVED_CHARS = frozenset(":/?#[]@!$&'()*+,;=")  # not used
 _PATH_RESERVED_CHARS = frozenset("?#")  # not used
 
-_PATH_QUOTE_MAP = _make_quote_map(_UNRESERVED_CHARS | set('/?=&:'))
+_PATH_QUOTE_MAP = _make_quote_map(_UNRESERVED_CHARS | set('/?=&:#'))
 
 # Escapes/filters
 
