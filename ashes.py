@@ -18,7 +18,7 @@ if PY3:
 else:
     string_types = (str, unicode)
 
-__version__ = '15.0.2dev'
+__version__ = '15.1.0'
 __author__ = 'Mahmoud Hashemi'
 __contact__ = 'mahmoudrhashemi@gmail.com'
 __url__ = 'https://github.com/mahmoud/ashes'
