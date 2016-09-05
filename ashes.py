@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
@@ -28,9 +29,6 @@ __license__ = 'BSD'
 DEFAULT_EXTENSIONS = ('.dust', '.html', '.xml')
 DEFAULT_IGNORED_PATTERNS = ('.#*',)
 
-
-# need to add group for literals
-# switch to using word boundary for params section
 node_re = re.compile(r'({'
                      r'(?P<closing>\/)?'
                      r'(?:(?P<symbol>[\~\#\?\@\:\<\>\+\^\%])\s*)?'
@@ -42,6 +40,7 @@ node_re = re.compile(r'({'
                      r'(?P<selfclosing>\/)?'
                      r'\})',
                      flags=re.MULTILINE)
+
 
 key_re_str = '[a-zA-Z_$][0-9a-zA-Z_$]*'
 key_re = re.compile(key_re_str)
@@ -2307,12 +2306,34 @@ def main():
        help="path of template to render, absolute or relative to env-path")
     ao('-T', '--template-literal',
        help="the literal string of the template, overrides template")
+    ao('-s', '--start-delimeter', default='{',
+       help="the starting delimeter for tokens")
+    ao('-e', '--end-delimeter', default='}',
+       help="the end delimeter for tokens")
     ao('--verbose', help="emit extra output on stderr")
 
     opts, _ = prs.parse_args()
     kwargs = dict(opts.__dict__)
 
     kwargs['env_path_list'] = (kwargs.pop('env_path') or '').split(':')
+
+    # need to add group for literals
+    # switch to using word boundary for params section
+    global node_re
+    node_re = re.compile(
+        r'('+
+        re.escape(kwargs.pop('start_delimeter'))  +
+        r'(?P<closing>\/)?'
+        r'(?:(?P<symbol>[\~\#\?\@\:\<\>\+\^\%])\s*)?'
+        r'(?P<refpath>[a-zA-Z0-9_\$\.]+|"[^"]+")'
+        r'(?:\:(?P<contpath>[a-zA-Z0-9\$\.]+))?'
+        r'(?P<filters>[\|a-z]+)*?'
+        r'(?P<params>(?:\s+\w+\=(("[^"]*?")|([$\w\.]+)))*)?'
+        r'\s*'
+        r'(?P<selfclosing>\/)?'+
+        re.escape(kwargs.pop('end_delimeter')) +
+        r')',
+        flags=re.MULTILINE)
     try:
         _simple_render(**kwargs)
     except CLIError as clie:
