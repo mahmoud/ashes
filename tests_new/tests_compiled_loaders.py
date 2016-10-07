@@ -4,6 +4,7 @@ These are example loads for use in tests
 
 # stdlib
 import os
+import codecs
 import ashes
 
 
@@ -58,9 +59,9 @@ class TemplatesLoader(object):
         self._template_source_dust = {}
         if directory:
             directory = os.path.normpath(directory)
-            files = [i for i in os.listdir(os.path.normpath(directory)) if i[-5:] == '.dust']
+            files = [i for i in os.listdir(os.path.normpath(directory)) if i[-5:] in ('.dust', '.html')]
             fpaths = {f: os.path.join(directory, f) for f in files}
-            fdata = {f: open(fpaths[f]).read() for f in files}
+            fdata = {f: codecs.open(fpaths[f], 'r', 'utf-8').read() for f in files}
             self._template_source_dust = fdata
 
         # initialize
@@ -74,6 +75,7 @@ class TemplatesLoader(object):
         """
         for _template_name in self._template_source_dust.keys():
             if _template_name not in self._template_objects:
+                print "_template_name", _template_name
                 self._template_objects[_template_name] = ashes.Template(_template_name,
                                                                         self._template_source_dust[_template_name]
                                                                         )
@@ -111,8 +113,8 @@ class TemplatesLoader(object):
         for (_template_name, payload) in templates_cache.items():
             self._template_objects[_template_name] = ashes.Template(_template_name,
                                                                     None,
-                                                                    source_ast=payload['ast'],
-                                                                    source_python_string=payload['python_string'],
+                                                                    source_ast=payload.get('ast'),
+                                                                    source_python_string=payload.get('python_string'),
                                                                     )
 
     def generate_all_cacheable(self):
@@ -183,7 +185,7 @@ class TemplatesLoaderLazy(TemplatesLoader):
             directory = os.path.normpath(self._directory)
             try:
                 filepath = os.path.join(directory, template_name)
-                template_source = open(filepath).read() 
+                template_source = codecs.open(filepath, 'r', 'utf-8').read() 
                 _templateObj = ashes.Template(template_name,
                                               template_source
                                               )

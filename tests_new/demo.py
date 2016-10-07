@@ -28,7 +28,6 @@ templates_directory = '../tests/'
 
 
 # test a loaded python_string method
-
 ashesLoader = TemplatesLoader('%stemplates_a' % templates_directory)
 ashesEnv = ashes.AshesEnv(loaders=(ashesLoader, ))
 
