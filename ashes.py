@@ -249,7 +249,7 @@ class PartialTag(Tag):
                 pe.token = self
                 raise
 
-        ## tying to make this more standardized
+        # tying to make this more standardized
         inline_body = inline_to_dust_ast(self.subtokens)
         return [['partial',
                  inline_body,
@@ -572,10 +572,12 @@ class Optimizer(object):
 
     def visit(self, node):
         ret = [node[0]]
+        _optimize = self.optimize  # hand-optimized for cpython bytecode
+        _ret_append = ret.append  # hand-optimized for cpython bytecode
         for n in node[1:]:
-            filtered = self.optimize(n)
+            filtered = _optimize(n)
             if filtered:
-                ret.append(filtered)
+                _ret_append(filtered)
         return ret
 
     def compact_buffers(self, node):
@@ -626,6 +628,17 @@ def _python_compile(source, name, global_env=None):
     else:
         exec("exec code in global_env")
     return global_env[name]
+
+
+def compile_python_string(python_string):
+    """
+    utility function
+    used to compile python string functions for template loading/caching
+
+    args:
+        ``python_string``
+    """
+    return _python_compile(python_string, 'render')
 
 
 class Compiler(object):
@@ -1340,7 +1353,7 @@ class Stack(object):
         self.tail = tail
         self.index = index or 0
         self.of = length or 1
-        #self.is_object = is_scalar(head)
+        # self.is_object = is_scalar(head)
 
     def __repr__(self):
         return 'Stack(%r, %r, %r, %r)' % (self.head,
@@ -1731,7 +1744,11 @@ class Template(object):
                  optimize=True,
                  keep_source=True,
                  env=None,
-                 lazy=False):
+                 lazy=False,
+                 source_ast=None,
+                 source_python_string=None,
+                 source_python_func=None,
+                 ):
         self.name = name
         self.source = source
         self.source_file = source_file
@@ -1743,7 +1760,27 @@ class Template(object):
             env = default_env
         self.env = env
 
-        if lazy:  # lazy is really only for testing
+        # some templates are from source...
+        self.source_ast = source_ast
+        self.source_python_string = source_python_string
+        self.source_python_func = source_python_func
+        if source_ast or source_python_string or source_python_func:
+            # prefer the python string to ast; it is faster to load
+            if source_python_func:
+                self.render_func = source_python_func
+            elif source_python_string:
+                self.render_func = _python_compile(source_python_string, name='render')
+            else:
+                self.render_func = self._ast_to_render_func(source_ast)
+            if not keep_source:
+                self.source = None
+                self.source_ast = None
+                self.source_python_string = None
+                self.source_python_func = None
+            # exit EARLY
+            return
+
+        if lazy:  # lazy is only for testing
             self.render_func = None
             return
         self.render_func = self._get_render_func(optimize)
@@ -1752,6 +1789,14 @@ class Template(object):
 
     @classmethod
     def from_path(cls, path, name=None, encoding='utf-8', **kw):
+        """classmethod.
+        Builds a template from a filepath.
+        args:
+            ``path``
+        kwargs:
+            ``name`` default ``None``.
+            ``encoding`` default ``utf-8``.
+        """
         abs_path = os.path.abspath(path)
         if not os.path.isfile(abs_path):
             raise TemplateNotFound(abs_path)
@@ -1760,6 +1805,72 @@ class Template(object):
         if not name:
             name = path
         return cls(name=name, source=source, source_file=abs_path, **kw)
+
+
+    @classmethod
+    def from_ast(cls, ast, name=None, **kw):
+        """classmethod
+        Builds a template from an AST representation.
+        args:
+            ``ast``
+        kwargs:
+            ``name`` default ``None``.
+        """
+        template = cls(name=name, source='', lazy=True, **kw)
+        template.render_func = template._ast_to_render_func(ast)
+        return template
+
+    @classmethod
+    def from_python_string(cls, python_string, name=None, **kw):
+        """classmethod
+        Builds a template from an python string representation.
+        args:
+            ``python_string``
+        kwargs:
+            ``name`` default ``None``.
+        """
+        template = cls(name=name, source='', lazy=True, **kw)
+        template.render_func = _python_compile(python_string, name='render')
+        return template
+
+    @classmethod
+    def from_python_func(cls, python_func, name=None, **kw):
+        """classmethod
+        Builds a template from an compiled python function.
+        args:
+            ``python_func``
+        kwargs:
+            ``name`` default ``None``.
+        """
+        template = cls(name=name, source='', lazy=True, **kw)
+        template.render_func = python_func
+        return template
+
+    def to_ast(self, optimize=True, raw=False):
+        """Generates the AST for a given template.
+
+        kwargs:
+            ``optimize`` default ``True``.
+            ``raw`` default ``False``.
+
+        Note: this is just a public function for `_get_ast`
+        """
+        return self._get_ast(optimize=optimize, raw=raw)
+
+    def to_python_string(self, optimize=True):
+        """Generates the Python string representation for a template.
+
+        kwargs:
+            ``optimize`` default ``True``.
+
+        Note: this is just a public function for `_get_render_func`
+
+        Note: If you are in a somewhat persistant environment, it is much
+        faster to first compile the string with ``ashes.compile_python_string``
+        then register with ``from_python_func``
+        """
+        python_string = self._get_render_func(optimize=optimize, ret_str=True)
+        return python_string
 
     def render(self, model, env=None):
         env = env or self.env
@@ -1807,11 +1918,19 @@ class Template(object):
         ast = self._get_ast(optimize)
         if not ast:
             return None
-        compiler = Compiler(self.env)
-        func = compiler.compile(ast)
         if ret_str:
             # for testing/dev purposes
             return Compiler(self.env)._gen_python(ast)
+        # consolidated the original code into _ast_to_render_func as-is below
+        func = self._ast_to_render_func(ast)
+        return func        
+        
+    def _ast_to_render_func(self, ast):
+        """this was part of ``_get_render_func`` but is better implemented
+        as an separate function so that AST can be directly loaded.
+        """
+        compiler = Compiler(self.env)
+        func = compiler.compile(ast)
         return func
 
     def __repr__(self):
@@ -1911,6 +2030,11 @@ class BaseAshesEnv(object):
         return tmpl.render(model, self)
 
     def load(self, name):
+        """Loads a template.
+
+        args:
+            ``name``  template name
+         """
         try:
             template = self.templates[name]
         except KeyError:
@@ -1936,6 +2060,11 @@ class BaseAshesEnv(object):
         raise TemplateNotFound(name)
 
     def load_all(self, do_register=True, **kw):
+        """Loads all templates.
+
+        args:
+            ``do_register``  default ``True`
+        """
         all_tmpls = []
         for loader in reversed(self.loaders):
             # reversed so the first loader to have a template
@@ -2196,7 +2325,7 @@ def _main():
 
     ae = AshesEnv(filters={'cn': comma_num})
     ae.register_source('cn_tmpl', 'comma_numd: {thing|cn}')
-    #print(ae.render('cn_tmpl', {'thing': 21000}))
+    # print(ae.render('cn_tmpl', {'thing': 21000}))
     ae.register_source('tmpl', '{`{ok}thing`}')
     print(ae.render('tmpl', {'thing': 21000}))
 

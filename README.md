@@ -153,6 +153,105 @@ used [in several Wikimedia-oriented projects](https://github.com/hatnote).
 If your company or project uses Ashes, feel free to submit an issue or
 pull request to get a link or shoutout added to this section.
 
+## Template Caching
+
+The javascript implementation of Dust supports a form of template caching in
+which the templates are pre-generated into code objects and then cached.  This
+is necessary in javascript, because the templates would otherwise be loaded and
+compiled on each pageview.
+
+Ashes users will generally not need to use Template Caching, but it is supported
+through hooks at three distinct stages:
+
+* caching/loading the template's AST
+* caching/loading the template's generated python function (as a string)
+* caching/loading the template's generated python function (as a function)
+
+There are many different benefits and concerns to caching templates at these
+stages.  To explain this, let's assume that Ashes is being used to render
+content that is correlated from 10 inter-dependent templates in a directory.
+
+The standard way for rendering this would be to create a new Ashes "Loader" for
+the directory and render it.  Ashes would then load and compile all 10 templates
+and re-use them as needed.
+
+This works for most situations, because the Ashes rendering Environment and 
+Template Loader are often created once and constantly re-used. 
+
+This is our "Baseline" rendering situation, as Ashes must perform all
+of the following steps -- which are the most expensive portions of templating:
+
+* Load the template
+** Load the file
+** Parse the contents into an AST
+** Convert the AST into a Python function string
+** Compile/eval the Python string into a callable function
+
+The fastest part of Ashes is simply executing the template to render the
+content -- this is less than 5% of the overall work!
+
+In certain situations, our Ashes environment or template loaders may not be
+persistent.  This can happen if we have a lot of templates and want to
+constrain the size of our templating environment (like a LRU cache), or if we
+have an environment/loader that has a short lifespan (like being tied to the
+context of a web request).  In these situations, hooking into Ashes to
+generate or load a (partially) compiled template is desired.
+
+* ``Template.to_ast``/``Template.from_ast``.  These methods of the ``Template``
+class will allow templates to be cached in their native AST format.  On average,
+this will save about 35% of Ashes overhead.  Data in this format is extremely
+safe to cache, because it is merely pre-processed. 
+
+* ``Template.to_python_string``/``Template.from_python_string``.  These methods
+of the ``Template`` class will allow templates to be cached as the python
+functions that Ashes generates.  This is an incredibly efficient way to cache
+the data - depending on the templates this will save around 65-80 % of the
+overhead.  Data in this format is not safe to cache externally, because it will
+be wrapped in an `exec` function and executed -- allowing for arbitrary code to
+be executed if your cache is compromised.
+
+* ``ashes.compile_python_string``/``Template.from_python_func``.  This allows you
+to pregenerate and cache (within a process) the python functions that Ashes
+generates for each template.  This is an unbelievably efficient way to cache
+the data - Ashes will only be rendering the templates, saving around 95-98% of
+the overhead from the baseline version.
+
+The ``Template.__init__`` method also accepts keyword arguments for each of
+these hooks:
+
+* ``source_ast``
+* ``source_python_string``
+* ``source_python_func``
+
+The best way to implement this is with a custom TemplateLoader, which is a very
+flexible framework that can be used to precompile families of templates or even
+lazily preload them as needed. Detailed examples are provided in the tests.
+
+If a custom loader is not used, the template must be registered with the active
+ashes environment:
+
+    ashesEnv = ashes.AshesEnv(loaders=(ashesLoader, ))
+	templateObj = ashes.Template('apples.dust',
+								 None,  # source
+								 source_ast=source_ast,
+								 source_python_string=source_python_string,
+								 source_python_func=source_python_func,
+								 )
+    ashesEnv.register(templateObj,
+                      name="apples.dust",
+                      )
+
+### Recap
+
+```
+| method              | cacheable in process | cacheable external | overhead | 
+| ------------------- | -------------------- | ------------------ | -------- |
+| baseline (standard) | -                    | -                  | 100%     |
+| ast                 | Yes                  | Safe               | 65%      |
+| python string       | Yes                  | Security Risk      | 20-35%   |
+| python compiled     | Yes                  | -                  | 3%       |
+```
+
 ## Compatibility
 
 Ashes has full support for every feature of the original Dust.js. Here's
