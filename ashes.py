@@ -572,12 +572,10 @@ class Optimizer(object):
 
     def visit(self, node):
         ret = [node[0]]
-        _optimize = self.optimize  # hand-optimized for cpython bytecode
-        _ret_append = ret.append  # hand-optimized for cpython bytecode
         for n in node[1:]:
-            filtered = _optimize(n)
+            filtered = self.optimize(n)
             if filtered:
-                _ret_append(filtered)
+                ret.append(filtered)
         return ret
 
     def compact_buffers(self, node):

@@ -76,3 +76,26 @@ for pairing in (('cacheable_templates', cacheable_templates),
 
 print "Fails?"
 print render_fails
+
+
+if False:
+    import timeit
+
+    def bench_chert():
+        ashesEnv = ashes.AshesEnv(paths=[_chert_dir,], )
+        for (fname, fdata) in chert_data.items():
+            rendered = ashesEnv.render(fname, fdata)
+
+    def bench_chert_cache():
+        ashesLoaderAlt = TemplatesLoader()
+        ashesEnvAlt = ashes.AshesEnv(loaders=(ashesLoaderAlt, ))
+        ashesLoaderAlt.load_from_cacheable(cacheable_templates)
+        for (fname, fdata) in chert_data.items():
+            rendered = ashesEnv.render(fname, fdata)
+
+    # 100 renders = 3.10
+    print timeit.timeit('bench_chert()', 'from __main__ import bench_chert', number=100)
+    # 100 renders = 0.90
+    print timeit.timeit('bench_chert_cache()', 'from __main__ import bench_chert_cache', number=100)
+    exit()
+
