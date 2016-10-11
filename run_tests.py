@@ -12,7 +12,7 @@ except ImportError:
 
 import tests
 from ashes import AshesEnv, Template
-from tests import ALL_TEST_MODULES, OPS, AshesTest, AshesTestExtended
+from tests import ALL_TEST_MODULES, OPS, AshesTest
 import unittest
 
 DEFAULT_WIDTH = 70
@@ -52,13 +52,6 @@ def get_sorted_tests(module):
     tests = [t for t in module.__dict__.values()
              if hasattr(t, 'ast') and issubclass(t, AshesTest) and
              t is not AshesTest]
-    #tests_ext = [t for t in module.__dict__.values()
-    #             if isinstance(t, type)
-    #             and issubclass(t, AshesTestExtended)
-    #             and t is not AshesTestExtended
-    #             ]
-    #if tests_ext:
-    #    tests.extend(tests_ext) 
     return sorted(tests, key=lambda x: len(x.template or ''))
 
 
@@ -72,8 +65,6 @@ def get_test_results(test_cases, raise_on=None):
         if issubclass(tc, AshesTest):
             raise_exc = (tc.name == raise_on)
             ret.append(tc.get_test_result(env, raise_exc=raise_exc))
-        #elif issubclass(tc, AshesTestExtended):
-        #    ret.append(tc.get_test_result(raise_exc=raise_exc))
     return ret
 
 
@@ -158,6 +149,10 @@ def parse_args():
                      help='also show results of passing ops')
     prs.add_argument('--debug', action='store_true',
                      help='pop a pdb.post_mortem() on exceptions')
+    prs.add_argument('--benchmark', action='store_true',
+                     help='run benchmarks')
+    prs.add_argument('--run_unittests', action='store_true',
+                     help='run unittests')
 
     return prs.parse_args()
 
@@ -166,7 +161,8 @@ def main(width=DEFAULT_WIDTH):
     args = parse_args()
     name = args.name
 
-    run_benchmarks = True  # todo, bring to args
+    run_benchmarks = args.benchmark or False
+    run_unittests = args.run_unittests or False
     if not name:
         # remember `tests` is a namespace. don't overwrite!
         for test_mod in ALL_TEST_MODULES:
@@ -178,24 +174,25 @@ def main(width=DEFAULT_WIDTH):
                 print(test_mod)
                 print(grid)
         # do we have unittests?
-        _unit_tests = []
-        for test_mod in ALL_TEST_MODULES:
-            _tests = get_unit_tests(test_mod)
-            if _tests:
-                _unit_tests.extend(_tests)
-        if _unit_tests:
-            loader = unittest.TestLoader()
-            suites_list = []
-            for _test in _unit_tests:
-                suite = loader.loadTestsFromTestCase(_test)
-                suites_list.append(suite)
-            big_suite = unittest.TestSuite(suites_list)
-            runner = unittest.TextTestRunner(verbosity=3)
-            results = runner.run(big_suite)
+        if run_unittests:
+            _unit_tests = []
+            for test_mod in ALL_TEST_MODULES:
+                _tests = get_unit_tests(test_mod)
+                if _tests:
+                    _unit_tests.extend(_tests)
+            if _unit_tests:
+                loader = unittest.TestLoader()
+                suites_list = []
+                for _test in _unit_tests:
+                    suite = loader.loadTestsFromTestCase(_test)
+                    suites_list.append(suite)
+                big_suite = unittest.TestSuite(suites_list)
+                runner = unittest.TextTestRunner(verbosity=3)
+                results = runner.run(big_suite)
+        # toggled!
         if run_benchmarks:
-            tests.benchmarks.benchmarks_a()
-            tests.benchmarks.benchmarks_b()
-            
+            tests.benchmarks.bench_render_a()
+            tests.benchmarks.bench_cacheable_templates()
     else:
         single_rep = get_single_report(name, args.op, args.verbose, args.debug)
         if single_rep:

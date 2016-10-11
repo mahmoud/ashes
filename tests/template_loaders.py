@@ -8,7 +8,6 @@ import ashes
 
 # local
 from . import utils
-# from .core import AshesTestExtended
 
 
 # ==============================================================================

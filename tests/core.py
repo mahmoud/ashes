@@ -4,7 +4,7 @@ import re
 import json
 from collections import namedtuple
 
-__all__ = ['AshesTest', 'AshesTestExtended', 'json_rtrip', 'camel2under', 'under2camel']
+__all__ = ['AshesTest', 'json_rtrip', 'camel2under', 'under2camel']
 
 _camel2under_re = re.compile('((?<=[a-z0-9])[A-Z]|(?!^)[A-Z](?=[a-z]))')
 
@@ -161,27 +161,3 @@ class AshesTestResult(object):
                 label = 'failed'
             ret.append(SYMBOLS[label])
         return ret
-
-
-# ------------------------------------------------------------------------------
-
-
-class AshesTestExtended(object):
-    template = None  # compatibility
-
-    @classmethod
-    def get_test_result(cls, lazy=False, raise_exc=False):
-        return AshesTestExtendedResult(cls, lazy, raise_exc)
-
-
-class AshesTestExtendedResult(AshesTestResult):
-    """simple compatibility with AshesTestResult"""
-    def __init__(self, test_case, lazy=True, raise_exc=False):
-        self.name = test_case.name
-        self.test_case = test_case
-        self.raise_exc = raise_exc
-        if not lazy:
-            self.run()
-
-    def run(self, raise_exc=None):
-        return

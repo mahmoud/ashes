@@ -10,6 +10,7 @@ import codecs
 import pprint
 import string
 import fnmatch
+import time
 
 
 PY3 = (sys.version_info[0] == 3)
@@ -611,13 +612,14 @@ ROOT_RENDER_TMPL = \
     return {root_func_name}(chk, ctx)
 '''
 
+
 def _python_compile(source):
     """
     Generates a Python `code` object (via `compile`).
-    
+
     args:
         source: (required) string of python code to be compiled
-        
+
     this actually compiles the template to code
     """
     try:
@@ -647,7 +649,6 @@ def _python_exec(code, name, global_env=None):
     else:
         exec("exec code in global_env")
     return global_env[name]
-
 
 
 def python_string_to_code(python_string):
@@ -702,7 +703,7 @@ class Compiler(object):
     def compile(self, ast, name='render'):
         python_source = self._gen_python(ast)
         python_code = _python_compile(python_source)
-        python_func = _python_exec(python_code, name)
+        python_func = _python_exec(python_code, name=name)
         return (python_code, python_func)
 
     def _gen_python(self, ast):  # ast to init?
@@ -1790,6 +1791,7 @@ class Template(object):
         self.source = source
         self.source_file = source_file
         self.last_mtime = None
+        self.time_generated = time.time()
         if source_file:
             self.last_mtime = os.path.getmtime(source_file)
         self.optimized = optimize
@@ -1800,9 +1802,10 @@ class Template(object):
         # some templates are from source...
         self.source_ast = source_ast
         self.source_python_string = source_python_string
+        self.source_python_code = source_python_code
         self.source_python_func = source_python_func
         if source_ast or source_python_string or source_python_code or source_python_func:
-            # prefer the python string to ast; it is faster to load
+            # prefer in order of speed
             if source_python_func:
                 self.render_func = source_python_func
             elif source_python_code:
@@ -1855,60 +1858,57 @@ class Template(object):
     def from_ast(cls, ast, name=None, **kw):
         """classmethod
         Builds a template from an AST representation.
+        This is only provided as an invert to `to_ast`
         args:
             ``ast``
         kwargs:
             ``name`` default ``None``.
         """
-        template = cls(name=name, source='', lazy=True, **kw)
-        (template.render_code,
-         template.render_func
-         ) = template._ast_to_render_func(ast)
+        template = cls(name=name, source='', source_ast=ast, lazy=True, **kw)
         return template
 
     @classmethod
     def from_python_string(cls, python_string, name=None, **kw):
         """classmethod
         Builds a template from an python string representation.
+        This is only provided as an invert to `to_python_string`
         args:
             ``python_string``
         kwargs:
             ``name`` default ``None``.
         """
-        template = cls(name=name, source='', lazy=True, **kw)
-        template.render_code = _python_compile(python_string)
-        template.render_func = _python_exec(template.render_code, name='render')
+        template = cls(name=name, source='', source_python_string=python_string, lazy=True, **kw)
         return template
 
     @classmethod
     def from_python_code(cls, python_code, name=None, **kw):
         """classmethod
-        Builds a template from python code.
+        Builds a template from python code object.
+        This is only provided as an invert to `to_python_code`
         args:
             ``python_code``
         kwargs:
             ``name`` default ``None``.
         """
-        template = cls(name=name, source='', lazy=True, **kw)
-        template.render_code = python_code
-        template.render_func = _python_exec(template.render_code, name='render')
+        template = cls(name=name, source='', source_python_code=python_code, lazy=True, **kw)
         return template
 
     @classmethod
     def from_python_func(cls, python_func, name=None, **kw):
         """classmethod
         Builds a template from an compiled python function.
+        This is only provided as an invert to `to_python_func`
         args:
             ``python_func``
         kwargs:
             ``name`` default ``None``.
         """
-        template = cls(name=name, source='', lazy=True, **kw)
-        template.render_func = python_func
+        template = cls(name=name, source='', source_python_func=python_func, lazy=True, **kw)
         return template
 
     def to_ast(self, optimize=True, raw=False):
         """Generates the AST for a given template.
+        This can be inverted with the classmethod `from_ast`.
 
         kwargs:
             ``optimize`` default ``True``.
@@ -1920,31 +1920,35 @@ class Template(object):
 
     def to_python_string(self, optimize=True):
         """Generates the Python string representation for a template.
+        This can be inverted with the classmethod `from_python_string`.
 
         kwargs:
             ``optimize`` default ``True``.
 
-        Note: this is just a public function for `_get_render_func`
+        Note: this is just a public method for `_get_render_string`
         """
         python_string = self._get_render_string(optimize=optimize)
         return python_string
 
     def to_python_code(self, optimize=True):
         """Generates the Python code representation for a template.
+        This can be inverted with the classmethod `from_python_code`.
 
         kwargs:
             ``optimize`` default ``True``.
 
-        Note: this is just a public function for `_get_render_func`
+        Note: this is just a public method for `_get_render_func`
         """
         (python_code,
          python_string
          ) = self._get_render_func(optimize=optimize)
         return python_code
-    
+
     def to_python_func(self, optimize=True):
         """Makes the python render func available.
-        Note: this is just a public function for `_get_render_func`
+        This can be inverted with the classmethod `from_python_func`.
+
+        Note: this is just a public method for `_get_render_func`
         """
         if self.render_func:
             return self.render_func
@@ -1969,7 +1973,6 @@ class Template(object):
         return rendered[0]
 
     def render_chunk(self, chunk, context):
-
         if not self.render_func:
             # to support laziness for testing
             (self.render_code,
@@ -1996,22 +1999,24 @@ class Template(object):
 
     def _get_render_string(self, optimize=True):
         """
+        Uses `optimize=True` by default because it makes the output easier to
+         read and more like dust's docs
+
         This was previously `_get_render_func(..., ret_str=True)`
         """
-        # switching over to optimize=True by default because it
-        # makes the output easier to read and more like dust's docs
         ast = self._get_ast(optimize)
         if not ast:
             return None
         # for testing/dev purposes
         return Compiler(self.env)._gen_python(ast)
 
-    def _get_render_func(self, optimize=True):
+    def _get_render_func(self, optimize=True, ret_str=False):
         """
-        Deprecated `ret_str=True` into `_get_render_string()`
+        Uses `optimize=True` by default because it makes the output easier to
+         read and more like dust's docs
+
+        split `ret_str=True` into `_get_render_string()`
         """
-        # switching over to optimize=True by default because it
-        # makes the output easier to read and more like dust's docs
         ast = self._get_ast(optimize)
         if not ast:
             return (None, None)
@@ -2019,8 +2024,8 @@ class Template(object):
         (render_code,
          render_func
          ) = self._ast_to_render_func(ast)
-        return (render_code, render_func)        
-        
+        return (render_code, render_func)
+
     def _ast_to_render_func(self, ast):
         """this was part of ``_get_render_func`` but is better implemented
         as an separate function so that AST can be directly loaded.
