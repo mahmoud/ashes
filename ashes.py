@@ -1798,38 +1798,30 @@ class Template(object):
         if env is None:
             env = default_env
         self.env = env
-
+        
         # some templates are from source...
-        self.source_ast = source_ast
-        self.source_python_string = source_python_string
-        self.source_python_code = source_python_code
-        self.source_python_func = source_python_func
         if source_ast or source_python_string or source_python_code or source_python_func:
             # prefer in order of speed
             if source_python_func:
                 self.render_func = source_python_func
             elif source_python_code:
-                self.render_code = source_python_code
-                self.render_func = _python_exec(self.render_code, name='render')
+                self.render_func = _python_exec(source_python_code, name='render')
             elif source_python_string:
-                self.render_code = _python_compile(source_python_string)
-                self.render_func = _python_exec(self.render_code, name='render')
+                render_code = _python_compile(source_python_string)
+                self.render_func = _python_exec(render_code, name='render')
             else:
-                (self.render_code,
+                (render_code,
                  self.render_func
                  ) = self._ast_to_render_func(source_ast)
             if not keep_source:
                 self.source = None
-                self.source_ast = None
-                self.source_python_string = None
-                self.source_python_func = None
             # exit EARLY
             return
 
         if lazy:  # lazy is only for testing
             self.render_func = None
             return
-        (self.render_code,
+        (render_code,
          self.render_func
          ) = self._get_render_func(optimize)
         if not keep_source:
@@ -1975,7 +1967,7 @@ class Template(object):
     def render_chunk(self, chunk, context):
         if not self.render_func:
             # to support laziness for testing
-            (self.render_code,
+            (render_code,
              self.render_func
              ) = self._get_render_func()
         return self.render_func(chunk, context)
@@ -2016,6 +2008,9 @@ class Template(object):
          read and more like dust's docs
 
         split `ret_str=True` into `_get_render_string()`
+        
+        Note that this doesn't save the render_code/render_func.
+        It is compiled as needed.
         """
         ast = self._get_ast(optimize)
         if not ast:
