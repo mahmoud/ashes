@@ -26,6 +26,7 @@ import pdb
 import pprint
 import os
 import os.path
+import marshal
 
 import tests_compiled_utils as utils
 
@@ -46,6 +47,8 @@ globalCache = {
     'template': {},
     'ast': {},
     'python_string': {},
+    'python_code': {},
+    'python_code-marshal': {},
     'python_func': {},
 }
 
@@ -180,6 +183,43 @@ class LoaderPythonString(CustomAshesLoader):
         return template
 
 
+class LoaderPythonCode(CustomAshesLoader):
+    """this caches template python Codes"""
+
+    def load(self, path, env=None):
+        if DEBUG_TEMPLATE_LOADING:
+            log.debug("LoaderPythonCode.load('%s')" % path)
+        env = env or ashes__default_env
+        norm_path = os.path.normpath(path)
+        if path.startswith('../'):
+            raise ValueError('no traversal above loader root path: %r' % path)
+        if not path.startswith(self.root_path):
+            norm_path = os.path.join(self.root_path, norm_path)
+        abs_path = os.path.abspath(norm_path)
+        template_name = os.path.relpath(abs_path, self.root_path)
+        template_type = env.template_type
+
+        if abs_path in globalCache['python_code-marshal']:
+            log.debug("using globalCache['python_code-marshal']['%s']" % abs_path)
+            python_code = globalCache['python_code-marshal'][abs_path]
+            python_code = marshal.loads(python_code)
+            template = template_type.from_python_code(name=template_name,
+                                                      python_code=python_code,
+                                                      env=env)
+        else:
+            template = template_type.from_path(name=template_name,
+                                               path=abs_path,
+                                               encoding=self.encoding,
+                                               keep_source = True,
+                                               env=env)
+            python_code = template.to_python_code()
+            globalCache['python_code'][abs_path] = python_code
+            globalCache['python_code-marshal'][abs_path] = marshal.dumps(python_code)
+
+
+        return template
+
+
 class LoaderPythonFunc(CustomAshesLoader):
     """this caches template python defs (compiled)"""
 
@@ -251,6 +291,15 @@ def test_PythonString(iteration=1):
 
 
 @utils.timeit
+def test_PythonCode(iteration=1):
+    if DEBUG_TEMPLATE_LOADING:
+        log.debug("===================== test_PythonCode | %s" % iteration)
+    ashesLoader = LoaderPythonCode('%stemplates_a' % templates_directory)
+    ashesEnv = ashes.AshesEnv(loaders=(ashesLoader,), )
+    templated = ashesEnv.render('all.dust', {})
+
+
+@utils.timeit
 def test_PythonFunc(iteration=1):
     if DEBUG_TEMPLATE_LOADING:
         log.debug("===================== test_PythonFunc | %s" % iteration)
@@ -277,6 +326,9 @@ if __name__ == '__main__':
 
     for i in range(1, ITERATIONS):
         test_PythonString(i)
+
+    for i in range(1, ITERATIONS):
+        test_PythonCode(i)
 
     for i in range(1, ITERATIONS):
         test_PythonFunc(i)

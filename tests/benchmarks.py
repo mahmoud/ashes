@@ -23,7 +23,7 @@ def benchmarks_a():
 
     ashesDataLoader = utils.TemplatePathLoaderExtended(utils._chert_dir)
     ashesEnvLoader = ashes.AshesEnv(loaders=(ashesDataLoader, ))
-    
+
     templateData = {'ast': {},
                     'python_string': {},
                     'python_code': {},
@@ -38,7 +38,7 @@ def benchmarks_a():
         templateData['python_func'][fname] = ashes.python_string_to_function(templateData['python_string'][fname])
 
     templatesExtra = {}
-    templatesExtra['base.html'] = ashes.Template('base.html',  utils.ChertDefaults.chert_data_alt['base.html'])
+    templatesExtra['base.html'] = ashes.Template('base.html',  utils.ChertDefaults.chert_files_html_alt['base.html'])
     for (fname, template) in templatesExtra.items():
         ashesEnvLoader.register(template, fname)
         templateData['ast'][fname] = ashesEnvLoader.load(fname).to_ast()
@@ -116,12 +116,14 @@ def benchmarks_a():
 
     timed = {}
     ranged = range(0, 100)
+    print "running benchmarks..."
     for t in (('test_baseline', test_baseline),
               ('test_ast',  test_ast),
               ('test_python_string',  test_python_string),
               ('test_python_code',  test_python_code),
               ('test_python_func',  test_python_func),
               ):
+        print(" .%s" % t[0])
         timed[t[0]] = []
         for i in ranged:
             t_start = time.time()

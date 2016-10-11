@@ -194,6 +194,7 @@ def main(width=DEFAULT_WIDTH):
             results = runner.run(big_suite)
         if run_benchmarks:
             tests.benchmarks.benchmarks_a()
+            tests.benchmarks.benchmarks_b()
             
     else:
         single_rep = get_single_report(name, args.op, args.verbose, args.debug)
