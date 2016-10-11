@@ -10,21 +10,51 @@ import ashes
 
 class TemplatePathLoaderExtended(ashes.TemplatePathLoader):
     """extends the ashes TemplatePathLoader"""
+    _templates_loaded = None
+    
+    def __init__(self, directory=''):
+        ashes.TemplatePathLoader.__init__(self, directory)
+        self._templates_loaded = {}
+
     def load_precompiled(
         self,
         template_name,
         source=None,
         source_ast=None,
         source_python_string=None,
+        source_python_code=None,
         source_python_func=None,
     ):
         template = ashes.Template(template_name,
                                   source,
                                   source_ast=source_ast,
                                   source_python_string=source_python_string,
+                                  source_python_code=source_python_code,
                                   source_python_func=source_python_func,
                                   )
         return template
+
+
+    def load(self, template_name, env=None):
+        if template_name in self._templates_loaded:
+            template_object = self._templates_loaded[template_name]
+        else:
+            template_object = ashes.TemplatePathLoader.load(self, template_name, env=env)
+            self.register_template(template_name, template_object)
+        return template_object
+        
+    def register_template(self, template_name, template_object):
+        self._templates_loaded[template_name] = template_object
+
+    def register_template_render_func(self, template_name, source_python_func):
+        template_object = ashes.Template(template_name,
+                                         None,
+                                         source_python_func=source_python_func,
+                                         )
+        self.register_template(template_name, template_object)
+        return template_object
+
+    
 
 
 class TemplatesLoader(object):

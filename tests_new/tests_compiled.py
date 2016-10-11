@@ -12,6 +12,8 @@ import os
 import hashlib
 
 from tests_compiled_loaders import TemplatePathLoaderExtended
+import pickle
+import marshal
 
 # ==============================================================================
 # ==============================================================================
@@ -115,10 +117,17 @@ ashesEnv = ashes.AshesEnv(loaders=(ashesLoader, ))
 # grab the string and compiled for the next 2 tests
 python_string__apples = ashesEnv.load('apples.dust').to_python_string()
 python_string__oranges = ashesEnv.load('oranges.dust').to_python_string()
-python_function__apples = ashes.compile_python_string(python_string__apples)
-python_function__oranges = ashes.compile_python_string(python_string__oranges)
+python_function__apples = ashes.python_string_to_function(python_string__apples)
+python_function__oranges = ashes.python_string_to_function(python_string__oranges)
+
+python_code__apples = ashes.python_string_to_code(python_string__apples)
+python_code__oranges = ashes.python_string_to_code(python_string__oranges)
+_python_code__apples = marshal.dumps(python_code__apples)
+_python_code__oranges = marshal.dumps(python_code__oranges)
 
 if EXPORT:
+    open("%s/apples-python_code.txt" % EXPORTS_DIR, "w").write(_python_code__apples)
+    open("%s/oranges-python_code.txt" % EXPORTS_DIR, "w").write(_python_code__oranges)
     open("%s/apples-python_string.txt" % EXPORTS_DIR, "w").write(python_string__apples)
     open("%s/oranges-python_string.txt" % EXPORTS_DIR, "w").write(python_string__oranges)
 
@@ -151,6 +160,37 @@ if PRINT_SAMPLE:
     print "Loaded Python String method"
     utils.print_timed()
     print rendered_oranges_python_string
+    print "========================"
+
+# ==============================================================================
+# ==============================================================================
+
+@utils.timeit
+def test_python_code():
+    pc__apples = marshal.loads(_python_code__apples)
+    pc__oranges = marshal.loads(_python_code__oranges)
+
+    ashesLoader = TemplatePathLoaderExtended('%stemplates_a' % templates_directory)
+    ashesEnv = ashes.AshesEnv(loaders=(ashesLoader, ))
+    ashesEnv.register(ashesLoader.load_precompiled('apples.dust', source_python_code=pc__apples),
+                      name="apples.dust",
+                      )
+    ashesEnv.register(ashesLoader.load_precompiled('oranges.dust', source_python_code=pc__oranges),
+                      name="oranges.dust",
+                      )
+    templated = ashesEnv.render('oranges.dust', {})
+    return templated
+
+for i in range(0, ITERATIONS):
+    rendered_oranges = test_python_code()
+
+rendered_oranges_python_code = rendered_oranges
+
+if PRINT_SAMPLE:
+    print "========================"
+    print "Loaded Python Code method"
+    utils.print_timed()
+    print rendered_oranges_python_code
     print "========================"
 
 
@@ -194,6 +234,7 @@ if PRINT_SAMPLE:
 print "rendered_oranges_baseline        ", hashlib.md5(rendered_oranges_baseline).hexdigest()
 print "rendered_oranges_ast             ", hashlib.md5(rendered_oranges_ast).hexdigest()
 print "rendered_oranges_python_string   ", hashlib.md5(rendered_oranges_python_string).hexdigest()
+print "rendered_oranges_python_code   ", hashlib.md5(rendered_oranges_python_code).hexdigest()
 print "rendered_oranges_python_function ", hashlib.md5(rendered_oranges_python_function).hexdigest()
 
 

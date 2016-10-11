@@ -209,7 +209,7 @@ class LoaderPythonFunc(CustomAshesLoader):
                                                keep_source = True,
                                                env=env)
             python_string = template.to_python_string()
-            python_func = ashes.compile_python_string(python_string)
+            python_func = ashes.python_string_to_function(python_string)
             globalCache['python_func'][abs_path] = python_func
         return template
 
