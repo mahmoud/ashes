@@ -1944,7 +1944,7 @@ class Template(object):
         """
         if self.render_func:
             return self.render_func
-        (render_code, render_func) = self.get_render_func(optimize=optimize)
+        (render_code, render_func) = self._get_render_func(optimize=optimize)
         return render_func
 
     def render(self, model, env=None):
