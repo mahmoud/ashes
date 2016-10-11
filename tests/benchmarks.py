@@ -74,9 +74,9 @@ def bench_cacheable_templates():
         templateData['python_code-marshal'][fname] = marshal.dumps(templateData['python_code'][fname])
         templateData['python_func'][fname] = ashes.python_string_to_function(templateData['python_string'][fname])
 
-    templatesExtra = {}
-    templatesExtra['base.html'] = ashes.Template('base.html',  utils.ChertDefaults.chert_files_html_alt['base.html'])
-    for (fname, template) in templatesExtra.items():
+    # generate the inherited templates
+    for (fname, fdata) in utils.ChertDefaults.chert_files_html_alt.items():
+        template = ashes.Template(fname, utils.ChertDefaults.chert_files_html_alt[fname])
         ashesEnvLoader.register(template, fname)
         templateData['ast'][fname] = ashesEnvLoader.load(fname).to_ast()
         templateData['python_string'][fname] = ashesEnvLoader.load(fname).to_python_string()
@@ -154,10 +154,10 @@ def bench_cacheable_templates():
     timed = {}
     ranged = range(0, 100)
     for t in (('test_baseline', test_baseline),
-              ('test_ast',  test_ast),
-              ('test_python_string',  test_python_string),
-              ('test_python_code',  test_python_code),
-              ('test_python_func',  test_python_func),
+              ('test_ast', test_ast),
+              ('test_python_string', test_python_string),
+              ('test_python_code', test_python_code),
+              ('test_python_func', test_python_func),
               ):
         print(" .%s" % t[0])
         timed[t[0]] = []
