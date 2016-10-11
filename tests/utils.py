@@ -325,15 +325,18 @@ def print_timed(timeditems):
         }
     data_2 = sorted(data.values(), key=operator.itemgetter('total'))
     baseline = data_2[-1]
+    fastest = data_2[0]
     # column widths: 8, 10, 15, 7, 10
-    template = "{0:25} | {1:25} | {2:25} | {3:25} | {4:25}"
-    print template.format("test", "total", "average", "sample_size", "baseline")
-    print template.format("----", "-----", "-------", "-----------", "--------")
+    template = "{0:20} | {1:16} | {2:16} | {3:12} | {4:12} | {5:12}"
+    print template.format("test", "total", "average", "sample_size", "/baseline", "/fastest")
+    print template.format("----", "-----", "-------", "-----------", "--------", "--------")
     for idx, i in enumerate(data_2):
         baseline_shift = (i['total'] / baseline['total'])
+        fastest_shift = (i['total'] / fastest['total'])
         print template.format(i['name'],
                               "{:12.8f}".format(i['total']),
                               "{:12.8f}".format(i['average']),
                               i['sample_size'],
-                              "{:.4%}".format(baseline_shift)
+                              "{:.4%}".format(baseline_shift),
+                              "{:.4%}".format(fastest_shift),
                               )
