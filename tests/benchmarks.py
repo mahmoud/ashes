@@ -84,6 +84,16 @@ def bench_cacheable_templates():
         templateData['python_code-marshal'][fname] = marshal.dumps(templateData['python_code'][fname])
         templateData['python_func'][fname] = ashes.python_string_to_function(templateData['python_string'][fname])
 
+    def test_persisted():
+        """
+        test_persisted
+        this is the normal way to use ashes.  a single persistent env/template.
+        """
+        renders = {}
+        for (fname, fdata) in utils.ChertDefaults.chert_data.items():
+            rendered = ashesEnvLoader.render(fname, fdata)
+            renders[fname] = fdata
+
     def test_baseline():
         """
         test_baseline
@@ -145,6 +155,7 @@ def bench_cacheable_templates():
             rendered = _ashesEnv.render(fname, fdata)
             renders[fname] = fdata
 
+    # test_persisted()
     # test_baseline()
     # test_ast()
     # test_python_string()
@@ -158,6 +169,7 @@ def bench_cacheable_templates():
               ('test_python_string', test_python_string),
               ('test_python_code', test_python_code),
               ('test_python_func', test_python_func),
+              ('test_persisted', test_persisted),
               ):
         print(" .%s" % t[0])
         timed[t[0]] = []
