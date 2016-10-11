@@ -21,7 +21,7 @@ def bench_render_a():
     this bench is designed as a baseline for performance comparisons when
     adjusting the code
     """
-    print "running benchmarks: bench_render_a..."
+    print("running benchmarks: bench_render_a...")
     if utils.ChertDefaults is None:
         utils.ChertDefaults = utils._ChertDefaults()
 
@@ -53,7 +53,7 @@ def bench_cacheable_templates():
     This just runs a few strategies of template generation to compare against 
     one another
     """
-    print "running benchmarks: bench_cacheable_templates..."
+    print("running benchmarks: bench_cacheable_templates...")
 
     if utils.ChertDefaults is None:
         utils.ChertDefaults = utils._ChertDefaults()
