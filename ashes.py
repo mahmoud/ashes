@@ -1851,7 +1851,6 @@ class Template(object):
             name = path
         return cls(name=name, source=source, source_file=abs_path, **kw)
 
-
     @classmethod
     def from_ast(cls, ast, name=None, **kw):
         """classmethod
