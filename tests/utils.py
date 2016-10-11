@@ -142,10 +142,12 @@ class TemplatesLoader(object):
             directory = os.path.normpath(directory)
             files = [i for i in os.listdir(os.path.normpath(directory))
                      if i[-5:] in ('.dust', '.html')]
-            fpaths = {f: os.path.join(directory, f)
-                      for f in files}
-            fdata = {f: codecs.open(fpaths[f], 'r', 'utf-8').read()
-                     for f in files}
+            fpaths = dict([(f,os.path.join(directory, f))
+                           for f in files
+                           ])
+            fdata = dict([(f, codecs.open(fpaths[f], 'r', 'utf-8').read())
+                         for f in files
+                         ])
             self._template_source_dust = fdata
 
         # initialize
@@ -328,15 +330,15 @@ def print_timed(timeditems):
     fastest = data_2[0]
     # column widths: 8, 10, 15, 7, 10
     template = "{0:20} | {1:16} | {2:16} | {3:12} | {4:12} | {5:12}"
-    print template.format("test", "total", "average", "sample_size", "/baseline", "/fastest")
-    print template.format("----", "-----", "-------", "-----------", "--------", "--------")
+    print(template.format("test", "total", "average", "sample_size", "/baseline", "/fastest"))
+    print(template.format("----", "-----", "-------", "-----------", "--------", "--------"))
     for idx, i in enumerate(data_2):
         baseline_shift = (i['total'] / baseline['total'])
         fastest_shift = (i['total'] / fastest['total'])
-        print template.format(i['name'],
+        print(template.format(i['name'],
                               "{:12.8f}".format(i['total']),
                               "{:12.8f}".format(i['average']),
                               i['sample_size'],
                               "{:.4%}".format(baseline_shift),
                               "{:.4%}".format(fastest_shift),
-                              )
+                              ))
