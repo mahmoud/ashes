@@ -236,32 +236,17 @@ python code string.
 * ``ashes.python_string_to_function`` generates a python function from an ashes
 python code string.
 
-The ``Template.__init__`` method also accepts keyword arguments for each of
-these hooks:
-
-* ``source_ast``
-* ``source_python_string``
-* ``source_python_code``
-* ``source_python_func``
-
-
 A very easy way to implement this is with a custom TemplateLoader.  Template 
 Loaders are a flexible framework that can be used to precompile families of
 templates or even lazily preload them as needed.
-
-Detailed examples are provided in the tests.
 
 If a custom loader is not used, the template must be registered with the active
 ashes environment:
 
     ashesEnv = ashes.AshesEnv(loaders=(ashesLoader, ))
-	templateObj = ashes.Template('apples.dust',
-								 None,  # source
-								 source_ast=source_ast,
-								 source_python_string=source_python_string,
-								 source_python_code=source_python_code,
-								 source_python_func=source_python_func,
-								 )
+	templateObj = ashes.Template.from_python_code(source_python_code,
+												  name='apples.dust',
+												  )
     ashesEnv.register(templateObj,
                       name="apples.dust",
                       )
@@ -275,7 +260,7 @@ ashes environment:
 | ast                 | Yes                  | Safe                      | 65%      |
 | python string       | Yes                  | Possible Security Risk    | 20-35%   |
 | python code         | Yes                  | Same Risk, must `marshal` | 6-8%     |
-| python func         | Yes                  | -                         | 3%       |
+| python func         | Yes                  | No.                       | 3%       |
 ```
 
 ## Compatibility

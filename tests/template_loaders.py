@@ -66,10 +66,7 @@ class TestChertTemplates(unittest.TestCase):
         (ashesEnvSrc, ashesEnvDest) = self._generate_envs_tofrom()
         for (fname, fdata) in self._ChertData.chert_data.items():
             source_ast = ashesEnvSrc.load(fname).to_ast()
-            template2_object = ashes.Template(
-                fname, None,
-                source_ast=source_ast,
-            )
+            template2_object = ashes.Template.from_ast(source_ast)
             ashesEnvDest.register(template2_object, fname)
             rendered2 = ashesEnvDest.render(fname, fdata)
             assert rendered2 == self._ChertData.renders_expected[fname]
@@ -81,10 +78,7 @@ class TestChertTemplates(unittest.TestCase):
         (ashesEnvSrc, ashesEnvDest) = self._generate_envs_tofrom()
         for (fname, fdata) in self._ChertData.chert_data.items():
             source_python_string = ashesEnvSrc.load(fname).to_python_string()
-            template2_object = ashes.Template(
-                fname, None,
-                source_python_string=source_python_string,
-            )
+            template2_object = ashes.Template.from_python_string(source_python_string)
             ashesEnvDest.register(template2_object, fname)
             rendered2 = ashesEnvDest.render(fname, fdata)
             assert rendered2 == self._ChertData.renders_expected[fname]
@@ -96,10 +90,7 @@ class TestChertTemplates(unittest.TestCase):
         (ashesEnvSrc, ashesEnvDest) = self._generate_envs_tofrom()
         for (fname, fdata) in self._ChertData.chert_data.items():
             source_python_code = ashesEnvSrc.load(fname).to_python_code()
-            template2_object = ashes.Template(
-                fname, None,
-                source_python_code=source_python_code,
-            )
+            template2_object = ashes.Template.from_python_code(source_python_code)
             ashesEnvDest.register(template2_object, fname)
             rendered2 = ashesEnvDest.render(fname, fdata)
             assert rendered2 == self._ChertData.renders_expected[fname]
@@ -111,10 +102,7 @@ class TestChertTemplates(unittest.TestCase):
         (ashesEnvSrc, ashesEnvDest) = self._generate_envs_tofrom()
         for (fname, fdata) in self._ChertData.chert_data.items():
             source_python_func = ashesEnvSrc.load(fname).to_python_func()
-            template2_object = ashes.Template(
-                fname, None,
-                source_python_func=source_python_func,
-            )
+            template2_object = ashes.Template.from_python_func(source_python_func)
             ashesEnvDest.register(template2_object, fname)
             rendered2 = ashesEnvDest.render(fname, fdata)
             assert rendered2 == self._ChertData.renders_expected[fname]
@@ -172,14 +160,6 @@ class TestApiFunctions(unittest.TestCase):
         """helper class for _helper_test_template_init__args_* tests"""
         source_data = self._SimpleFruitData.compiled_template_data[fruit][source_payload]
         
-        # this generates a {'source_ast': value}
-        kwargs = {"source_%s"%source_payload: source_data}
-
-        # can it render via source kwarg
-        _template = ashes.Template(fruit, None, **kwargs)
-        _rendered = _template.render({})
-        self.assertEquals(_rendered, self._SimpleFruitData.renders_expected[fruit])
-
         # can it render via classmethod?
         _template = source_classmethod(source_data)
         _rendered = _template.render({})

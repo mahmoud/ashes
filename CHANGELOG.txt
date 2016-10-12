@@ -3,13 +3,16 @@ unreleased
 
 	modified:
 		run_tests.py
-			two new flags (off by default)
+			new flags (off by default)
 			
 				--benchmark
 					runs benchmarks
 
 				--run_unittests
 					runs unittests
+
+				--disable_core
+					disables the initial core tests
 				
 				python run_tests.py --benchmark --run_unittests
 			
@@ -18,12 +21,12 @@ unreleased
 			runtests was extended to search for unittests and run them if found by a flag
 			everything is doubly checked to be an `AshesTest` instance, so other test classes can be integrated at a later date
 	
+		`ashes.Template`
+			is_convertable is a new boolean instance value.  it defaults onto the class for lookup.
+	
 		`ashes.Template.__init__`
-			new kwargs:
-				 source_ast=None,
-				 source_python_string=None,
-				 source_python_code=None,
-				 source_python_func=None,
+			the default for last_mtime was moved out into the class. no sense setting it to `None` on every request
+
 		`ashes.Template._get_render_func`
 			now returns a tuple of `python_code` and `python_func`
 			`ret_str=True` was migrated to `ashes._get_render_string`

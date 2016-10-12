@@ -247,12 +247,13 @@ class TemplatesLoader(object):
         templates_cache is generated via `generate_all_cacheable`
         """
         for (_template_name, payload) in templates_cache.items():
-            self._template_objects[_template_name] = ashes.Template(
-                _template_name, None,
-                source_ast=payload.get('ast'),
-                source_python_string=payload.get('python_string'),
-                source_python_code=payload.get('python_code'),
-            )
+            if payload.get('ast'):
+                _template = ashes.Template.from_ast(payload.get('ast'))
+            if payload.get('python_string'):
+                _template = ashes.Template.from_python_string(payload.get('python_string'))
+            if payload.get('python_code'):
+                _template = ashes.Template.from_python_code(payload.get('python_code'))
+            self._template_objects[_template_name] = _template
 
     def generate_all_cacheable(self):
         """
@@ -326,13 +327,20 @@ class TemplatePathLoaderExtended(ashes.TemplatePathLoader):
         source_python_code=None,
         source_python_func=None,
     ):
-        template = ashes.Template(template_name,
-                                  source,
-                                  source_ast=source_ast,
-                                  source_python_string=source_python_string,
-                                  source_python_code=source_python_code,
-                                  source_python_func=source_python_func,
-                                  )
+        if source_python_func:
+            template = ashes.Template.from_python_func(source_python_func, name=template_name)
+        elif source_python_code:
+            template = ashes.Template.from_python_code(source_python_code, name=template_name)
+        elif source_python_string:
+            template = ashes.Template.from_python_string(source_python_string, name=template_name)
+        elif source_ast:
+            template = ashes.Template.from_ast(source_ast, name=template_name)
+        elif source:
+            template = ashes.Template(template_name,
+                                      source,
+                                      )
+        else:
+            raise ValueError("nothing to load")
         return template
 
     def load(self, template_name, env=None):
@@ -349,10 +357,9 @@ class TemplatePathLoaderExtended(ashes.TemplatePathLoader):
         self._templates_loaded[template_name] = template_object
 
     def register_template_render_func(self, template_name, source_python_func):
-        template_object = ashes.Template(template_name,
-                                         None,
-                                         source_python_func=source_python_func,
-                                         )
+        template_object = ashes.Template.from_python_func(source_python_func,
+                                                          template_name,
+                                                          )
         self.register_template(template_name, template_object)
         return template_object
 

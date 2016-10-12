@@ -1798,10 +1798,6 @@ class Template(object):
                  keep_source=True,
                  env=None,
                  lazy=False,
-                 source_ast=None,
-                 source_python_string=None,
-                 source_python_code=None,
-                 source_python_func=None,
                  ):
         if not source and source_file:
             (source, source_abs_path) = load_template_path(source_file)
@@ -1815,26 +1811,6 @@ class Template(object):
         if env is None:
             env = default_env
         self.env = env
-
-        # some templates are from source...
-        if source_ast or source_python_string or source_python_code or source_python_func:
-            # prefer in order of speed
-            if source_python_func:
-                self.render_func = source_python_func
-            elif source_python_code:
-                self.render_func = _python_exec(source_python_code, name='render')
-            elif source_python_string:
-                render_code = _python_compile(source_python_string)
-                self.render_func = _python_exec(render_code, name='render')
-            else:
-                (render_code,
-                 self.render_func
-                 ) = self._ast_to_render_func(source_ast)
-            if not keep_source:
-                self.source = None
-            self.is_convertable = False
-            # exit EARLY
-            return
 
         if lazy:  # lazy is only for testing
             self.render_func = None
@@ -1870,7 +1846,11 @@ class Template(object):
         kwargs:
             ``name`` default ``None``.
         """
-        template = cls(name=name, source='', source_ast=ast, lazy=True, **kw)
+        template = cls(name=name, source='', lazy=True, **kw)
+        (render_code,
+         render_func
+         ) = template._ast_to_render_func(ast)
+        template.render_func = render_func
         template.is_convertable = False
         return template
 
@@ -1884,7 +1864,9 @@ class Template(object):
         kwargs:
             ``name`` default ``None``.
         """
-        template = cls(name=name, source='', source_python_string=python_string, lazy=True, **kw)
+        template = cls(name=name, source='', lazy=True, **kw)
+        render_code = _python_compile(python_string)
+        template.render_func = _python_exec(render_code, name='render')
         template.is_convertable = False
         return template
 
@@ -1898,7 +1880,8 @@ class Template(object):
         kwargs:
             ``name`` default ``None``.
         """
-        template = cls(name=name, source='', source_python_code=python_code, lazy=True, **kw)
+        template = cls(name=name, source='', lazy=True, **kw)
+        template.render_func = _python_exec(python_code, name='render')
         template.is_convertable = False
         return template
 
@@ -1912,7 +1895,8 @@ class Template(object):
         kwargs:
             ``name`` default ``None``.
         """
-        template = cls(name=name, source='', source_python_func=python_func, lazy=True, **kw)
+        template = cls(name=name, source='', lazy=True, **kw)
+        template.render_func = python_func
         template.is_convertable = False
         return template
 
