@@ -1772,8 +1772,24 @@ DEFAULT_PRAGMAS = {
 # Interface
 ###########
 
+def load_template_path(path, encoding='utf-8'):
+    """
+    split off `from_path` so __init__ can use
+    returns a tuple of the source and adjusted absolute path
+    """ 
+    abs_path = os.path.abspath(path)
+    if not os.path.isfile(abs_path):
+        raise TemplateNotFound(abs_path)
+    with codecs.open(abs_path, 'r', encoding) as f:
+        source = f.read()
+    return (source, abs_path)
+
 
 class Template(object):
+    # no need to set defaults on __init__
+    last_mtime = None
+    is_convertable = True
+
     def __init__(self,
                  name,
                  source,
@@ -1787,10 +1803,11 @@ class Template(object):
                  source_python_code=None,
                  source_python_func=None,
                  ):
+        if not source and source_file:
+            (source, source_abs_path) = load_template_path(source_file)
         self.name = name
         self.source = source
         self.source_file = source_file
-        self.last_mtime = None
         self.time_generated = time.time()
         if source_file:
             self.last_mtime = os.path.getmtime(source_file)
@@ -1798,7 +1815,7 @@ class Template(object):
         if env is None:
             env = default_env
         self.env = env
-        
+
         # some templates are from source...
         if source_ast or source_python_string or source_python_code or source_python_func:
             # prefer in order of speed
@@ -1815,6 +1832,7 @@ class Template(object):
                  ) = self._ast_to_render_func(source_ast)
             if not keep_source:
                 self.source = None
+            self.is_convertable = False
             # exit EARLY
             return
 
@@ -1837,11 +1855,7 @@ class Template(object):
             ``name`` default ``None``.
             ``encoding`` default ``utf-8``.
         """
-        abs_path = os.path.abspath(path)
-        if not os.path.isfile(abs_path):
-            raise TemplateNotFound(abs_path)
-        with codecs.open(abs_path, 'r', encoding) as f:
-            source = f.read()
+        (source, abs_path) = load_template_path(path)
         if not name:
             name = path
         return cls(name=name, source=source, source_file=abs_path, **kw)
@@ -1857,6 +1871,7 @@ class Template(object):
             ``name`` default ``None``.
         """
         template = cls(name=name, source='', source_ast=ast, lazy=True, **kw)
+        template.is_convertable = False
         return template
 
     @classmethod
@@ -1870,6 +1885,7 @@ class Template(object):
             ``name`` default ``None``.
         """
         template = cls(name=name, source='', source_python_string=python_string, lazy=True, **kw)
+        template.is_convertable = False
         return template
 
     @classmethod
@@ -1883,6 +1899,7 @@ class Template(object):
             ``name`` default ``None``.
         """
         template = cls(name=name, source='', source_python_code=python_code, lazy=True, **kw)
+        template.is_convertable = False
         return template
 
     @classmethod
@@ -1896,6 +1913,7 @@ class Template(object):
             ``name`` default ``None``.
         """
         template = cls(name=name, source='', source_python_func=python_func, lazy=True, **kw)
+        template.is_convertable = False
         return template
 
     def to_ast(self, optimize=True, raw=False):
@@ -1908,6 +1926,8 @@ class Template(object):
 
         Note: this is just a public function for `_get_ast`
         """
+        if not self.is_convertable:
+            raise TemplateConversionException()
         return self._get_ast(optimize=optimize, raw=raw)
 
     def to_python_string(self, optimize=True):
@@ -1919,6 +1939,8 @@ class Template(object):
 
         Note: this is just a public method for `_get_render_string`
         """
+        if not self.is_convertable:
+            raise TemplateConversionException()
         python_string = self._get_render_string(optimize=optimize)
         return python_string
 
@@ -1931,6 +1953,8 @@ class Template(object):
 
         Note: this is just a public method for `_get_render_func`
         """
+        if not self.is_convertable:
+            raise TemplateConversionException()
         (python_code,
          python_string
          ) = self._get_render_func(optimize=optimize)
@@ -1944,6 +1968,8 @@ class Template(object):
         """
         if self.render_func:
             return self.render_func
+        if not self.is_convertable:
+            raise TemplateConversionException()
         (render_code, render_func) = self._get_render_func(optimize=optimize)
         return render_func
 
@@ -2087,6 +2113,12 @@ class ParseError(AshesException):
         if infos:
             msg += ' (%s)' % ' - '.join(infos)
         return msg
+
+
+class TemplateConversionException(AshesException):
+    def __init__(self):
+        super(TemplateConversionException, self).__init__('only templates from source '
+                                                  'are convertable')
 
 
 class BaseAshesEnv(object):

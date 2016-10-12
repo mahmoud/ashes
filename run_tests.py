@@ -153,7 +153,8 @@ def parse_args():
                      help='run benchmarks')
     prs.add_argument('--run_unittests', action='store_true',
                      help='run unittests')
-
+    prs.add_argument('--disable_core', action='store_true',
+                     help='disable core tests')
     return prs.parse_args()
 
 
@@ -163,40 +164,42 @@ def main(width=DEFAULT_WIDTH):
 
     run_benchmarks = args.benchmark or False
     run_unittests = args.run_unittests or False
-    if not name:
-        # remember `tests` is a namespace. don't overwrite!
-        for test_mod in ALL_TEST_MODULES:
-            title = getattr(test_mod, 'heading', '')
-            _tests = get_sorted_tests(test_mod)
-            test_results = get_test_results(_tests)
-            grid = get_grid(test_results, title)
-            if grid:
-                print(test_mod)
-                print(grid)
-        # do we have unittests?
-        if run_unittests:
-            _unit_tests = []
+    disable_core = args.disable_core or False
+    if not disable_core:
+        if not name:
+            # remember `tests` is a namespace. don't overwrite!
             for test_mod in ALL_TEST_MODULES:
-                _tests = get_unit_tests(test_mod)
-                if _tests:
-                    _unit_tests.extend(_tests)
-            if _unit_tests:
-                loader = unittest.TestLoader()
-                suites_list = []
-                for _test in _unit_tests:
-                    suite = loader.loadTestsFromTestCase(_test)
-                    suites_list.append(suite)
-                big_suite = unittest.TestSuite(suites_list)
-                runner = unittest.TextTestRunner(verbosity=3)
-                results = runner.run(big_suite)
-        # toggled!
-        if run_benchmarks:
-            tests.benchmarks.bench_render_a()
-            tests.benchmarks.bench_cacheable_templates()
-    else:
-        single_rep = get_single_report(name, args.op, args.verbose, args.debug)
-        if single_rep:
-            print(single_rep)
+                title = getattr(test_mod, 'heading', '')
+                _tests = get_sorted_tests(test_mod)
+                test_results = get_test_results(_tests)
+                grid = get_grid(test_results, title)
+                if grid:
+                    print(test_mod)
+                    print(grid)
+        else:
+            single_rep = get_single_report(name, args.op, args.verbose, args.debug)
+            if single_rep:
+                print(single_rep)
+    # do we have unittests?
+    if run_unittests:
+        _unit_tests = []
+        for test_mod in ALL_TEST_MODULES:
+            _tests = get_unit_tests(test_mod)
+            if _tests:
+                _unit_tests.extend(_tests)
+        if _unit_tests:
+            loader = unittest.TestLoader()
+            suites_list = []
+            for _test in _unit_tests:
+                suite = loader.loadTestsFromTestCase(_test)
+                suites_list.append(suite)
+            big_suite = unittest.TestSuite(suites_list)
+            runner = unittest.TextTestRunner(verbosity=3)
+            results = runner.run(big_suite)
+    # toggled!
+    if run_benchmarks:
+        tests.benchmarks.bench_render_a()
+        tests.benchmarks.bench_cacheable_templates()
 
 
 if __name__ == '__main__':

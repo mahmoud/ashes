@@ -15,10 +15,59 @@ import ashes
 
 # ==============================================================================
 
+
 # we'll store a global value in here
 ChertDefaults = None
-_chert_dir = '%s/templates_chert' % os.path.dirname(os.path.realpath(__file__))
+SimpleFruitDefaults = None
 
+
+# our directories
+_chert_dir = '%s/templates_chert' % os.path.dirname(os.path.realpath(__file__))
+_simple_fruit_dir = '%s/templates_simple_fruit' % os.path.dirname(os.path.realpath(__file__))
+
+
+class _SimpleFruitDefaults(object):
+    directory = None
+    template_source = None
+    renders_expected = None
+    template_dependencies = None
+    compiled_template_data = None
+    
+    def __init__(self):
+        """load data"""
+        _files_all = os.listdir(_simple_fruit_dir)
+        _files_dust = [i for i in _files_all if i[-5:] == '.dust']
+        _files_html = [i for i in _files_all if i[-5:] == '.html']
+
+        _template_source = {}
+        for _fname in _files_dust:
+            _fpath = os.path.join(_simple_fruit_dir, _fname)
+            _template_source[_fname] = codecs.open(_fpath, 'r', 'utf-8').read()
+
+        _renders_expected = {}
+        for _fname in _files_html:
+            _fpath = os.path.join(_simple_fruit_dir, _fname)
+            _fname_adjusted = _fname[:-5]  # strip off the .html
+            _renders_expected[_fname_adjusted] = codecs.open(_fpath, 'r', 'utf-8').read()
+
+        self.directory = _simple_fruit_dir
+        self.template_source = _template_source
+        self.renders_expected = _renders_expected
+        self.template_dependencies = {
+            'all.dust': ['bananas.dust', 'citrus.dust', 'dragonfruits.dust', 'elderflower.dust', ],
+            'oranges.dust': ['apples.dust', ],
+        }   
+
+        compiled_template_data = {}
+        for _fname in _files_dust:
+            template_obj = ashes.Template(_fname, self.template_source[_fname])
+            compiled_template_data[_fname] = {'obj': template_obj,
+                                              'ast': template_obj.to_ast(),
+                                              'python_string': template_obj.to_python_string(),
+                                              'python_code': template_obj.to_python_code(),
+                                              'python_func': template_obj.to_python_func(),
+                                              }
+        self.compiled_template_data = compiled_template_data
 
 class _ChertDefaults(object):
     """
