@@ -1,0 +1,79 @@
+{
+    "entry": {
+        "content_html": null,
+        "content_ihtml": null,
+        "entry_html": null,
+        "entry_root": "colophon",
+        "headers": {
+            "publish_date": "October 31st, 2014",
+            "source_path": "/Users/jvanasco/Downloads/chert-master/yoursite/entries/colophon.md",
+            "tags": [
+                "meta",
+                "code"
+            ],
+            "title": "Colophon"
+        },
+        "loaded_parts": [
+            {
+                "content": "\nMost blogs, including this one, are reverse-chronologically ordered,\ncausing the first post to appear last in the archive. This convention\nmakes a [colophon][colophon] the [King's Pawn Game][kingspawn] of web\nauthorship; there's no better place to showcase certain implementation\ndetails than the first post of a blog.\n\nThis site is generated with [Chert][chert_github][^pronounce], an\nopen-source static site generator built with [Python][python],\n[Markdown][markdown][^emd], [ashes][ashes], [pygments][pygments], and\n[YAML][yaml]. Chert is named for a very common [fine-grained\nsedimentary rock][chert_rock], often referred to as *flint*, that has\nbeen of critical use to firestarters through the ages.\n\n[^pronounce]: English pronunciation rhymes with *dirt*,\n   maintainer/Farsi pronunciation: *chair* with a *t* at the end.\n[^emd]: Enhanced Markdown, including support for\n   [footnotes][footnotes], [definition lists][deflists], and [tables of\n   contents][tocs].\n\n[colophon]: https://en.wiktionary.org/wiki/colophon\n[kingspawn]: https://en.wikipedia.org/wiki/King's_Pawn_Game\n[chert_github]: https://github.com/mahmoud/chert\n[chert_rock]: https://en.wikipedia.org/wiki/Chert\n[python]: http://python.org\n[markdown]: https://en.wikipedia.org/wiki/Markdown\n[footnotes]: https://pythonhosted.org/Markdown/extensions/footnotes.html#syntax\n[deflists]: https://pythonhosted.org/Markdown/extensions/definition_lists.html#syntax\n[tocs]: https://pythonhosted.org/Markdown/extensions/toc.html#syntax\n[ashes]: https://github.com/mahmoud/ashes\n[yaml]: https://en.wikipedia.org/wiki/YAML\n[pygments]: http://pygments.org/\n",
+                "content_html": "<p>Most blogs, including this one, are reverse-chronologically ordered,\ncausing the first post to appear last in the archive. This convention\nmakes a <a href=\"https://en.wiktionary.org/wiki/colophon\">colophon</a> the <a href=\"https://en.wikipedia.org/wiki/King's_Pawn_Game\">King's Pawn Game</a> of web\nauthorship; there's no better place to showcase certain implementation\ndetails than the first post of a blog.</p>\n<p>This site is generated with <a href=\"https://github.com/mahmoud/chert\">Chert</a><sup id=\"fnref:pronounce\"><a class=\"footnote-ref\" href=\"#fn:pronounce\" rel=\"footnote\">1</a></sup>, an\nopen-source static site generator built with <a href=\"http://python.org\">Python</a>,\n<a href=\"https://en.wikipedia.org/wiki/Markdown\">Markdown</a><sup id=\"fnref:emd\"><a class=\"footnote-ref\" href=\"#fn:emd\" rel=\"footnote\">2</a></sup>, <a href=\"https://github.com/mahmoud/ashes\">ashes</a>, <a href=\"http://pygments.org/\">pygments</a>, and\n<a href=\"https://en.wikipedia.org/wiki/YAML\">YAML</a>. Chert is named for a very common <a href=\"https://en.wikipedia.org/wiki/Chert\">fine-grained\nsedimentary rock</a>, often referred to as <em>flint</em>, that has\nbeen of critical use to firestarters through the ages.</p>\n<div class=\"footnote\">\n<hr />\n<ol>\n<li id=\"fn:pronounce\">\n<p>English pronunciation rhymes with <em>dirt</em>,\n   maintainer/Farsi pronunciation: <em>chair</em> with a <em>t</em> at the end.&#160;<a class=\"footnote-backref\" href=\"#fnref:pronounce\" rev=\"footnote\" title=\"Jump back to footnote 1 in the text\">&#8617;</a></p>\n</li>\n<li id=\"fn:emd\">\n<p>Enhanced Markdown, including support for\n   <a href=\"https://pythonhosted.org/Markdown/extensions/footnotes.html#syntax\">footnotes</a>, <a href=\"https://pythonhosted.org/Markdown/extensions/definition_lists.html#syntax\">definition lists</a>, and <a href=\"https://pythonhosted.org/Markdown/extensions/toc.html#syntax\">tables of\n   contents</a>.&#160;<a class=\"footnote-backref\" href=\"#fnref:emd\" rev=\"footnote\" title=\"Jump back to footnote 2 in the text\">&#8617;</a></p>\n</li>\n</ol>\n</div>",
+                "content_ihtml": "<p>Most blogs, including this one, are reverse-chronologically ordered,\ncausing the first post to appear last in the archive. This convention\nmakes a <a href=\"https://en.wiktionary.org/wiki/colophon\">colophon</a> the <a href=\"https://en.wikipedia.org/wiki/King's_Pawn_Game\">King's Pawn Game</a> of web\nauthorship; there's no better place to showcase certain implementation\ndetails than the first post of a blog.</p>\n<p>This site is generated with <a href=\"https://github.com/mahmoud/chert\">Chert</a><sup id=\"fnref:pronounce\"><a class=\"footnote-ref\" href=\"http://sedimental.org/colophon.html#fn:pronounce\" rel=\"footnote\">1</a></sup>, an\nopen-source static site generator built with <a href=\"http://python.org\">Python</a>,\n<a href=\"https://en.wikipedia.org/wiki/Markdown\">Markdown</a><sup id=\"fnref:emd\"><a class=\"footnote-ref\" href=\"http://sedimental.org/colophon.html#fn:emd\" rel=\"footnote\">2</a></sup>, <a href=\"https://github.com/mahmoud/ashes\">ashes</a>, <a href=\"http://pygments.org/\">pygments</a>, and\n<a href=\"https://en.wikipedia.org/wiki/YAML\">YAML</a>. Chert is named for a very common <a href=\"https://en.wikipedia.org/wiki/Chert\">fine-grained\nsedimentary rock</a>, often referred to as <em>flint</em>, that has\nbeen of critical use to firestarters through the ages.</p>\n<div class=\"footnote\">\n<hr />\n<ol>\n<li id=\"fn:pronounce\">\n<p>English pronunciation rhymes with <em>dirt</em>,\n   maintainer/Farsi pronunciation: <em>chair</em> with a <em>t</em> at the end.&#160;<a class=\"footnote-backref\" href=\"http://sedimental.org/colophon.html#fnref:pronounce\" rev=\"footnote\" title=\"Jump back to footnote 1 in the text\">&#8617;</a></p>\n</li>\n<li id=\"fn:emd\">\n<p>Enhanced Markdown, including support for\n   <a href=\"https://pythonhosted.org/Markdown/extensions/footnotes.html#syntax\">footnotes</a>, <a href=\"https://pythonhosted.org/Markdown/extensions/definition_lists.html#syntax\">definition lists</a>, and <a href=\"https://pythonhosted.org/Markdown/extensions/toc.html#syntax\">tables of\n   contents</a>.&#160;<a class=\"footnote-backref\" href=\"http://sedimental.org/colophon.html#fnref:emd\" rev=\"footnote\" title=\"Jump back to footnote 2 in the text\">&#8617;</a></p>\n</li>\n</ol>\n</div>",
+                "part_idx": 1
+            }
+        ],
+        "output_filename": "colophon.html",
+        "parts": [
+            "\nMost blogs, including this one, are reverse-chronologically ordered,\ncausing the first post to appear last in the archive. This convention\nmakes a [colophon][colophon] the [King's Pawn Game][kingspawn] of web\nauthorship; there's no better place to showcase certain implementation\ndetails than the first post of a blog.\n\nThis site is generated with [Chert][chert_github][^pronounce], an\nopen-source static site generator built with [Python][python],\n[Markdown][markdown][^emd], [ashes][ashes], [pygments][pygments], and\n[YAML][yaml]. Chert is named for a very common [fine-grained\nsedimentary rock][chert_rock], often referred to as *flint*, that has\nbeen of critical use to firestarters through the ages.\n\n[^pronounce]: English pronunciation rhymes with *dirt*,\n   maintainer/Farsi pronunciation: *chair* with a *t* at the end.\n[^emd]: Enhanced Markdown, including support for\n   [footnotes][footnotes], [definition lists][deflists], and [tables of\n   contents][tocs].\n\n[colophon]: https://en.wiktionary.org/wiki/colophon\n[kingspawn]: https://en.wikipedia.org/wiki/King's_Pawn_Game\n[chert_github]: https://github.com/mahmoud/chert\n[chert_rock]: https://en.wikipedia.org/wiki/Chert\n[python]: http://python.org\n[markdown]: https://en.wikipedia.org/wiki/Markdown\n[footnotes]: https://pythonhosted.org/Markdown/extensions/footnotes.html#syntax\n[deflists]: https://pythonhosted.org/Markdown/extensions/definition_lists.html#syntax\n[tocs]: https://pythonhosted.org/Markdown/extensions/toc.html#syntax\n[ashes]: https://github.com/mahmoud/ashes\n[yaml]: https://en.wikipedia.org/wiki/YAML\n[pygments]: http://pygments.org/\n"
+        ],
+        "publish_timestamp_local": "2014-10-31T00:00:00-0400",
+        "publish_timestamp_utc": "2014-10-31T04:00:00Z",
+        "rendered_md": null,
+        "summary": "Most blogs, including this one, are reverse-chronologically ordered, causing the first post to appear last in the archive. This convention makes a colophon the King's Pawn Game of...",
+        "update_timestamp_local": null,
+        "update_timestamp_utc": null
+    },
+    "inline": true,
+    "site": {
+        "analytics_code": "UA-63522904-3",
+        "atom_feed_url": "/atom.xml",
+        "author_name": "Chert Chertington",
+        "canonical_atom_feed_url": "http://sedimental.org/atom.xml",
+        "canonical_base_path": "/",
+        "canonical_domain": "http://sedimental.org",
+        "canonical_rss_feed_url": "http://sedimental.org/rss.xml",
+        "canonical_url": "http://sedimental.org/",
+        "charset": "UTF-8",
+        "copyright_notice": "&copy; 2015 <a href=\"https://creativecommons.org/licenses/by-sa/4.0/\"><img height=\"14\" src=\"/img/by-sa.png\" /></a>",
+        "dev_mode": true,
+        "dev_mode_refresh_seconds": false,
+        "enable_analytics": true,
+        "export_html_ext": ".html",
+        "export_src_ext": ".md",
+        "head_title": "Chert",
+        "lang_code": "en",
+        "last_generated": "2016-10-07T17:16:36-0400",
+        "last_generated_utc": "2016-10-07T21:16:36Z",
+        "primary_links": [
+            {
+                "href": "/about.html",
+                "is_external": false,
+                "text": "About"
+            },
+            {
+                "desc": "Chert source code",
+                "href": "https://github.com/mahmoud/chert",
+                "is_external": true,
+                "text": "Github"
+            },
+            {
+                "href": "https://twitter.com/mhashemi",
+                "is_external": true,
+                "text": "Twitter"
+            }
+        ],
+        "rss_feed_url": "/rss.xml",
+        "secondary_links": [],
+        "tagline": "Sharp and sparky static sites",
+        "title": "Chert"
+    }
+}
