@@ -10,8 +10,8 @@ except ImportError:
     from tests.OrderedDict import OrderedDict
     from tests.argparse import ArgumentParser
 
-import tests
 from ashes import AshesEnv, Template
+import tests
 from tests import ALL_TEST_MODULES, OPS, AshesTest
 import unittest
 
@@ -208,13 +208,16 @@ def main(width=DEFAULT_WIDTH):
             results = runner.run(big_suite)
     # toggled!
     if run_benchmarks:
+        import tests
         tests.benchmarks.bench_render_repeat()
         tests.benchmarks.bench_render_reinit()
         tests.benchmarks.bench_cacheable_templates()
 
     if run_benchtest:
         import tests.utils_profiling
-        tests.utils_profiling.profile_function(tests.benchmarks.bench_render_repeat)
+        import time
+        filename_stats = 'stats-%s.csv' % time.time()
+        tests.utils_profiling.profile_function(tests.benchmarks.bench_render_repeat, filename_stats)
 
 if __name__ == '__main__':
     main()
