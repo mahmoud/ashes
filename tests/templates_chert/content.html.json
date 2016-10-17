@@ -1,0 +1,79 @@
+{
+    "entry": {
+        "content_html": null,
+        "content_ihtml": null,
+        "entry_html": null,
+        "entry_root": "a_new_post",
+        "headers": {
+            "publish_date": "May 6th, 2015",
+            "source_path": "/Users/jvanasco/Downloads/chert-master/yoursite/entries/new_post.md",
+            "tags": [
+                "meta",
+                "reference"
+            ],
+            "title": "A New Post"
+        },
+        "loaded_parts": [
+            {
+                "content": "\nThis is a brand new post just waiting to be filled out by a willing\nauthor. Features abound, so in addition to staving off slate\nblankness, this post acts as a quick-start reference.\n\n<!-- HTML comments are the preferred comment syntax for markdown -->\n<!-- Note that the title of the post is conventionally prepended as an h1-level heading by the theme -->\n\n[TOC]\n\nThis entry is probably a bit on the short side for a table of\ncontents, but Chert makes it easy to add one like the one above.\nSimply include `[TOC]` in your entry, wherever you'd like the Contents\nto appear. Also note that regardless of whether a table of contents is\ngenerated, headings always link to themselves, making anchor retrieval\nand navigation even more convenient.\n\n# Definition lists and footnotes\n\nChert supports all the standard Markdown features, plus tables of\ncontents, footnotes[^note], and definition lists:\n\nPython\n:   A constricting snake belonging to the family [Pythonidae][pythonidae].\n:   A high-level, multi-purpose programming language, used to generate this site.\n\nChert\n:   [A sedimentary rock][chert_rock] historically used to start fires.\n:   An open-source static site generator, used to generate this site.\n\n[^note]: Footnotes can be great for citations or when you're tired of\nusing parentheses. They are automatically placed at the bottom of the\nentry.\n\n# Headings\nChert supports heading levels galore, with all headings anchor linked\nto themselves. Five levels of headings to keep your content company.\n## Subheading 2\n### Subheading 3\n#### Subheading 4\n##### Subheading 5\n\n# Code highlighting\n\nFinally, it's time for that very special and very ubiquitous code snippet,\nwith highlighting provided by [pygments][pygments]:\n\n<!-- python is actually the default for code highlighting -->\n\n```python hl_lines=\"1\"\n# line highlighting is also supported\ndef greet(name):\n    print('Hello, %s!' % name)\n\n# Prints the greeting to sys.stdout\ngreet('world')\n```\n\n**Hello, world!** And enjoy using Chert!\n\n[pythonidae]: https://en.wikipedia.org/wiki/Pythonidae\n[chert_rock]: https://en.wikipedia.org/wiki/Chert\n[pygments]: http://pygments.org/\n",
+                "content_html": "<p>This is a brand new post just waiting to be filled out by a willing\nauthor. Features abound, so in addition to staving off slate\nblankness, this post acts as a quick-start reference.</p>\n<!-- HTML comments are the preferred comment syntax for markdown -->\n\n<!-- Note that the title of the post is conventionally prepended as an h1-level heading by the theme -->\n\n<p>[TOC]</p>\n<p>This entry is probably a bit on the short side for a table of\ncontents, but Chert makes it easy to add one like the one above.\nSimply include <code>[TOC]</code> in your entry, wherever you'd like the Contents\nto appear. Also note that regardless of whether a table of contents is\ngenerated, headings always link to themselves, making anchor retrieval\nand navigation even more convenient.</p>\n<h1>Definition lists and footnotes</h1>\n<p>Chert supports all the standard Markdown features, plus tables of\ncontents, footnotes<sup id=\"fnref:note\"><a class=\"footnote-ref\" href=\"#fn:note\" rel=\"footnote\">1</a></sup>, and definition lists:</p>\n<dl>\n<dt>Python</dt>\n<dd>A constricting snake belonging to the family <a href=\"https://en.wikipedia.org/wiki/Pythonidae\">Pythonidae</a>.</dd>\n<dd>A high-level, multi-purpose programming language, used to generate this site.</dd>\n<dt>Chert</dt>\n<dd><a href=\"https://en.wikipedia.org/wiki/Chert\">A sedimentary rock</a> historically used to start fires.</dd>\n<dd>An open-source static site generator, used to generate this site.</dd>\n</dl>\n<h1>Headings</h1>\n<p>Chert supports heading levels galore, with all headings anchor linked\nto themselves. Five levels of headings to keep your content company.</p>\n<h2>Subheading 2</h2>\n<h3>Subheading 3</h3>\n<h4>Subheading 4</h4>\n<h5>Subheading 5</h5>\n<h1>Code highlighting</h1>\n<p>Finally, it's time for that very special and very ubiquitous code snippet,\nwith highlighting provided by <a href=\"http://pygments.org/\">pygments</a>:</p>\n<!-- python is actually the default for code highlighting -->\n\n<div class=\"codehilite\"><pre><span class=\"hll\"><span class=\"c\"># line highlighting is also supported</span>\n</span><span class=\"k\">def</span> <span class=\"nf\">greet</span><span class=\"p\">(</span><span class=\"n\">name</span><span class=\"p\">):</span>\n    <span class=\"k\">print</span><span class=\"p\">(</span><span class=\"s\">&#39;Hello, </span><span class=\"si\">%s</span><span class=\"s\">!&#39;</span> <span class=\"o\">%</span> <span class=\"n\">name</span><span class=\"p\">)</span>\n\n<span class=\"c\"># Prints the greeting to sys.stdout</span>\n<span class=\"n\">greet</span><span class=\"p\">(</span><span class=\"s\">&#39;world&#39;</span><span class=\"p\">)</span>\n</pre></div>\n\n\n<p><strong>Hello, world!</strong> And enjoy using Chert!</p>\n<div class=\"footnote\">\n<hr />\n<ol>\n<li id=\"fn:note\">\n<p>Footnotes can be great for citations or when you're tired of\nusing parentheses. They are automatically placed at the bottom of the\nentry.&#160;<a class=\"footnote-backref\" href=\"#fnref:note\" rev=\"footnote\" title=\"Jump back to footnote 1 in the text\">&#8617;</a></p>\n</li>\n</ol>\n</div>",
+                "content_ihtml": "<p>This is a brand new post just waiting to be filled out by a willing\nauthor. Features abound, so in addition to staving off slate\nblankness, this post acts as a quick-start reference.</p>\n<!-- HTML comments are the preferred comment syntax for markdown -->\n\n<!-- Note that the title of the post is conventionally prepended as an h1-level heading by the theme -->\n\n<p>[TOC]</p>\n<p>This entry is probably a bit on the short side for a table of\ncontents, but Chert makes it easy to add one like the one above.\nSimply include <code>[TOC]</code> in your entry, wherever you'd like the Contents\nto appear. Also note that regardless of whether a table of contents is\ngenerated, headings always link to themselves, making anchor retrieval\nand navigation even more convenient.</p>\n<h1>Definition lists and footnotes</h1>\n<p>Chert supports all the standard Markdown features, plus tables of\ncontents, footnotes<sup id=\"fnref:note\"><a class=\"footnote-ref\" href=\"http://sedimental.org/a_new_post.html#fn:note\" rel=\"footnote\">1</a></sup>, and definition lists:</p>\n<dl>\n<dt>Python</dt>\n<dd>A constricting snake belonging to the family <a href=\"https://en.wikipedia.org/wiki/Pythonidae\">Pythonidae</a>.</dd>\n<dd>A high-level, multi-purpose programming language, used to generate this site.</dd>\n<dt>Chert</dt>\n<dd><a href=\"https://en.wikipedia.org/wiki/Chert\">A sedimentary rock</a> historically used to start fires.</dd>\n<dd>An open-source static site generator, used to generate this site.</dd>\n</dl>\n<h1>Headings</h1>\n<p>Chert supports heading levels galore, with all headings anchor linked\nto themselves. Five levels of headings to keep your content company.</p>\n<h2>Subheading 2</h2>\n<h3>Subheading 3</h3>\n<h4>Subheading 4</h4>\n<h5>Subheading 5</h5>\n<h1>Code highlighting</h1>\n<p>Finally, it's time for that very special and very ubiquitous code snippet,\nwith highlighting provided by <a href=\"http://pygments.org/\">pygments</a>:</p>\n<!-- python is actually the default for code highlighting -->\n\n<div class=\"codehilite\" style=\"background: #f8f8f8\"><pre style=\"line-height: 125%\"><span style=\"background-color: #ffffcc\"><span style=\"color: #008800; font-style: italic\"># line highlighting is also supported</span>\n</span><span style=\"color: #AA22FF; font-weight: bold\">def</span> <span style=\"color: #00A000\">greet</span>(name):\n    <span style=\"color: #AA22FF; font-weight: bold\">print</span>(<span style=\"color: #BB4444\">&#39;Hello, </span><span style=\"color: #BB6688; font-weight: bold\">%s</span><span style=\"color: #BB4444\">!&#39;</span> <span style=\"color: #666666\">%</span> name)\n\n<span style=\"color: #008800; font-style: italic\"># Prints the greeting to sys.stdout</span>\ngreet(<span style=\"color: #BB4444\">&#39;world&#39;</span>)\n</pre></div>\n\n\n<p><strong>Hello, world!</strong> And enjoy using Chert!</p>\n<div class=\"footnote\">\n<hr />\n<ol>\n<li id=\"fn:note\">\n<p>Footnotes can be great for citations or when you're tired of\nusing parentheses. They are automatically placed at the bottom of the\nentry.&#160;<a class=\"footnote-backref\" href=\"http://sedimental.org/a_new_post.html#fnref:note\" rev=\"footnote\" title=\"Jump back to footnote 1 in the text\">&#8617;</a></p>\n</li>\n</ol>\n</div>",
+                "part_idx": 1
+            }
+        ],
+        "output_filename": "a_new_post.html",
+        "parts": [
+            "\nThis is a brand new post just waiting to be filled out by a willing\nauthor. Features abound, so in addition to staving off slate\nblankness, this post acts as a quick-start reference.\n\n<!-- HTML comments are the preferred comment syntax for markdown -->\n<!-- Note that the title of the post is conventionally prepended as an h1-level heading by the theme -->\n\n[TOC]\n\nThis entry is probably a bit on the short side for a table of\ncontents, but Chert makes it easy to add one like the one above.\nSimply include `[TOC]` in your entry, wherever you'd like the Contents\nto appear. Also note that regardless of whether a table of contents is\ngenerated, headings always link to themselves, making anchor retrieval\nand navigation even more convenient.\n\n# Definition lists and footnotes\n\nChert supports all the standard Markdown features, plus tables of\ncontents, footnotes[^note], and definition lists:\n\nPython\n:   A constricting snake belonging to the family [Pythonidae][pythonidae].\n:   A high-level, multi-purpose programming language, used to generate this site.\n\nChert\n:   [A sedimentary rock][chert_rock] historically used to start fires.\n:   An open-source static site generator, used to generate this site.\n\n[^note]: Footnotes can be great for citations or when you're tired of\nusing parentheses. They are automatically placed at the bottom of the\nentry.\n\n# Headings\nChert supports heading levels galore, with all headings anchor linked\nto themselves. Five levels of headings to keep your content company.\n## Subheading 2\n### Subheading 3\n#### Subheading 4\n##### Subheading 5\n\n# Code highlighting\n\nFinally, it's time for that very special and very ubiquitous code snippet,\nwith highlighting provided by [pygments][pygments]:\n\n<!-- python is actually the default for code highlighting -->\n\n```python hl_lines=\"1\"\n# line highlighting is also supported\ndef greet(name):\n    print('Hello, %s!' % name)\n\n# Prints the greeting to sys.stdout\ngreet('world')\n```\n\n**Hello, world!** And enjoy using Chert!\n\n[pythonidae]: https://en.wikipedia.org/wiki/Pythonidae\n[chert_rock]: https://en.wikipedia.org/wiki/Chert\n[pygments]: http://pygments.org/\n"
+        ],
+        "publish_timestamp_local": "2015-05-06T00:00:00-0400",
+        "publish_timestamp_utc": "2015-05-06T04:00:00Z",
+        "rendered_md": null,
+        "summary": "This is a brand new post just waiting to be filled out by a willing author. Features abound, so in addition to staving off slate blankness, this post...",
+        "update_timestamp_local": null,
+        "update_timestamp_utc": null
+    },
+    "inline": true,
+    "site": {
+        "analytics_code": "UA-63522904-3",
+        "atom_feed_url": "/atom.xml",
+        "author_name": "Chert Chertington",
+        "canonical_atom_feed_url": "http://sedimental.org/atom.xml",
+        "canonical_base_path": "/",
+        "canonical_domain": "http://sedimental.org",
+        "canonical_rss_feed_url": "http://sedimental.org/rss.xml",
+        "canonical_url": "http://sedimental.org/",
+        "charset": "UTF-8",
+        "copyright_notice": "&copy; 2015 <a href=\"https://creativecommons.org/licenses/by-sa/4.0/\"><img height=\"14\" src=\"/img/by-sa.png\" /></a>",
+        "dev_mode": true,
+        "dev_mode_refresh_seconds": false,
+        "enable_analytics": true,
+        "export_html_ext": ".html",
+        "export_src_ext": ".md",
+        "head_title": "Chert",
+        "lang_code": "en",
+        "last_generated": "2016-10-07T17:16:36-0400",
+        "last_generated_utc": "2016-10-07T21:16:36Z",
+        "primary_links": [
+            {
+                "href": "/about.html",
+                "is_external": false,
+                "text": "About"
+            },
+            {
+                "desc": "Chert source code",
+                "href": "https://github.com/mahmoud/chert",
+                "is_external": true,
+                "text": "Github"
+            },
+            {
+                "href": "https://twitter.com/mhashemi",
+                "is_external": true,
+                "text": "Twitter"
+            }
+        ],
+        "rss_feed_url": "/rss.xml",
+        "secondary_links": [],
+        "tagline": "Sharp and sparky static sites",
+        "title": "Chert"
+    }
+}

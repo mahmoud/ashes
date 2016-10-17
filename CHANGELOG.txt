@@ -1,0 +1,59 @@
+unreleased
+----------
+
+	modified:
+		run_tests.py
+			new flags (off by default)
+			
+				--benchmark
+					runs benchmarks
+
+				--run_unittests
+					runs unittests
+
+				--disable_core
+					disables the initial core tests
+				
+				python run_tests.py --benchmark --run_unittests
+			
+				they are described below
+
+			runtests was extended to search for unittests and run them if found by a flag
+			everything is doubly checked to be an `AshesTest` instance, so other test classes can be integrated at a later date
+	
+		`ashes.Template`
+			is_convertable is a new boolean instance value.  it defaults onto the class for lookup.
+	
+		`ashes.Template.__init__`
+			the default for last_mtime was moved out into the class. no sense setting it to `None` on every request
+
+		`ashes.Template._get_render_func`
+			now returns a tuple of `python_code` and `python_func`
+			`ret_str=True` was migrated to `ashes._get_render_string`
+		`ashes.Template._ast_to_render_func`
+			now returns a tuple of `python_code` and `python_func`
+			removed `ret_str=True`
+		`ashes._python_compile`
+			split out some functionality into `ashed._python_exec`
+			
+	new:
+		`ashes.Template.from_ast`
+		`ashes.Template.to_ast`
+		`ashes.Template.from_python_string`
+		`ashes.Template.to_python_string`
+		`ashes.Template.from_python_code`
+		`ashes.Template.to_python_code`
+		`ashes.Template.from_python_func`
+		`ashes.Template.to_python_func`
+		`ashes.Template._get_render_string`
+		`ashes._python_exec`
+		`ashes.python_string_to_code`
+		`ashes.python_string_to_function`
+		
+		tests/benchmarks
+			these use the Chert templates to bench features or overall performance
+		
+		tests/template_loaders
+			these are implemented as unittest test cases
+			the tests run some roundtrips and generally test the api
+
