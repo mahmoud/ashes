@@ -2,6 +2,9 @@ Ashes
 =====
 
 [![Build Status](https://travis-ci.org/mahmoud/ashes.png?branch=master)](https://travis-ci.org/mahmoud/ashes)
+<a href="https://ashes.readthedocs.io/en/latest/"><img src="https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat"></a>
+<a href="https://pypi.python.org/pypi/ashes"><img src="https://img.shields.io/pypi/v/ashes.svg"></a>
+<a href="http://calver.org"><img src="https://img.shields.io/badge/calver-YY.MINOR.MICRO-22bfda.svg"></a>
 
 [Dust](http://akdubya.github.com/dustjs/) templating for Python 2 and 3.
 Also the most convenient, portable, and powerful [command-line
@@ -176,7 +179,7 @@ The standard way for rendering this would be to create a new Ashes "Loader" for
 the directory and render it.  Ashes would then load and compile all 10 templates
 as needed and re-use them throughout the life of the application.  This works
 for most situations, because the Ashes rendering Environment and Template
-Loader are usually created once and are persistent objects. 
+Loader are usually created once and are persistent objects.
 
 This is our "Baseline" rendering situation, as Ashes must perform all
 of the following steps -- which are the most expensive portions of templating:
@@ -194,20 +197,20 @@ The fastest part of Ashes is simply executing the template to render the
 content -- this is usually less than 5% of the overall work!
 
 In certain situations, the Ashes Environment or Template Loaders can not be
-persistent.  This will happen if we have a lot of templates in a multi-tenant 
-application and need to constrain the size of our templating environment 
+persistent.  This will happen if we have a lot of templates in a multi-tenant
+application and need to constrain the size of our templating environment
 (like a LRU cache), or need to limit the environment/loader to a very short
-lifespan.  In these situations, hooking into Ashes to generate or load 
+lifespan.  In these situations, hooking into Ashes to generate or load
 (partially) compiled templates is necessary t o overcome bottlenecks.
 
 * ``Template.to_ast``/``Template.from_ast``.  These methods of the ``Template``
 class will allow templates to be cached in their native AST format.  On average,
-this will save about 35% of Ashes overhead vs the baseline performance. Data in 
-this format is extremely safe to cache, because it is merely pre-processed. 
+this will save about 35% of Ashes overhead vs the baseline performance. Data in
+this format is extremely safe to cache, because it is merely pre-processed.
 
 * ``Template.to_python_string``/``Template.from_python_string``.  These methods
 of the ``Template`` class will allow templates to be cached as the Python
-functions that Ashes generates.  These strings can be cached as-is.  
+functions that Ashes generates.  These strings can be cached as-is.
 This is an efficient way to cache the data - depending on the templates this will
 save around 65-80 % of the overhead.
 Note: Data in this format is not necessarily safe to cache externally, because
@@ -219,7 +222,7 @@ of the ``Template`` class will allow templates to be cached as the Python
 code objects that Ashes generates.  Python code objects can be (de)serialized
 using the `marshal` package in the standard library.  This is the most efficient
 way to cache the data - depending on the templates this will save around
-92-94% of the overhead. 
+92-94% of the overhead.
 Note: Data in this format is not necessarily safe to cache externally, because
 it will be run through `exec`.  If your cache is compromised,
 arbitrary code can be executed.
@@ -236,7 +239,7 @@ python code string.
 * ``ashes.python_string_to_function`` generates a python function from an ashes
 python code string.
 
-A very easy way to implement this is with a custom TemplateLoader.  Template 
+A very easy way to implement this is with a custom TemplateLoader.  Template
 Loaders are a flexible framework that can be used to precompile families of
 templates or even lazily preload them as needed.
 
@@ -254,7 +257,7 @@ ashes environment:
 ### Recap
 
 ```
-| method              | cacheable in process | cacheable external        | overhead | 
+| method              | cacheable in process | cacheable external        | overhead |
 | ------------------- | -------------------- | ------------------------- | -------- |
 | baseline (standard) | -                    | -                         | 100%     |
 | ast                 | Yes                  | Safe                      | 65%      |
