@@ -10,8 +10,8 @@ except ImportError:
     from tests.OrderedDict import OrderedDict
     from tests.argparse import ArgumentParser
 
-import tests
 from ashes import AshesEnv, Template
+import tests
 from tests import ALL_TEST_MODULES, OPS, AshesTest
 import unittest
 
@@ -155,6 +155,8 @@ def parse_args():
                      help='run unittests')
     prs.add_argument('--disable_core', action='store_true',
                      help='disable core tests')
+    prs.add_argument('--benchtest', action='store_true',
+                     help='run testing benchmark; disables everything else')
     return prs.parse_args()
 
 
@@ -165,6 +167,14 @@ def main(width=DEFAULT_WIDTH):
     run_benchmarks = args.benchmark or False
     run_unittests = args.run_unittests or False
     disable_core = args.disable_core or False
+
+    # if we're running the benchtest for profiling, thats it!
+    run_benchtest = args.benchtest or False
+    if run_benchtest:
+        disable_core = True
+        run_benchmarks = False
+        run_unittests = False
+
     if not disable_core:
         if not name:
             # remember `tests` is a namespace. don't overwrite!
@@ -198,9 +208,16 @@ def main(width=DEFAULT_WIDTH):
             results = runner.run(big_suite)
     # toggled!
     if run_benchmarks:
-        tests.benchmarks.bench_render_a()
+        import tests
+        tests.benchmarks.bench_render_repeat()
+        tests.benchmarks.bench_render_reinit()
         tests.benchmarks.bench_cacheable_templates()
 
+    if run_benchtest:
+        import tests.utils_profiling
+        import time
+        filename_stats = 'stats-%s.csv' % time.time()
+        tests.utils_profiling.profile_function(tests.benchmarks.bench_render_repeat, filename_stats)
 
 if __name__ == '__main__':
     main()
