@@ -2336,8 +2336,8 @@ class TemplatePathLoader(object):
         abs_path = os.path.abspath(norm_path)
         template_name = os.path.relpath(abs_path, self.root_path)
         template_type = env.template_type
-        return template_type.from_path(name=template_name,
-                                       path=abs_path,
+        return template_type.from_path(path=abs_path,
+                                       name=template_name,
                                        encoding=self.encoding,
                                        env=env)
 
