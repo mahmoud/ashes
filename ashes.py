@@ -19,7 +19,7 @@ if PY3:
 else:
     string_types = (str, unicode)
 
-__version__ = '15.1.1dev'
+__version__ = '17.0.0dev'
 __author__ = 'Mahmoud Hashemi'
 __contact__ = 'mahmoudrhashemi@gmail.com'
 __url__ = 'https://github.com/mahmoud/ashes'
@@ -1776,7 +1776,7 @@ def load_template_path(path, encoding='utf-8'):
     """
     split off `from_path` so __init__ can use
     returns a tuple of the source and adjusted absolute path
-    """ 
+    """
     abs_path = os.path.abspath(path)
     if not os.path.isfile(abs_path):
         raise TemplateNotFound(abs_path)
@@ -2018,7 +2018,7 @@ class Template(object):
          read and more like dust's docs
 
         split `ret_str=True` into `_get_render_string()`
-        
+
         Note that this doesn't save the render_code/render_func.
         It is compiled as needed.
         """
@@ -2369,53 +2369,55 @@ class FlatteningPathLoader(TemplatePathLoader):
         tmpl.name = name
         return tmpl
 
-try:
-    import bottle
-except ImportError:
-    pass
-else:
-    class AshesBottleTemplate(bottle.BaseTemplate):
-        extensions = list(bottle.BaseTemplate.extensions)
-        extensions.extend(['ash', 'ashes', 'dust'])
 
-        def prepare(self, **options):
-            if not self.source:
-                self.source = self._load_source(self.name)
-                if self.source is None:
-                    raise TemplateNotFound(self.name)
+if not os.getenv('ASHES_DISABLE_BOTTLE'):
+    try:
+        import bottle
+    except ImportError:
+        pass
+    else:
+        class AshesBottleTemplate(bottle.BaseTemplate):
+            extensions = list(bottle.BaseTemplate.extensions)
+            extensions.extend(['ash', 'ashes', 'dust'])
 
-            options['name'] = self.name
-            options['source'] = self.source
-            options['source_file'] = self.filename
-            for key in ('optimize', 'keep_source', 'env'):
-                if key in self.settings:
-                    options.setdefault(key, self.settings[key])
-            env = self.settings.get('env', default_env)
-            # I truly despise 2.6.4's unicode kwarg bug
-            options = dict([(str(k), v) for k, v in options.iteritems()])
-            self.tpl = env.register_source(**options)
+            def prepare(self, **options):
+                if not self.source:
+                    self.source = self._load_source(self.name)
+                    if self.source is None:
+                        raise TemplateNotFound(self.name)
 
-        def _load_source(self, name):
-            fname = self.search(name, self.lookup)
-            if not fname:
-                return
-            with codecs.open(fname, "rb", self.encoding) as f:
-                return f.read()
+                options['name'] = self.name
+                options['source'] = self.source
+                options['source_file'] = self.filename
+                for key in ('optimize', 'keep_source', 'env'):
+                    if key in self.settings:
+                        options.setdefault(key, self.settings[key])
+                env = self.settings.get('env', default_env)
 
-        def render(self, *a, **kw):
-            for dictarg in a:
-                kw.update(dictarg)
-            context = self.defaults.copy()
-            context.update(kw)
-            return self.tpl.render(context)
+                options = dict([(str(k), v) for k, v in options.iteritems()])
+                self.tpl = env.register_source(**options)
 
-    from functools import partial as _fp
-    ashes_bottle_template = _fp(bottle.template,
+            def _load_source(self, name):
+                fname = self.search(name, self.lookup)
+                if not fname:
+                    return
+                with codecs.open(fname, "rb", self.encoding) as f:
+                    return f.read()
+
+            def render(self, *a, **kw):
+                for dictarg in a:
+                    kw.update(dictarg)
+                context = self.defaults.copy()
+                context.update(kw)
+                return self.tpl.render(context)
+
+        from functools import partial as _fp
+        ashes_bottle_template = _fp(bottle.template,
+                                    template_adapter=AshesBottleTemplate)
+        ashes_bottle_view = _fp(bottle.view,
                                 template_adapter=AshesBottleTemplate)
-    ashes_bottle_view = _fp(bottle.view,
-                            template_adapter=AshesBottleTemplate)
-    del bottle
-    del _fp
+        del bottle
+        del _fp
 
 
 ashes = default_env = AshesEnv()
