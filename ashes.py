@@ -1323,6 +1323,12 @@ class Context(object):
                 else:
                     ctx = UndefinedValue
 
+            if ctx is UndefinedValue and self.env.defaults:
+                try:
+                    ctx = self.env.defaults[first_path_element]
+                except KeyError:
+                    pass
+
             i = 1
             while ctx and ctx is not UndefinedValue and i < length:
                 if down[i] in ctx:
@@ -2116,6 +2122,7 @@ class BaseAshesEnv(object):
                  special_chars=None,
                  optimizers=None,
                  pragmas=None,
+                 defaults=None,
                  auto_reload=True):
         self.templates = {}
         self.loaders = list(loaders or [])
@@ -2134,6 +2141,7 @@ class BaseAshesEnv(object):
         self.pragmas = dict(DEFAULT_PRAGMAS)
         if pragmas:
             self.pragmas.update(pragmas)
+        self.defaults = dict(defaults or {})
         self.auto_reload = auto_reload
 
     def log(self, level, name, message):

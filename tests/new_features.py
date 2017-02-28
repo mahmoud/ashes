@@ -1,5 +1,8 @@
 from __future__ import unicode_literals
 
+import unittest
+
+import ashes
 from .core import AshesTest
 
 heading = 'new_features'
@@ -37,3 +40,14 @@ class iter_dicts(AshesTest):
                 '({$key}:{$value}){/iterate}')
     json_context = '{"lol": {"a": "alpha", "b": "beta", "c":"carotene"}}'
     rendered = '(c:carotene)(b:beta)(a:alpha)'
+
+
+class EnvDefaultsTest(unittest.TestCase):
+    def setUp(self):
+        self.env = ashes.AshesEnv(defaults={'baz': 3})
+        self.env.register_source('basic_defaults_tmpl',
+                                 '{foo} {bar} {baz} {blep}.')
+
+    def test_basic_defaults(self):
+        res = self.env.render('basic_defaults_tmpl', {'foo': 1, 'bar': 2})
+        assert res == '1 2 3 .'
