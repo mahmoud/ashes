@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# Copyright (c) Mahmoud Hashemi
+# Available under the 3-clause BSD License. See LICENSE for details.
+
 from __future__ import unicode_literals
 
 import os
