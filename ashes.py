@@ -2227,8 +2227,8 @@ class ParseError(AshesException):
 
 class TemplateConversionException(AshesException):
     def __init__(self):
-        super(TemplateConversionException, self).__init__('only templates from source '
-                                                  'are convertable')
+        msg = 'only templates from source are convertable'
+        super(TemplateConversionException, self).__init__(msg)
 
 
 class BaseAshesEnv(object):
@@ -2243,7 +2243,8 @@ class BaseAshesEnv(object):
                  optimizers=None,
                  pragmas=None,
                  defaults=None,
-                 auto_reload=True):
+                 auto_reload=True,
+                 log_func=None):
         self.templates = {}
         self.loaders = list(loaders or [])
         self.filters = dict(DEFAULT_FILTERS)
@@ -2263,9 +2264,11 @@ class BaseAshesEnv(object):
             self.pragmas.update(pragmas)
         self.defaults = dict(defaults or {})
         self.auto_reload = auto_reload
+        self._log_func = log_func
 
     def log(self, level, name, message):
-        return  # print(level, '-', name, '-', message)
+        if self._log_func:
+            self._log_func(level, name, message)
 
     def render(self, name, model):
         tmpl = self.load(name)
@@ -2552,8 +2555,6 @@ ashes = default_env = AshesEnv()
 
 
 def _main():
-    # TODO: accidentally unclosed tags may consume
-    # trailing buffers without warning
     try:
         tmpl = ('{@eq key=hello value="True" type="boolean"}'
                 '{hello}, world'
@@ -2609,7 +2610,7 @@ def _main():
     {@eq value="ibnsina"} chetori{/eq}
     {@eq value="nasreddin"} dorood{/eq}
     {@any}, yes!{/any}
-    {@none} Can't win 'em all.{/none}
+    {@none} Can't win 'em all.{@any}{/any}{/none}
     {/select}
     '''
     ashes.keep_whitespace = False
@@ -2624,12 +2625,18 @@ class CLIError(ValueError):
     pass
 
 
+def _stderr_log_func(level, name, message):
+    sys.stderr.write('%s - %s - %s\n' % (level.upper(), name, message))
+    sys.stderr.flush()
+
+
 def _simple_render(template_path, template_literal, env_path_list,
                    model_path, model_literal,
                    trim_whitespace, filter, no_filter,
                    output_path, output_encoding, verbose):
     # TODO: default value (placeholder for missing values)
-    env = AshesEnv(env_path_list)
+    log_func = _stderr_log_func if verbose else None
+    env = AshesEnv(env_path_list, log_func=log_func)
     env.keep_whitespace = not trim_whitespace
     if filter in env.filters:
         env.autoescape_filter = filter
@@ -2664,7 +2671,7 @@ def _simple_render(template_path, template_literal, env_path_list,
     if output_path == '-':
         print(output_bytes)
     else:
-        with open(output_path, 'w') as f:
+        with open(output_path, 'wb') as f:
             f.write(output_bytes)
     return
 
@@ -2696,7 +2703,7 @@ def main():
        help="path of template to render, absolute or relative to env-path")
     ao('-T', '--template-literal',
        help="the literal string of the template, overrides template")
-    ao('--verbose', help="emit extra output on stderr")
+    ao('--verbose', action='store_true', help="emit extra output on stderr")
 
     opts, _ = prs.parse_args()
     kwargs = dict(opts.__dict__)
