@@ -1138,14 +1138,23 @@ def iterate_helper(chunk, context, bodies, params):
 def _do_compare(chunk, context, bodies, params, cmp_op):
     "utility function used by @eq, @gt, etc."
     params = params or {}
+    select_state = _get_select_state(context) or {}
+    will_resolve = False
+    if (select_state.get('is_resolved')
+        and not select_state.get('is_deferred_pending')):
+        return chunk
     try:
         body = bodies['block']
-        key = params['key']
-        value = params['value']
-        typestr = params.get('type')
     except KeyError:
         context.env.log('warn', 'helper.compare',
-                        'comparison missing key/value')
+                        'comparison missing body')
+        return chunk
+    key = params.get('key') or select_state.get('key')
+    value = params.get('value')
+    typestr = params.get('type') or select_state.get('type')
+    if key is None or value is None:
+        context.env.log('warn', 'helper.compare',
+                        'comparison missing key or value')
         return chunk
     rkey = _resolve_value(key, chunk, context)
     if not typestr:
@@ -1153,7 +1162,12 @@ def _do_compare(chunk, context, bodies, params, cmp_op):
     rvalue = _resolve_value(value, chunk, context)
     crkey, crvalue = _coerce(rkey, typestr), _coerce(rvalue, typestr)
     if isinstance(crvalue, type(crkey)) and cmp_op(crkey, crvalue):
-        return chunk.render(body, context)
+        if not select_state.get('is_pending'):
+            will_resolve = True
+            select_state['is_deferred_pending'] = True
+        chunk = chunk.render(body, context)
+        if will_resolve:
+            select_state['is_resolved'] = True
     elif 'else' in bodies:
         return chunk.render(bodies['else'], context)
     return chunk
@@ -1199,6 +1213,7 @@ def _coerce(value, typestr):
 
 
 def _make_compare_helpers():
+    # TODO: update for select stuff
     from functools import partial
     from operator import eq, ne, lt, le, gt, ge
     CMP_MAP = {'eq': eq, 'ne': ne, 'gt': gt, 'lt': lt, 'gte': ge, 'lte': le}
@@ -1208,13 +1223,115 @@ def _make_compare_helpers():
     return ret
 
 
+def _add_select_state(context, state):
+    head = context.stack.head
+    new_context = context.rebase(head)
+
+    if context.stack and context.stack.tail:
+        new_context.stack = context.stack.tail
+
+    state = dict(state)
+    state.update(is_deferred_pending=False,
+                 is_deferred_complete=False,
+                 is_resolved=False,
+                 deferreds=[])
+    ret = (new_context
+           .push({'__select__': state})
+           .push(head, context.stack.index, context.stack.of))
+    return ret
+
+
+def _get_select_state(context):
+    if context.stack.tail and context.stack.tail.head:
+        state = context.stack.tail.head.get('__select__')
+        if state:
+            return state
+    return None
+
+
+def _resolve_select_deferreds(state):
+    state['is_deferred_pending'] = True
+    if state['deferreds']:
+        state['is_deferred_complete'] = True
+        for deferred in state['deferreds']:
+            deferred()
+    state['is_deferred_pending'] = False
+
+
+def select_helper(chunk, context, bodies, params):
+    state, body, key = {}, bodies.get('block'), params.get('key')
+    if not body:
+        context.env.log('warn', 'helper.select', 'missing body')
+        return chunk
+
+    state['key'] = context.get(key) if key else None
+    state['type'] = params.get('type')
+
+    context = _add_select_state(context, state)
+    chunk = chunk.render(body, context)
+    _resolve_select_deferreds(_get_select_state(context))
+
+    return chunk
+
+
+def any_helper(chunk, context, bodies, params):
+    state = _get_select_state(context)
+    if not state:
+        context.env.log('error', 'any_helper',
+                        '{@any} must be used inside {@select} block')
+        return chunk
+    elif state.get('is_deferred_complete'):
+        context.env.log('error', 'any_helper',
+                        '{@any} must not be nested inside {@any} / {@none}')
+        return chunk
+
+    def _push_render_any(chunk):
+        def _render_any():
+            if state['is_resolved']:
+                _chunk = chunk.render(bodies['block'], context)
+                _chunk.end()
+            else:
+                chunk.end()
+        state['deferreds'].append(_render_any)
+
+    ret_chunk = chunk.map(_push_render_any)
+    return ret_chunk
+
+
+def none_helper(chunk, context, bodies, params):
+    state = _get_select_state(context)
+    if not state:
+        context.env.log('error', 'none_helper',
+                        '{@none} must be used inside {@select} block')
+        return chunk
+    elif state.get('is_deferred_complete'):
+        context.env.log('error', 'none_helper',
+                        '{@none} must not be nested inside {@any} / {@none}')
+        return chunk
+
+    def _push_render_none(chunk):
+        def _render_none():
+            if not state['is_resolved']:
+                _chunk = chunk.render(bodies['block'], context)
+                _chunk.end()
+            else:
+                chunk.end()
+        state['deferreds'].append(_render_none)
+
+    ret_chunk = chunk.map(_push_render_none)
+    return ret_chunk
+
+
 DEFAULT_HELPERS = {'first': first_helper,
                    'last': last_helper,
                    'sep': sep_helper,
                    'idx': idx_helper,
                    'idx_1': idx_1_helper,
                    'size': size_helper,
-                   'iterate': iterate_helper}
+                   'iterate': iterate_helper,
+                   'select': select_helper,
+                   'any': any_helper,
+                   'none': none_helper}
 DEFAULT_HELPERS.update(_make_compare_helpers())
 
 
@@ -2485,6 +2602,22 @@ def _main():
     ashes.autoescape_filter = ''
     ashes.register_source('nested_lists', tmpl)
     print(ashes.render('nested_lists', [[1, 2], [3, 4]]))
+
+    tmpl = '''\
+    name:
+    {@select key="name"}
+    {@eq value="ibnsina"} chetori{/eq}
+    {@eq value="nasreddin"} dorood{/eq}
+    {@any}, yes!{/any}
+    {@none} Can't win 'em all.{/none}
+    {/select}
+    '''
+    ashes.keep_whitespace = False
+    ashes.autoescape_filter = ''
+    ashes.register_source('basic_select', tmpl)
+    print(ashes.render('basic_select', {'name': 'ibnsina'}))
+    print(ashes.render('basic_select', {'name': 'nasreddin'}))
+    print(ashes.render('basic_select', {'name': 'nope'}))
 
 
 class CLIError(ValueError):
