@@ -42,6 +42,24 @@ class iter_dicts(AshesTest):
     rendered = '(c:carotene)(b:beta)(a:alpha)'
 
 
+class select_no_body(AshesTest):
+    template = '{@select key="foo"/}'
+    json_context = '{}'
+    rendered = ''
+
+
+class select_const_eq(AshesTest):
+    template = '{@select key="foo"}{@eq value="foo"}foo{/eq}{/select}'
+    json_context = '{}'
+    rendered = ''
+
+
+class select_var_eq(AshesTest):
+    template = '{@select key="foo"}{@eq value=10}foobar{/eq}{/select}'
+    json_context = '{"foo": 10}'
+    rendered = 'foobar'
+
+
 class EnvDefaultsTest(unittest.TestCase):
     def setUp(self):
         self.env = ashes.AshesEnv(defaults={'baz': 3})

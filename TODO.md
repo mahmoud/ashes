@@ -9,6 +9,7 @@
 * keep track of unresolved symbols and proffer a blank schema for
   introspection/convenience?
 * More robust URL helpers
+* Add log checking to tests
 
 # Notes
  * Javascript implicitly disregards extra arguments passed
