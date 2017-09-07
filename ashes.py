@@ -817,7 +817,8 @@ class Compiler(object):
         pr_name = node[1][1]
         pragma = self.env.pragmas.get(pr_name)
         if not pragma or not callable(pragma):
-            return ''  # TODO: raise?
+            self.env.log('error', 'pragma', 'missing pragma: %s' % pr_name)
+            return ''
         raw_bodies = node[4]
         bodies = {}
         for rb in raw_bodies[1:]:
@@ -1213,7 +1214,6 @@ def _coerce(value, typestr):
 
 
 def _make_compare_helpers():
-    # TODO: update for select stuff
     from functools import partial
     from operator import eq, ne, lt, le, gt, ge
     CMP_MAP = {'eq': eq, 'ne': ne, 'gt': gt, 'lt': lt, 'gte': ge, 'lte': le}

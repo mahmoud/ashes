@@ -1,23 +1,14 @@
 # TODO
 
- * helpers for .keys(), .values(), .items()
- * helper for key access
- * remove unnecessary callback dynamics
- * stop using dicts to get around javascript's array behavior
-   (assignments to indexes > len(x) autocreate undefined elements)
- * docs, of course
- * more tests (corner cases, negative cases, larger pages)
- * benchin'
-   * `__slots__`?
- * keep track of unresolved symbols and proffer a blank schema for
-   introspection/convenience?
- * nosetests
-
-* CLI usage:
-  * `ashes --whitespace-option path/to/template.html:path/to/model.json`
-  * `ashes path/to/template/to/validate`
-
-* URL escaping, are hashes supposed to be filtered?
+* remove unnecessary callback dynamics
+* stop using dicts to get around javascript's array behavior
+  (assignments to indexes > len(x) autocreate undefined elements)
+* docs, of course
+* more tests (corner cases, negative cases, larger pages)
+* `__slots__`?
+* keep track of unresolved symbols and proffer a blank schema for
+  introspection/convenience?
+* More robust URL helpers
 
 # Notes
  * Javascript implicitly disregards extra arguments passed
