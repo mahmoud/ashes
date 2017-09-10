@@ -63,8 +63,9 @@ def get_test_results(test_cases, raise_on=None):
             env.register(Template(tc.name, tc.template, env=env, lazy=True))
     for tc in test_cases:
         if issubclass(tc, AshesTest):
-            raise_exc = (tc.name == raise_on)
-            ret.append(tc.get_test_result(env, raise_exc=raise_exc))
+            raise_exc = raise_on if raise_on is True else (tc.name == raise_on)
+            res = tc.get_test_result(env, raise_exc=raise_exc)
+            ret.append(res)
     return ret
 
 
@@ -106,7 +107,9 @@ def get_single_report(name, op=None, verbose=None, debug=None):
         return
 
     if debug:
-        raise_on = test.name
+        raise_on = test.name if test.name else True
+        print(raise_on)
+        return
 
     try:
         tres = get_test_results([test], raise_on)[0]
@@ -181,13 +184,21 @@ def main(width=DEFAULT_WIDTH):
             for test_mod in ALL_TEST_MODULES:
                 title = getattr(test_mod, 'heading', '')
                 _tests = get_sorted_tests(test_mod)
-                test_results = get_test_results(_tests)
+                raise_on = True if args.debug else False
+                try:
+                    test_results = get_test_results(_tests, raise_on=raise_on)
+                except Exception:
+                    if args.debug:
+                        import pdb;pdb.post_mortem()
+                    raise
                 grid = get_grid(test_results, title)
                 if grid:
                     print(test_mod)
                     print(grid)
         else:
-            single_rep = get_single_report(name, args.op, args.verbose, args.debug)
+            single_rep = get_single_report(name, args.op,
+                                           verbose=args.verbose,
+                                           debug=args.debug)
             if single_rep:
                 print(single_rep)
     # do we have unittests?
