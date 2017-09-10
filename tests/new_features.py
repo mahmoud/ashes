@@ -60,6 +60,42 @@ class select_var_eq(AshesTest):
     rendered = 'foobar'
 
 
+class select_var_lt(AshesTest):
+    template = '{@select key="foo"}{@lt value=20}foobar{/lt}{/select}'
+    json_context = '{"foo": 10}'
+    rendered = 'foobar'
+
+
+class select_var_2_eq(AshesTest):
+    template = ('{@select key="foo"}'
+                '{@eq value="bar"}foobar{/eq}{@eq value="baz"}foobaz{/eq}'
+                '{/select}')
+    json_context = '{"foo": "baz"}'
+    rendered = 'foobaz'
+
+
+class select_var_2_var_eq(AshesTest):
+    template = ('{@select key=test type="string"}'
+                '{@eq value="{y}"}<div>FOO</div>{/eq}'
+                '{@eq value="{x}"}<div>BAR</div>{/eq}'
+                '{/select}')
+    json_context = {"test": 42, "y": 42, "x": "bar"}
+    rendered = ''  # TODO: this should be '<div>FOO</div>'
+    # TODO (cont.) but we don't support subtemplating in this manner "{x}"
+
+
+class select_var_3_default(AshesTest):
+    template = ('{@select key=foo}'
+                '{@eq value="bar"}foobar{/eq}'
+                '{@eq value="baz"}foobaz{/eq}'
+                '{@eq value="foobar"}foofoobar{/eq}'
+                '{@none value="foo"}foofoo{/none}'
+                '{/select}')
+    json_context = {"foo": "foo"},
+    rendered = "foofoo"
+
+
+
 class EnvDefaultsTest(unittest.TestCase):
     def setUp(self):
         self.env = ashes.AshesEnv(defaults={'baz': 3})
