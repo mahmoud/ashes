@@ -95,6 +95,15 @@ class select_var_3_default(AshesTest):
     rendered = "foofoo"
 
 
+class select_var_no_key(AshesTest):
+    template = ('{#b}{@select}'
+                '{@eq key=x value=z}FOO{/eq}'
+                '{@eq key=x value=x}BAR{/eq}'
+                '{@none}foofoo{/none}'
+                '{/select}{/b}')
+    json_context = '{"b": {"z": "foo", "x": "bar"}}'
+    rendered = 'BAR'
+
 
 class EnvDefaultsTest(unittest.TestCase):
     def setUp(self):

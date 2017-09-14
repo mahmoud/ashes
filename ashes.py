@@ -1259,13 +1259,14 @@ def _resolve_select_deferreds(state):
 
 
 def select_helper(chunk, context, bodies, params):
-    state, body, key = {}, bodies.get('block'), params.get('key')
+    state, body = {}, bodies.get('block')
     if not body:
         context.env.log('warn', 'helper.select', 'missing body')
         return chunk
+    key = params.get('key') if params else None
 
     state['key'] = context.get(key) if key else None
-    state['type'] = params.get('type')
+    state['type'] = params.get('type') if params else None
 
     context = _add_select_state(context, state)
     chunk = chunk.render(body, context)
@@ -1941,9 +1942,7 @@ class Template(object):
         if lazy:  # lazy is only for testing
             self.render_func = None
             return
-        (render_code,
-         self.render_func
-         ) = self._get_render_func(optimize)
+        (render_code, self.render_func) = self._get_render_func(optimize)
         if not keep_source:
             self.source = None
 
