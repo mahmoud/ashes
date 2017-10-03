@@ -1153,7 +1153,8 @@ def _do_compare(chunk, context, bodies, params, cmp_op):
     key = params.get('key') or select_state.get('key')
     value = params.get('value')
     typestr = params.get('type') or select_state.get('type')
-    if key is None or value is None:
+    if ((key is None and 'key' not in params and 'key' not in select_state)
+        or value is None and 'value' not in params):
         context.env.log('warn', 'helper.compare',
                         'comparison missing key or value')
         return chunk
@@ -1162,6 +1163,7 @@ def _do_compare(chunk, context, bodies, params, cmp_op):
         typestr = _COERCE_REV_MAP.get(type(rkey), 'string')
     rvalue = _resolve_value(value, chunk, context)
     crkey, crvalue = _coerce(rkey, typestr), _coerce(rvalue, typestr)
+    print crkey, crvalue
     if isinstance(crvalue, type(crkey)) and cmp_op(crkey, crvalue):
         if not select_state.get('is_pending'):
             will_resolve = True
@@ -1264,7 +1266,7 @@ def select_helper(chunk, context, bodies, params):
         context.env.log('warn', 'helper.select', 'missing body')
         return chunk
     key = params.get('key') if params else None
-
+    print key
     state['key'] = context.get(key) if key else None
     state['type'] = params.get('type') if params else None
 

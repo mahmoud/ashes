@@ -105,6 +105,44 @@ class select_var_no_key(AshesTest):
     rendered = 'BAR'
 
 
+# class select_var_key_path(AshesTest):
+#    template = ('{@select key=x.key}{@eq value=10}foobar{/eq}{/select}')
+#    json_context = '{"x": {"key": 10}}'
+#    rendered = 'foobar'
+
+class select_undefined_key(AshesTest):
+    template = ('{#b}{@select key=y}'
+                '{@eq value=z}FOO{/eq}'
+                '{@eq value=x}BAR{/eq}'
+                '{@none}foofoo{/none}'
+                '{/select}{/b}')
+    json_context = '{"b": {"z": "foo", "x": "bar"}}'
+    rendered = 'foofoo'
+
+
+class select_bool_coerce(AshesTest):
+    template = ('{@select key=not_there}'
+                '{@eq value="true" type="boolean"}all the messages{/eq}'
+                '{@eq value="false" type="boolean"}no messages{/eq}'
+                '{/select}')
+    json_context = '{}'
+    rendered = 'no messages'
+
+
+#class select_inside_loop(AshesTest):
+#    template = ("{#skills}{@select key=.}"
+#                '{@eq value="c"}C, {/eq}'
+#                "{@eq value=\"python\"}python, {/eq}"
+#                "{@none}{.|ppjson|s} {/none}"
+#                "{/select}{/skills}")
+#    json_context = '{"skills": ["c", "python", "and more"]}'
+#    rendered = "C, python, and more"
+#
+# TODO: issue with above is that key should be "{.}". in select_helper
+# params.get("key") is the resolved value, and it's not clear that the
+# value isn't itself a key in the context.
+
+
 class EnvDefaultsTest(unittest.TestCase):
     def setUp(self):
         self.env = ashes.AshesEnv(defaults={'baz': 3})
