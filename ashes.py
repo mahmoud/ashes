@@ -1003,7 +1003,7 @@ JSON_PP_INDENT = 2
 def ppjson_filter(val):
     "A best-effort pretty-printing filter, based on the JSON module"
     try:
-        return json.dumps(val, indent=JSON_PP_INDENT, sort_keys=True)
+        return json.dumps(val, indent=JSON_PP_INDENT, sort_keys=True, default=unicode)
     except TypeError:
         return to_unicode(val)
 
