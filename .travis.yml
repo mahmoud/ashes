@@ -1,8 +1,63 @@
+group: travis_latest
+dist: xenial  # required for Python >= 3.7 (travis-ci/travis-ci#9069)
 language: python
+cache: pip
 python:
-  - "2.6"
-  - "2.7"
-  - "3.3"
-  - "3.4"
-
-script: python run_tests.py
+  - 2.7
+  #- 3.4
+  #- 3.5
+  #- 3.6
+  - 3.7
+matrix:
+  allow_failures:
+    - python: 2.7
+env:
+    - REPO=mahmoud/Programming-Problem-Solutions
+    - REPO=mahmoud/ashes  # has .travis.yml file
+    - REPO=mahmoud/awesome-python-applications
+    - REPO=mahmoud/boltons  # has .travis.yml file
+    - REPO=mahmoud/briefings
+    - REPO=mahmoud/chert
+    - REPO=mahmoud/clastic
+    - REPO=mahmoud/erosion
+    - REPO=mahmoud/espymetrics
+    - REPO=mahmoud/etavta
+    - REPO=mahmoud/face
+    - REPO=mahmoud/glom  # has .travis.yml file
+    - REPO=mahmoud/grumblr
+    - REPO=mahmoud/hematite
+    - REPO=mahmoud/ipynb-ftw
+    - REPO=mahmoud/lithoxyl
+    - REPO=mahmoud/passage
+    - REPO=mahmoud/picritic
+    - REPO=mahmoud/python-iso3166
+    - REPO=mahmoud/python-packaging-user-guide  # has .travis.yml file
+    - REPO=mahmoud/sky
+    - REPO=mahmoud/socklusion
+    - REPO=mahmoud/spyce
+    - REPO=mahmoud/strata
+    - REPO=mahmoud/tectonic
+    - REPO=mahmoud/tls  # has .travis.yml file
+    - REPO=mahmoud/twisted
+    - REPO=mahmoud/ufork
+    - REPO=mahmoud/wapiti
+    - REPO=mahmoud/warehouse  # has .travis.yml file
+    
+install:
+  #- pip install -r requirements.txt
+  - pip install flake8  # pytest  # add other testing frameworks later
+before_script:
+  - URL=https://github.com/${REPO}
+  - echo ; echo -n "flake8 testing of ${URL} on " ; python -V
+  - git clone --depth=50 ${URL} ~/${REPO}  # --branch=master
+  - cd ~/${REPO}
+script:
+  - echo stop the build if there are Python syntax errors or undefined names
+  - echo ; echo -n "flake8 testing of ${URL} on " ; python -V
+  - time flake8 . --count --select=E901,E999,F821,F822,F823 --show-source --statistics
+  - echo exit-zero treats all errors as warnings.  The GitHub editor is 127 chars wide
+  - time flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+  #- true  # pytest --capture=sys
+notifications:
+  on_success: change
+  on_failure: change  # `always` will be the setting once code changes slow down
