@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import os
 import re
-import cgi
 import sys
 import json
 import codecs
@@ -15,6 +14,10 @@ import string
 import fnmatch
 import time
 
+try:
+    from html import escape as html_escape
+except ImportError:
+    from cgi import escape as html_escape
 
 PY3 = (sys.version_info[0] == 3)
 if PY3:
@@ -963,7 +966,7 @@ def escape_html(text):
     text = to_unicode(text)
     # TODO: dust.js doesn't use this, but maybe we should:
     # .replace("'", '&squot;')
-    return cgi.escape(text, True)
+    return html_escape(text, True)
 
 
 def escape_js(text):
