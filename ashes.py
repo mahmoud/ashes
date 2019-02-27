@@ -8,26 +8,24 @@ import os
 import re
 import sys
 import json
+import time
 import codecs
 import pprint
 import string
 import fnmatch
-import time
 
-try:
-    from html import escape as html_escape
-except ImportError:
-    from cgi import escape as html_escape
 
 PY3 = (sys.version_info[0] == 3)
 if PY3:
     unicode, string_types = str, (str, bytes)
+    from html import escape as html_escape
 else:
     string_types = (str, unicode)
+    from cgi import escape as html_escape
 
-__version__ = '17.0.1dev'
+__version__ = '19.2.0'
 __author__ = 'Mahmoud Hashemi'
-__contact__ = 'mahmoudrhashemi@gmail.com'
+__contact__ = 'mahmoud@hatnote.com'
 __url__ = 'https://github.com/mahmoud/ashes'
 __license__ = 'BSD'
 
