@@ -6,7 +6,7 @@ Ashes
 <a href="https://pypi.python.org/pypi/ashes"><img src="https://img.shields.io/pypi/v/ashes.svg"></a>
 <a href="http://calver.org"><img src="https://img.shields.io/badge/calver-YY.MINOR.MICRO-22bfda.svg"></a>
 
-[Dust](http://akdubya.github.com/dustjs/) templating for Python 2 and 3.
+[Dust](https://www.dustjs.com/) templating for Python 2 and 3.
 Also the most convenient, portable, and powerful [command-line
 templating utility](#command-line-interface).
 
