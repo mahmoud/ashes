@@ -50,7 +50,7 @@ node_re = re.compile(r'({'
 
 key_re_str = '[a-zA-Z_$][0-9a-zA-Z_$]*'
 key_re = re.compile(key_re_str)
-path_re = re.compile('(' + key_re_str + ')?(\.' + key_re_str + ')+')
+path_re = re.compile('(' + key_re_str + ')?([.]' + key_re_str + ')+')
 comment_re = re.compile(r'(\{!.+?!\})|(\{`.+?`\})', flags=re.DOTALL)
 
 
@@ -947,7 +947,7 @@ def escape_uri_path(text, to_bytes=True):
         bytestr = text.encode('utf-8')
     except UnicodeDecodeError:
         bytestr = text
-    except:
+    except Exception:
         raise ValueError('expected text or UTF-8 encoded bytes, not %r' % text)
     return ''.join([_PATH_QUOTE_MAP[b] for b in bytestr])
 
@@ -991,10 +991,10 @@ def comma_num(val):
 def pp_filter(val):
     try:
         return pprint.pformat(val)
-    except:
+    except Exception:
         try:
             return repr(val)
-        except:
+        except Exception:
             return 'unreprable object %s' % object.__repr__(val)
 
 
@@ -1072,7 +1072,7 @@ def _sort_iterate_items(items, sort_key, direction):
     else:
         try:
             sort_key = int(sort_key)
-        except:
+        except Exception:
             sort_key = 0
     return sorted(items, key=lambda x: x[sort_key], reverse=reverse)
 
@@ -1088,19 +1088,19 @@ def iterate_helper(chunk, context, bodies, params):
         return chunk
     try:
         iter(target)
-    except:
+    except Exception:
         context.env.log('warn', 'helper.iterate', 'non-iterable target')
         return chunk
     try:
         items = target.items()
         is_dict = True
-    except:
+    except Exception:
         items = target
         is_dict = False
     if sort:
         try:
             items = _sort_iterate_items(items, sort_key, direction=sort)
-        except:
+        except Exception:
             context.env.log('warn', 'helper.iterate', 'failed to sort target')
             return chunk
     if is_dict:
@@ -1115,12 +1115,12 @@ def iterate_helper(chunk, context, bodies, params):
         for values in items:
             try:
                 key = values[0]
-            except:
+            except Exception:
                 key, value = None, None
             else:
                 try:
                     value = values[1]
-                except:
+                except Exception:
                     value = None
             new_scope = {'$key': key,
                          '$value': value,
@@ -1613,7 +1613,8 @@ class Chunk(object):
         "Writes data to this chunk's buffer"
         if self.taps:
             data = self.taps.go(data)
-        self._data.append(data)
+        if data:
+            self._data.append(data)
         return self
 
     def end(self, data=None):
@@ -1727,7 +1728,7 @@ class Chunk(object):
         else_body = bodies.get('else')
         if params:
             context = context.push(params)
-        if not elem and else_body and elem is not 0:
+        if not elem and else_body and (elem is False or elem != 0):
             # breaks with dust.js; dust.js doesn't render else blocks
             # on sections referencing empty lists.
             return else_body(self, context)
