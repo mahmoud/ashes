@@ -42,14 +42,14 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Ashes'
-copyright = u'2015, Mahmoud Hashemi'
+copyright = u'2024, Mahmoud Hashemi'
 author = u'Mahmoud Hashemi'
 
 # |version| and |release|
 # The short X.Y version.
-version = '0.1'
+version = '24.0'
 # The full version, including alpha/beta/rc tags.
-release = '0.1.0'
+release = '24.0.0'
 
 if os.name != 'nt':
     today_fmt = '%B %e, %Y'
@@ -62,7 +62,7 @@ exclude_patterns = ['_build']
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
 
-intersphinx_mapping = {'python': ('https://docs.python.org/2.7', None)}
+intersphinx_mapping = {'python': ('https://docs.python.org/3.10', None)}
 
 # -- Options for HTML output ----------------------------------------------
 
