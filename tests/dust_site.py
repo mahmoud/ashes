@@ -106,7 +106,7 @@ class Escaped(AshesTest):
     template = '{safe|s}{~n}{unsafe}'
     json_ast = '["body", ["reference", ["key", "safe"], ["filters", "s"]], ["special", "n"], ["reference", ["key", "unsafe"], ["filters"]]]'
     json_context = '{"safe": "<script>alert(\'Hello!\')</script>", "unsafe": "<script>alert(\'Goodbye!\')</script>"}'
-    rendered = "<script>alert('Hello!')</script>\n&lt;script&gt;alert('Goodbye!')&lt;/script&gt;"
+    rendered = "<script>alert('Hello!')</script>\n&lt;script&gt;alert(&#x27;Goodbye!&#x27;)&lt;/script&gt;"
 
 
 class Partials(AshesTest):
@@ -178,7 +178,7 @@ class EscapePragma(AshesTest):
     json_ast = r'["body",["%",["key","esc"],["context",["key","s"]],["params"],["bodies",["param",["literal","block"],["body",["format","\n","  "],["reference",["key","unsafe"],["filters"]],["special","n"],["format","\n","  "],["%",["key","esc"],["context",["key","h"]],["params"],["bodies",["param",["literal","block"],["body",["format","\n","    "],["reference",["key","unsafe"],["filters"]],["format","\n","  "]]]]],["format","\n",""]]]]]]'
     json_opt_ast = r'["body",["%",["key","esc"],["context",["key","s"]],["params"],["bodies",["param",["literal","block"],["body",["reference",["key","unsafe"],["filters"]],["buffer","\n"],["%",["key","esc"],["context",["key","h"]],["params"],["bodies",["param",["literal","block"],["body",["reference",["key","unsafe"],["filters"]]]]]]]]]]]'
     json_context = '{"unsafe": "<script>alert(\'Goodbye!\')</script>"}'
-    rendered = '''<script>alert('Goodbye!')</script>\n&lt;script&gt;alert('Goodbye!')&lt;/script&gt;'''
+    rendered = '''<script>alert('Goodbye!')</script>\n&lt;script&gt;alert(&#x27;Goodbye!&#x27;)&lt;/script&gt;'''
 
 
 class Intro(AshesTest):

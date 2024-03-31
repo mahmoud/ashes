@@ -962,9 +962,10 @@ def escape_uri_component(text):
 
 def escape_html(text):
     text = to_unicode(text)
-    # TODO: dust.js doesn't use this, but maybe we should:
-    # .replace("'", '&squot;')
-    return html_escape(text, True)
+    ret = html_escape(text, True)
+    if not PY3:
+        ret = ret.replace("'", '&#x27;')
+    return ret
 
 
 def escape_js(text):
