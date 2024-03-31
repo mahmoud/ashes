@@ -26,8 +26,8 @@ setup(
     url=__url__,
     description='Lightweight templating for Python (a la dust.js)',
     long_description=__doc__,
-    py_modules=('ashes',),
-    scripts=('ashes.py',),
+    py_modules=['ashes'],
+    scripts=['ashes.py'],
     platforms='any',
     entry_points={'console_scripts': ['ashes = ashes:main']},
     classifiers=[
