@@ -23,7 +23,7 @@ else:
     string_types = (str, unicode)
     from cgi import escape as html_escape
 
-__version__ = '24.0.0'
+__version__ = '24.0.1dev'
 __author__ = 'Mahmoud Hashemi'
 __contact__ = 'mahmoud@hatnote.com'
 __url__ = 'https://github.com/mahmoud/ashes'
