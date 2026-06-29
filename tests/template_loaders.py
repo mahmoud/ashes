@@ -123,7 +123,7 @@ class TestApiFunctions(unittest.TestCase):
         ashesEnv = ashes.AshesEnv(paths=self._SimpleFruitData.directory)
         for _fruit in self._SimpleFruitData.template_source.keys():
             _rendered = ashesEnv.render(_fruit, {})
-            self.assertEquals(_rendered, self._SimpleFruitData.renders_expected[_fruit])
+            self.assertEqual(_rendered, self._SimpleFruitData.renders_expected[_fruit])
 
     def test_TemplatePathLoader(self):
         """this tests an ashesEnv initialized with a `loaders=ashes.TemplatePathLoader()`"""
@@ -131,7 +131,7 @@ class TestApiFunctions(unittest.TestCase):
         ashesEnv = ashes.AshesEnv(loaders=(ashesLoader, ))
         for _fruit in self._SimpleFruitData.template_source.keys():
             _rendered = ashesEnv.render(_fruit, {})
-            self.assertEquals(_rendered, self._SimpleFruitData.renders_expected[_fruit])
+            self.assertEqual(_rendered, self._SimpleFruitData.renders_expected[_fruit])
 
     def test_template_init_source(self):
         """
@@ -142,7 +142,7 @@ class TestApiFunctions(unittest.TestCase):
             if _fruit not in self._SimpleFruitData.template_dependencies:
                 _template = ashes.Template(_fruit, self._SimpleFruitData.template_source[_fruit])
                 _rendered = _template.render({})
-                self.assertEquals(_rendered, self._SimpleFruitData.renders_expected[_fruit])
+                self.assertEqual(_rendered, self._SimpleFruitData.renders_expected[_fruit])
 
     def test_template_init_source_file(self):
         """
@@ -154,7 +154,7 @@ class TestApiFunctions(unittest.TestCase):
                 _source_file = os.path.join(self._SimpleFruitData.directory, _fruit)
                 _template = ashes.Template(_fruit, None, source_file=_source_file)
                 _rendered = _template.render({})
-                self.assertEquals(_rendered, self._SimpleFruitData.renders_expected[_fruit])
+                self.assertEqual(_rendered, self._SimpleFruitData.renders_expected[_fruit])
 
     def _helper_test_template_init__args(self, fruit, source_payload=None, source_classmethod=None):
         """helper class for _helper_test_template_init__args_* tests"""
@@ -163,7 +163,7 @@ class TestApiFunctions(unittest.TestCase):
         # can it render via classmethod?
         _template = source_classmethod(source_data)
         _rendered = _template.render({})
-        self.assertEquals(_rendered, self._SimpleFruitData.renders_expected[fruit])
+        self.assertEqual(_rendered, self._SimpleFruitData.renders_expected[fruit])
 
     def test_template_init_args_ast(self):
         """
@@ -210,13 +210,13 @@ class TestApiFunctions(unittest.TestCase):
             _template = ashesEnv.load(_fruit)
 
             _as_ast = _template.to_ast()
-            self.assertEquals(_as_ast, self._SimpleFruitData.compiled_template_data[_fruit]['ast'])
+            self.assertEqual(_as_ast, self._SimpleFruitData.compiled_template_data[_fruit]['ast'])
 
             _as_python_string = _template.to_python_string()
-            self.assertEquals(_as_python_string, self._SimpleFruitData.compiled_template_data[_fruit]['python_string'])
+            self.assertEqual(_as_python_string, self._SimpleFruitData.compiled_template_data[_fruit]['python_string'])
 
             _as_python_code = _template.to_python_code()
-            self.assertEquals(_as_python_code, self._SimpleFruitData.compiled_template_data[_fruit]['python_code'])
+            self.assertEqual(_as_python_code, self._SimpleFruitData.compiled_template_data[_fruit]['python_code'])
 
             # this will never equate, but it must run!
             _as_python_func = _template.to_python_func()
