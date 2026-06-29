@@ -33,6 +33,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           cache: pip
+          cache-dependency-path: setup.py
       - run: pip install coverage
       - run: coverage run run_tests.py --run_unittests
       - run: coverage xml
