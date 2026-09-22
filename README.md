@@ -55,13 +55,12 @@ docs](http://bottlepy.org/docs/dev/tutorial.html#templates), it'll be
 even dead-simpler, believe it or not.
 
 One last tip, use the `keep_whitespace` flag to determine whether or
-not to optimize away whitespace in the rendered template. It's a good
-idea to keep this disabled if you use JavaScript in your templated
-files, because occasionally a single-line comment (i.e., `// ...` can
-break your page.
+not to optimize away whitespace in the rendered template. Keep it enabled
+(the default) when templates contain JavaScript: removing line breaks can
+make a single-line comment (`// ...`) consume subsequent code.
 
 ```python
-ashes_env = AshesEnv(keep_whitespace=False)  # optimize away whitespace
+ashes_env = AshesEnv(keep_whitespace=True)  # preserve line breaks
 ```
 
 For more general information about the dust templating language, see
