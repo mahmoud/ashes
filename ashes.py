@@ -2671,7 +2671,10 @@ def _simple_render(template_path, template_literal, env_path_list,
     output_text = tmpl_obj.render(model)
     output_bytes = output_text.encode(output_encoding)
     if output_path == '-':
-        print(output_bytes)
+        if hasattr(sys.stdout, 'buffer'):
+            sys.stdout.buffer.write(output_bytes)
+        else:
+            sys.stdout.write(output_text if PY3 else output_bytes)
     else:
         with open(output_path, 'wb') as f:
             f.write(output_bytes)
