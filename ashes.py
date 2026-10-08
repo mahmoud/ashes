@@ -2693,7 +2693,7 @@ def main():
        help="disables default HTML-escaping filter, overrides --filter")
     ao('--trim-whitespace', action="store_true",
        help="removes whitespace on template load")
-    ao('-m', '--model', dest='model_path',
+    ao('-m', '--model', dest='model_path', default='-',
        help="path to the JSON model file, default - for stdin")
     ao('-M', '--model-literal',
        help="the literal string of the JSON model, overrides model")
