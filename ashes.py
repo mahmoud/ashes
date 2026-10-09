@@ -957,7 +957,9 @@ def escape_uri_component(text):
             .replace('/', '%2F')
             .replace('?', '%3F')
             .replace('=', '%3D')
-            .replace('&', '%26'))
+            .replace('&', '%26')
+            .replace(':', '%3A')
+            .replace('#', '%23'))
 
 
 def escape_html(text):
