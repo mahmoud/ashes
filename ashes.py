@@ -1152,7 +1152,7 @@ def _do_compare(chunk, context, bodies, params, cmp_op):
         context.env.log('warn', 'helper.compare',
                         'comparison missing body')
         return chunk
-    key = params.get('key') or select_state.get('key')
+    key = params.get('key', select_state.get('key'))
     value = params.get('value')
     typestr = params.get('type') or select_state.get('type')
     if ((key is None and 'key' not in params and 'key' not in select_state)
