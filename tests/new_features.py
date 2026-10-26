@@ -152,3 +152,22 @@ class EnvDefaultsTest(unittest.TestCase):
     def test_basic_defaults(self):
         res = self.env.render('basic_defaults_tmpl', {'foo': 1, 'bar': 2})
         assert res == '1 2 3 .'
+
+
+class ContextMissingPathTests(unittest.TestCase):
+    def test_missing_paths_do_not_return_falsey_parents(self):
+        for value in ({}, 0, False, '', [], None):
+            context = ashes.Context.wrap(ashes.AshesEnv(), {'user': value})
+            self.assertIsNone(context.get('user.name'))
+            template = ashes.Template('missing_path', 'before:{user.name}:after')
+            self.assertEqual(template.render({'user': value}), 'before::after')
+
+    def test_missing_paths_through_nonzero_scalars(self):
+        for value in (1, True, 'name'):
+            context = ashes.Context.wrap(ashes.AshesEnv(), {'user': value})
+            self.assertIsNone(context.get('user.name'))
+
+    def test_present_falsey_leaf_values_are_preserved(self):
+        for value in ({}, 0, False, '', [], None):
+            context = ashes.Context.wrap(ashes.AshesEnv(), {'user': {'name': value}})
+            self.assertIs(context.get('user.name'), value)

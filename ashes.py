@@ -1453,10 +1453,10 @@ class Context(object):
                     pass
 
             i = 1
-            while ctx and ctx is not UndefinedValue and i < length:
-                if down[i] in ctx:
+            while ctx is not UndefinedValue and i < length:
+                try:
                     ctx = ctx[down[i]]
-                else:
+                except (KeyError, IndexError, TypeError):
                     ctx = UndefinedValue
                 i += 1
 
