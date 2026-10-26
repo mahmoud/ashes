@@ -152,3 +152,16 @@ class EnvDefaultsTest(unittest.TestCase):
     def test_basic_defaults(self):
         res = self.env.render('basic_defaults_tmpl', {'foo': 1, 'bar': 2})
         assert res == '1 2 3 .'
+
+
+@unittest.skipUnless(hasattr(ashes, 'AshesBottleTemplate'), 'Bottle is not installed')
+class BottleAdapterTests(unittest.TestCase):
+    def test_render_inline_template(self):
+        template = ashes.AshesBottleTemplate(source='Hello, {name}!')
+        self.assertEqual(template.render(name='World'), 'Hello, World!')
+
+    def test_render_with_settings(self):
+        template = ashes.AshesBottleTemplate(source='Hello, {name}!',
+                                           name='greeting', optimize=False,
+                                           keep_source=True)
+        self.assertEqual(template.render({'name': 'World'}), 'Hello, World!')

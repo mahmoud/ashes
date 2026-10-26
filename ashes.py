@@ -2527,7 +2527,7 @@ if not os.getenv('ASHES_DISABLE_BOTTLE'):
                         options.setdefault(key, self.settings[key])
                 env = self.settings.get('env', default_env)
 
-                options = dict([(str(k), v) for k, v in options.iteritems()])
+                options = dict([(str(k), v) for k, v in options.items()])
                 self.tpl = env.register_source(**options)
 
             def _load_source(self, name):
