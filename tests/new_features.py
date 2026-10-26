@@ -1,6 +1,9 @@
 from __future__ import unicode_literals
 
 import unittest
+import os
+import subprocess
+import sys
 
 import ashes
 from .core import AshesTest
@@ -152,3 +155,36 @@ class EnvDefaultsTest(unittest.TestCase):
     def test_basic_defaults(self):
         res = self.env.render('basic_defaults_tmpl', {'foo': 1, 'bar': 2})
         assert res == '1 2 3 .'
+
+
+class RunnerExitStatusTests(unittest.TestCase):
+    def test_failure_exit_status(self):
+        for kind in ('unit', 'core', 'named'):
+            for fails in (False, True):
+                with self.subTest(kind=kind, fails=fails):
+                    script = """
+import sys
+import types
+import unittest
+import run_tests
+from tests import AshesTest
+module = types.ModuleType('controlled')
+if KIND == 'unit':
+    class Fixture(unittest.TestCase):
+        def runTest(self):
+            self.assertFalse(FAILS)
+    argv = ['--run_unittests', '--disable_core']
+else:
+    Fixture = type('Fixture', (AshesTest,), {
+        'template': 'actual', 'rendered': 'expected' if FAILS else 'actual'})
+    argv = ['--name', 'controlled.fixture'] if KIND == 'named' else []
+module.Fixture = Fixture
+run_tests.ALL_TEST_MODULES = [module]
+run_tests.tests.controlled = module
+sys.argv = ['run_tests.py'] + argv
+sys.exit(run_tests.main())
+""".replace('KIND', repr(kind)).replace('FAILS', repr(fails))
+                    result = subprocess.run([sys.executable, '-c', script],
+                                            cwd=os.path.dirname(os.path.dirname(__file__)),
+                                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    self.assertEqual(result.returncode, int(fails), result.stdout + result.stderr)

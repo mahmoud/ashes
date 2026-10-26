@@ -95,7 +95,7 @@ def get_grid(test_results, title, width=DEFAULT_WIDTH):
     return '\n'.join(lines + [''])
 
 
-def get_single_report(name, op=None, verbose=None, debug=None):
+def get_single_report(name, op=None, verbose=None, debug=None, results=None):
     raise_on = None
     mod_name, _, test_name = name.rpartition('.')
     test_module = getattr(tests, mod_name or 'dust_site')
@@ -119,6 +119,8 @@ def get_single_report(name, op=None, verbose=None, debug=None):
         pdb.post_mortem()
         raise
 
+    if results is not None:
+        results.append(tres)
     lines = []
     for op_name, result, result_ref, test_result in tres.results:
         if not verbose and (test_result is True or test_result == 'skipped'):
@@ -163,8 +165,14 @@ def parse_args():
     return prs.parse_args()
 
 
+def _has_failures(test_results):
+    return any(op.test_result is not True and op.test_result != 'skipped'
+               for result in test_results for op in result.results)
+
+
 def main(width=DEFAULT_WIDTH):
     args = parse_args()
+    failed = False
     name = args.name
 
     run_benchmarks = args.benchmark or False
@@ -191,14 +199,17 @@ def main(width=DEFAULT_WIDTH):
                     if args.debug:
                         import pdb;pdb.post_mortem()
                     raise
+                failed = _has_failures(test_results) or failed
                 grid = get_grid(test_results, title)
                 if grid:
                     print(test_mod)
                     print(grid)
         else:
+            single_results = []
             single_rep = get_single_report(name, args.op,
                                            verbose=args.verbose,
-                                           debug=args.debug)
+                                           debug=args.debug, results=single_results)
+            failed = not single_results or _has_failures(single_results) or failed
             if single_rep:
                 print(single_rep)
     # do we have unittests?
@@ -217,6 +228,7 @@ def main(width=DEFAULT_WIDTH):
             big_suite = unittest.TestSuite(suites_list)
             runner = unittest.TextTestRunner(verbosity=3)
             results = runner.run(big_suite)
+            failed = not results.wasSuccessful() or failed
     # toggled!
     if run_benchmarks:
         import tests
@@ -230,5 +242,8 @@ def main(width=DEFAULT_WIDTH):
         filename_stats = 'stats-%s.csv' % time.time()
         tests.utils_profiling.profile_function(tests.benchmarks.bench_render_repeat, filename_stats)
 
+    return int(failed)
+
+
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
