@@ -5,6 +5,7 @@ These utilities are designed for incorporation into tests
 
 # stdlib
 import os
+import io
 import codecs
 import json
 import operator
@@ -48,7 +49,8 @@ class _SimpleFruitDefaults(object):
         for _fname in _files_html:
             _fpath = os.path.join(_simple_fruit_dir, _fname)
             _fname_adjusted = _fname[:-5]  # strip off the .html
-            _renders_expected[_fname_adjusted] = codecs.open(_fpath, 'r', 'utf-8').read()
+            with io.open(_fpath, 'r', encoding='utf-8') as expected_file:
+                _renders_expected[_fname_adjusted] = expected_file.read()
 
         self.directory = _simple_fruit_dir
         self.template_source = _template_source
